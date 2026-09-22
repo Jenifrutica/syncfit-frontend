@@ -42,6 +42,24 @@ syncfit-frontend/
 
 TypeScript, Next.js, React, Tailwind CSS, HTML5 Canvas, D3.js.
 
+## Tasks
+
+> **Language: TypeScript (mandatory).** The frontend is written in TypeScript with strict typing; no plain JavaScript files.
+
+### Requirements
+
+- [ ] Scaffold the Next.js + React + Tailwind CSS project in TypeScript.
+- [ ] Implement the dual-modality selector (menstrual cycle / pregnancy).
+- [ ] Implement the real-time pulse-wave visualization (HTML5 Canvas / D3.js).
+- [ ] Implement the real-time dynamometry visualization.
+- [ ] Implement the adaptive routine matrix (original, blocked, substitute, adapted sets/reps/weight).
+- [ ] Implement the WebSocket client typed from `syncfit-contracts`.
+- [ ] Consume the generated TypeScript types and Zod validators from `syncfit-contracts`.
+- [ ] Implement the **Rolling Ring Buffer** for the real-time canvas.
+- [ ] Ensure accessibility and responsive layout.
+- [ ] Write component and end-to-end tests.
+- [ ] Provide a Dockerfile consumable by `syncfit-infra`.
+
 ## Related repositories
 
 - [`syncfit-contracts`](../syncfit-contracts) — generated types and WS protocol.
