@@ -1,8 +1,38 @@
-/** Minimal API client for the SyncFit Edge backend. */
+/** API client for the SyncFit Edge backend. */
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export const WS_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/api/v1/ws/telemetry";
+
+export type Language = "EN" | "ES" | "ZH";
+
+export const ISOLATED_GROUPS = [
+  "GLUTES",
+  "QUADRICEPS",
+  "HAMSTRINGS",
+  "CALVES",
+  "ABS",
+  "OBLIQUES",
+  "BACK",
+  "LATS",
+  "CHEST",
+  "SHOULDERS",
+  "BICEPS",
+  "TRICEPS",
+  "FOREARMS",
+] as const;
+
+export const GENERAL_GROUPS = [
+  "UPPER_BODY",
+  "LOWER_BODY",
+  "FULL_BODY",
+  "CORE",
+  "FULL_LEG",
+] as const;
+
+export type MuscleGroup = (typeof ISOLATED_GROUPS)[number] | (typeof GENERAL_GROUPS)[number];
+
+export type LocalizedText = Record<string, string>;
 
 export interface Decision {
   phase_inferred: string;
@@ -24,6 +54,33 @@ export interface TelemetryFrame {
     isometric_force_loss_pct: number;
   };
   ppg_window: { sample_rate_hz: number; window_size: number; samples: number[] };
+}
+
+export interface RoutineEntry {
+  exercise_original: string;
+  blocked: boolean;
+  block_reason: string;
+  exercise_substitute: string;
+  series_adapted: number;
+  reps_adapted: number;
+  weight_suggested_kg: number;
+  exercise_id?: string;
+  muscle_groups?: string[];
+  impact?: string;
+  description?: LocalizedText;
+  image_url?: string;
+  media_url?: string | null;
+}
+
+export interface RoutineResponse {
+  schema_version: string;
+  language: Language;
+  muscle_groups: string[];
+  phase_inferred?: string | null;
+  fatigue_level?: string | null;
+  k_load_multiplier?: number | null;
+  alerts: string[];
+  routine: RoutineEntry[];
 }
 
 export const SAMPLE_FRAME: TelemetryFrame = {
@@ -64,4 +121,38 @@ export async function sendTelemetry(frame: TelemetryFrame): Promise<Decision> {
   }
   const data = (await response.json()) as { decision: Decision };
   return data.decision;
+}
+
+export async function getMuscleGroups(): Promise<string[]> {
+  const response = await fetch(`${API_URL}/api/v1/muscle-groups`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`muscle groups failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function generateRoutine(
+  muscleGroups: string[],
+  language: Language,
+  options: { engine?: "simulator" | "ai"; withTelemetry?: boolean } = {},
+): Promise<RoutineResponse> {
+  const engine = options.engine ?? "simulator";
+  const body: Record<string, unknown> = {
+    schema_version: "1.1.0",
+    muscle_groups: muscleGroups,
+    language,
+    exercises_per_group: 2,
+  };
+  if (options.withTelemetry) {
+    body.telemetry = SAMPLE_FRAME;
+  }
+  const response = await fetch(`${API_URL}/api/v1/routines?engine=${engine}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`routine failed: ${response.status}`);
+  }
+  return response.json();
 }
