@@ -487,6 +487,9 @@ export interface MyProfile {
   goal_phase?: string;
   modality?: string;
   available_machines?: string[];
+  current_supplements?: string[];
+  weight_unit?: string;
+  photo_url?: string;
   weekly_training_goal?: number;
   rest_days_allowance?: number;
   last_period_date?: string;
@@ -543,3 +546,68 @@ export async function capture(path?: string): Promise<CaptureResult> {
   return response.json();
 }
 
+
+
+export type ShareRole = "TRAINER" | "COACH" | "PARTNER" | "FRIEND" | "FAMILY" | "OTHER";
+
+export type SharePermission =
+  | "PROFILE"
+  | "ROUTINE"
+  | "CALENDAR"
+  | "PROGRESS"
+  | "SUPPLEMENTS"
+  | "MACHINES"
+  | "LOADS";
+
+export interface ShareLinkInfo {
+  token: string;
+  role: ShareRole;
+  label?: string | null;
+  permissions: SharePermission[];
+  active: boolean;
+}
+
+export async function createShare(
+  role: ShareRole,
+  permissions: SharePermission[],
+  label?: string,
+): Promise<ShareLinkInfo> {
+  const response = await fetch(`${API_URL}/api/v1/shares`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ role, permissions, label }),
+  });
+  if (!response.ok) throw new Error(`share failed: ${response.status}`);
+  return response.json();
+}
+
+export async function listShares(): Promise<ShareLinkInfo[]> {
+  const response = await fetch(`${API_URL}/api/v1/shares`, { headers: authHeaders() });
+  if (!response.ok) throw new Error(`shares failed: ${response.status}`);
+  return response.json();
+}
+
+export async function deleteShare(token: string): Promise<void> {
+  await fetch(`${API_URL}/api/v1/shares/${token}`, { method: "DELETE", headers: authHeaders() });
+}
+
+export interface SharedProfile {
+  owner_display_name: string;
+  owner_photo_url?: string | null;
+  role: ShareRole;
+  permissions: SharePermission[];
+  updated_at?: string;
+  profile?: Record<string, unknown> | null;
+  timeline?: Record<string, unknown> | null;
+  routine?: Record<string, unknown> | null;
+  calendar?: Record<string, unknown> | null;
+  machines?: string[] | null;
+  loads?: Record<string, unknown>[] | null;
+  supplements?: Record<string, unknown>[] | null;
+}
+
+export async function getShared(token: string): Promise<SharedProfile> {
+  const response = await fetch(`${API_URL}/api/v1/shared/${token}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`shared profile failed: ${response.status}`);
+  return response.json();
+}
