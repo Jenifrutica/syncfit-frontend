@@ -591,20 +591,44 @@ export default function HomePage() {
                 );
               })}
             </div>
+            <div className="mt-3">
+              <span className="text-sm font-medium text-slate-700">Dolor general (1-10 flores)</span>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+                  const level = (profile.pain_levels ?? {})["OVERALL"] ?? 0;
+                  return (
+                    <button
+                      key={n}
+                      title={`${n}/10`}
+                      onClick={() => saveProfile({ pain_levels: { ...(profile.pain_levels ?? {}), OVERALL: level === n ? 0 : n } })}
+                      className={`transition ${n <= level ? "scale-110 text-pink-500" : "text-pink-300 hover:text-pink-400"}`}
+                    >
+                      <Flower size={22} />
+                    </button>
+                  );
+                })}
+                <span className="ml-1 text-xs text-slate-500">{(profile.pain_levels ?? {})["OVERALL"] ?? 0}/10</span>
+              </div>
+            </div>
             {(profile.symptoms ?? []).map((sid) => {
               const level = (profile.pain_levels ?? {})[sid] ?? 0;
               const symptom = symptoms.find((x) => x.id === sid);
               return (
-                <div key={sid} className="mt-2 flex items-center gap-2 text-sm">
-                  <span className="min-w-[7rem] text-slate-600">{symptom?.name ?? sid}</span>
-                  <div className="flex gap-0.5">
+                <div key={sid} className="mt-3">
+                  <span className="text-sm text-slate-600">{symptom?.name ?? sid}</span>
+                  <div className="flex items-center gap-1">
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                      <button key={n} onClick={() => saveProfile({ pain_levels: { ...(profile.pain_levels ?? {}), [sid]: n } })} title={`${n}/10`} className={n <= level ? "text-pink-500" : "text-pink-200"}>
-                        <Flower size={16} />
+                      <button
+                        key={n}
+                        title={`${n}/10`}
+                        onClick={() => saveProfile({ pain_levels: { ...(profile.pain_levels ?? {}), [sid]: level === n ? 0 : n } })}
+                        className={`transition ${n <= level ? "scale-110 text-pink-500" : "text-pink-300 hover:text-pink-400"}`}
+                      >
+                        <Flower size={20} />
                       </button>
                     ))}
+                    <span className="ml-1 text-xs text-slate-500">{level}/10</span>
                   </div>
-                  <span className="text-xs text-slate-400">{level}/10</span>
                 </div>
               );
             })}
