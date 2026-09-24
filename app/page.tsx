@@ -7,6 +7,7 @@ import {
   CalendarDay,
   CaptureResult,
   CatalogItem,
+  EnergyLevel,
   GymMachine,
   IntakeRecord,
   MyProfile,
@@ -189,6 +190,9 @@ export default function HomePage() {
   const [shareLabel, setShareLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [machineFormOpen, setMachineFormOpen] = useState(false);
+  const [exercisesCount, setExercisesCount] = useState(5);
+  const [timeBudget, setTimeBudget] = useState<number | "">("");
+  const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -261,7 +265,13 @@ export default function HomePage() {
     setError(null);
     setLoading(true);
     try {
-      setCaptureResult(await capture(selected.length ? selected.join(",") : undefined));
+      setCaptureResult(
+        await capture(selected.length ? selected.join(",") : undefined, {
+          exercisesCount,
+          timeBudgetMinutes: timeBudget === "" ? undefined : Number(timeBudget),
+          energy,
+        }),
+      );
       getStats().then(setStats).catch(() => null);
     } catch (err) {
       setError((err as Error).message);
@@ -537,6 +547,25 @@ export default function HomePage() {
               <Dumbbell size={18} /> {loading ? t(language, "capturing") : t(language, "takeData")}
             </button>
             <span className="text-sm text-slate-500">{t(language, "selectHint")}</span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-end gap-4 rounded-2xl border border-pink-100 bg-white p-3 text-sm text-slate-600">
+            <label>
+              {t(language, "exercisesCount")}
+              <input type="number" min={1} max={12} value={exercisesCount} onChange={(e) => setExercisesCount(Number(e.target.value))} className="ml-2 w-16 rounded border border-pink-200 px-2 py-1" />
+            </label>
+            <label>
+              {t(language, "timeBudget")}
+              <input type="number" min={10} max={180} placeholder={t(language, "noLimit")} value={timeBudget} onChange={(e) => setTimeBudget(e.target.value === "" ? "" : Number(e.target.value))} className="ml-2 w-24 rounded border border-pink-200 px-2 py-1" />
+            </label>
+            <label>
+              {t(language, "energy")}
+              <select value={energy} onChange={(e) => setEnergy(e.target.value as EnergyLevel)} className="ml-2 rounded border border-pink-200 px-2 py-1">
+                <option value="ENERGY">{t(language, "energyEnergy")}</option>
+                <option value="MODERATE">{t(language, "energyModerate")}</option>
+                <option value="NO_ENERGY">{t(language, "energyNo")}</option>
+              </select>
+            </label>
           </div>
 
           <p className="mt-3 text-xs uppercase tracking-wide text-pink-400">{t(language, "isolated")}</p>

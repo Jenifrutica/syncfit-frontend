@@ -538,9 +538,21 @@ export interface CaptureResult {
   timeline?: Timeline | null;
 }
 
-export async function capture(path?: string): Promise<CaptureResult> {
+export async function capture(
+  path?: string,
+  options: {
+    exercisesCount?: number;
+    timeBudgetMinutes?: number;
+    energy?: EnergyLevel;
+    includeWarmup?: boolean;
+  } = {},
+): Promise<CaptureResult> {
   const query = new URLSearchParams();
   if (path) query.set("muscle_groups", path);
+  if (options.exercisesCount) query.set("exercises_count", String(options.exercisesCount));
+  if (options.timeBudgetMinutes) query.set("time_budget_minutes", String(options.timeBudgetMinutes));
+  if (options.energy) query.set("energy_level", options.energy);
+  if (options.includeWarmup === false) query.set("include_warmup", "false");
   const response = await fetch(`${API_URL}/api/v1/capture?${query.toString()}`, {
     method: "POST",
     headers: authHeaders(),
