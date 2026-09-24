@@ -109,6 +109,18 @@ function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Langu
           </div>
         )}
         {entry.description && <p className="text-sm text-slate-600">{localized(entry.description, language)}</p>}
+        {entry.how_to && (
+          <p className="rounded bg-pink-50 p-2 text-xs text-pink-800">
+            <strong>How to:</strong> {localized(entry.how_to, language)}
+          </p>
+        )}
+        {entry.tips && entry.tips.length > 0 && (
+          <ul className="list-inside list-disc text-xs text-slate-500">
+            {entry.tips.map((tip, i) => (
+              <li key={i}>{localized(tip, language)}</li>
+            ))}
+          </ul>
+        )}
         <SetsSummary entry={entry} language={language} />
       </div>
     </div>
@@ -127,6 +139,8 @@ function adapt(entry: Record<string, unknown>): RoutineEntry {
     exercise_id: entry.exercise_id as string | undefined,
     role: entry.role as string | undefined,
     description: (entry.description as Record<string, string>) ?? undefined,
+    how_to: (entry.how_to as Record<string, string>) ?? undefined,
+    tips: (entry.tips as Record<string, string>[]) ?? undefined,
     image_url: entry.image_url as string | undefined,
     sets: entry.sets as RoutineEntry["sets"],
   };
@@ -335,6 +349,17 @@ export default function HomePage() {
     if (current.has(id)) current.delete(id);
     else current.add(id);
     saveProfile({ current_supplements: [...current] });
+  };
+
+  const saveSupplementMacro = (id: string, key: string, value: number) => {
+    const list = [...(profile?.supplement_macros ?? [])];
+    const existing = list.find((m) => m.supplement_id === id) ?? {
+      supplement_id: id,
+      macros: { protein_g: 0, carbs_g: 0, fat_g: 0, kcal: 0 },
+    };
+    const macros = { ...existing.macros, [key]: value };
+    const next = [...list.filter((m) => m.supplement_id !== id), { supplement_id: id, macros }];
+    saveProfile({ supplement_macros: next });
   };
 
   const loadsById = useMemo(() => {
@@ -582,29 +607,50 @@ export default function HomePage() {
 
           <div className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
             <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Pill size={18} /> {t(language, "currentSupplements")}</h3>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {supplementCatalog.map((item) => {
-                const isCurrent = (profile.current_supplements ?? []).includes(item.id);
-                const taken = intakes.some((i) => i.supplement_id === item.id && i.taken);
+            <div className="mt-2 space-y-2">
+              {(profile.current_supplements ?? []).map((id) => {
+                const item = supplementCatalog.find((s) => s.id === id);
+                if (!item) return null;
+                const macro = (profile.supplement_macros ?? []).find((m) => m.supplement_id === id)?.macros;
+                const taken = intakes.some((i) => i.supplement_id === id && i.taken);
                 return (
-                  <div key={item.id} className={`flex items-start justify-between gap-3 rounded-lg border p-2 ${isCurrent ? "border-pink-400 bg-pink-50" : "border-pink-100"}`}>
-                    <div className="text-sm">
-                      <strong className="text-slate-800">{item.name}</strong>
-                      <span className="block text-xs text-slate-500">{item.dosage}{item.brand_examples.length ? ` · ${item.brand_examples.slice(0, 2).join(", ")}` : ""}</span>
+                  <div key={id} className="rounded-lg border border-pink-200 p-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-sm text-slate-800">{item.name}</strong>
+                      <div className="flex gap-1">
+                        {item.is_daily && (
+                          <button onClick={() => toggleIntake(id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
+                            <Check size={12} /> {taken ? t(language, "taken") : t(language, "markTaken")}
+                          </button>
+                        )}
+                        <button onClick={() => toggleCurrentSupplement(id)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">{t(language, "remove")}</button>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
-                      <button onClick={() => toggleCurrentSupplement(item.id)} className={`rounded-full px-3 py-1 text-xs ${isCurrent ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}>
-                        {isCurrent ? t(language, "remove") : t(language, "add")}
-                      </button>
-                      {isCurrent && item.is_daily && (
-                        <button onClick={() => toggleIntake(item.id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
-                          <Check size={12} /> {taken ? t(language, "taken") : t(language, "markTaken")}
-                        </button>
-                      )}
+                    <div className="mt-2 grid grid-cols-4 gap-2 text-xs text-slate-500">
+                      {(["kcal", "protein_g", "carbs_g", "fat_g"] as const).map((key) => (
+                        <label key={key}>
+                          {key}
+                          <input
+                            type="number"
+                            defaultValue={macro ? macro[key] : ""}
+                            onBlur={(e) => saveSupplementMacro(id, key, Number(e.target.value))}
+                            className="mt-1 w-full rounded border border-pink-200 px-1 py-0.5"
+                          />
+                        </label>
+                      ))}
                     </div>
                   </div>
                 );
               })}
+              {(profile.current_supplements ?? []).length === 0 && <p className="text-sm text-slate-500">{t(language, "noResults")}</p>}
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wide text-pink-400">{t(language, "add")}</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {supplementCatalog.filter((s) => !(profile.current_supplements ?? []).includes(s.id)).map((item) => (
+                <button key={item.id} onClick={() => toggleCurrentSupplement(item.id)} className="rounded-full bg-pink-50 px-3 py-1 text-xs text-pink-700 hover:bg-pink-100">
+                  + {item.name}
+                </button>
+              ))}
             </div>
           </div>
 

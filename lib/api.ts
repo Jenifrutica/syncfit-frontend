@@ -80,6 +80,8 @@ export interface RoutineEntry {
   impact?: string;
   role?: string;
   description?: LocalizedText;
+  how_to?: LocalizedText;
+  tips?: LocalizedText[];
   image_url?: string;
   media_url?: string | null;
   rest_seconds?: number;
@@ -488,6 +490,7 @@ export interface MyProfile {
   modality?: string;
   available_machines?: string[];
   current_supplements?: string[];
+  supplement_macros?: { supplement_id: string; macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number } }[];
   weight_unit?: string;
   photo_url?: string;
   weekly_training_goal?: number;
