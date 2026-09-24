@@ -4,13 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AuthUser,
+  CalendarDay,
   CaptureResult,
   CatalogItem,
+  GymMachine,
   MyProfile,
   RoutineEntry,
   SupplementAdvice,
   capture,
+  getCalendar,
   getCatalog,
+  getMachines,
   getMe,
   getMyProfile,
   getSupplements,
@@ -19,15 +23,14 @@ import {
   register,
   updateMyProfile,
 } from "@/lib/api";
+import { GENERAL_GROUPS, ISOLATED_GROUPS } from "@/lib/api";
 import {
-  ISOLATED_GROUPS,
-  GENERAL_GROUPS,
-} from "@/lib/api";
-import {
+  GOAL_OPTIONS,
   LANGUAGES,
   LANGUAGE_LABELS,
   Language,
   OBJECTIVE_OPTIONS,
+  goalLabel,
   localized,
   muscleLabel,
   objectiveLabel,
@@ -36,12 +39,19 @@ import {
 
 type Tab = "routine" | "supplements" | "profile";
 
+const PINK = {
+  primary: "bg-pink-500 hover:bg-pink-600",
+  text: "text-pink-600",
+  border: "border-pink-500",
+  soft: "bg-pink-100",
+};
+
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className={`rounded-full border px-3 py-1 text-sm transition ${
-        active ? "border-teal-600 bg-teal-600 text-white" : "border-slate-300 bg-white text-slate-700"
+        active ? "border-pink-500 bg-pink-500 text-white" : "border-pink-200 bg-white text-pink-700 hover:border-pink-400"
       }`}
     >
       {label}
@@ -55,19 +65,12 @@ function SetsSummary({ entry, language }: { entry: RoutineEntry; language: Langu
   const groups: Record<string, typeof sets> = {};
   for (const set of sets) (groups[set.type] ||= []).push(set);
   const labelFor = (type: string) =>
-    type === "WARMUP"
-      ? t(language, "warmup")
-      : type === "APPROXIMATION"
-        ? t(language, "approximation")
-        : type === "EFFECTIVE"
-          ? t(language, "effective")
-          : type;
+    type === "WARMUP" ? t(language, "warmup") : type === "APPROXIMATION" ? t(language, "approximation") : type === "EFFECTIVE" ? t(language, "effective") : type;
   return (
     <ul className="text-xs text-slate-600">
       {Object.entries(groups).map(([type, list]) => (
         <li key={type}>
-          <strong>{labelFor(type)}:</strong> {list.length}×{list[0].reps} @ {list[0].weight_kg}kg ·{" "}
-          {list[0].rest_seconds}s
+          <strong>{labelFor(type)}:</strong> {list.length}×{list[0].reps} @ {list[0].weight_kg}kg · {list[0].rest_seconds}s
         </li>
       ))}
     </ul>
@@ -76,7 +79,7 @@ function SetsSummary({ entry, language }: { entry: RoutineEntry; language: Langu
 
 function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Language }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-pink-100 bg-white shadow-sm">
       {entry.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={entry.image_url} alt={entry.exercise_original} className="h-36 w-full object-cover" />
@@ -84,12 +87,10 @@ function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Langu
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-slate-800">{entry.exercise_original}</h3>
-          {entry.impact && (
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{entry.impact}</span>
-          )}
+          {entry.impact && <span className="rounded bg-pink-50 px-2 py-0.5 text-xs text-pink-700">{entry.impact}</span>}
         </div>
         {entry.blocked && (
-          <div className="rounded border-l-4 border-red-400 bg-red-50 p-2 text-sm text-red-700">
+          <div className="rounded border-l-4 border-pink-400 bg-pink-50 p-2 text-sm text-pink-800">
             <strong>{t(language, "blocked")}:</strong> {entry.block_reason}
             {entry.exercise_substitute && (
               <div>
@@ -98,9 +99,7 @@ function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Langu
             )}
           </div>
         )}
-        {entry.description && (
-          <p className="text-sm text-slate-600">{localized(entry.description, language)}</p>
-        )}
+        {entry.description && <p className="text-sm text-slate-600">{localized(entry.description, language)}</p>}
         <SetsSummary entry={entry} language={language} />
       </div>
     </div>
@@ -124,6 +123,14 @@ function adapt(entry: Record<string, unknown>): RoutineEntry {
   };
 }
 
+const KIND_STYLE: Record<string, { bg: string; icon: string }> = {
+  CYCLE: { bg: "bg-rose-500 text-white", icon: "🌸" },
+  OVULATION: { bg: "bg-rose-300 text-rose-900", icon: "💗" },
+  STRENGTH: { bg: "bg-pink-400 text-white", icon: "" },
+  LOW_IMPACT: { bg: "bg-pink-200 text-pink-900", icon: "🌷" },
+  REST: { bg: "bg-slate-100 text-slate-500", icon: "" },
+};
+
 export default function HomePage() {
   const [language, setLanguage] = useState<Language>("EN");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -134,20 +141,21 @@ export default function HomePage() {
   const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
   const [supplements, setSupplements] = useState<SupplementAdvice | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [machines, setMachines] = useState<GymMachine[]>([]);
+  const [calendar, setCalendar] = useState<CalendarDay[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // auth form
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-
-  // onboarding form
   const [form, setForm] = useState<Record<string, unknown>>({
     modality: "MENSTRUAL_CYCLE",
     cycle_length_days: 28,
     objective: "HYPERTROPHY",
+    goal_phase: "VOLUME",
     loads: [],
   });
 
@@ -162,13 +170,17 @@ export default function HomePage() {
 
   useEffect(() => {
     getCatalog(language).then(setCatalog).catch(() => setCatalog([]));
+    getMachines(language).then(setMachines).catch(() => setMachines([]));
   }, [language]);
+
+  useEffect(() => {
+    if (user && profile) getCalendar(calendarMonth, language).then((c) => setCalendar(c.days)).catch(() => setCalendar([]));
+  }, [user, profile, calendarMonth, language]);
 
   const onAuth = async () => {
     setError(null);
     try {
-      const me =
-        mode === "login" ? await login(email, password) : await register(email, password, name);
+      const me = mode === "login" ? await login(email, password) : await register(email, password, name);
       setUser(me);
       setProfile(await getMyProfile().catch(() => null));
     } catch (err) {
@@ -183,18 +195,19 @@ export default function HomePage() {
     setCaptureResult(null);
   };
 
-  const onSaveOnboarding = async () => {
+  const saveProfile = async (data: Record<string, unknown>) => {
     setError(null);
-    setLoading(true);
     try {
-      const saved = await updateMyProfile({ ...form, language });
-      setProfile(saved);
-      setTab("routine");
+      setProfile(await updateMyProfile({ ...data, language }));
     } catch (err) {
       setError((err as Error).message);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const onSaveOnboarding = async () => {
+    setLoading(true);
+    await saveProfile(form);
+    setLoading(false);
   };
 
   const onTakeData = async () => {
@@ -217,6 +230,14 @@ export default function HomePage() {
           (profile?.modality as "MENSTRUAL_CYCLE" | "GESTATIONAL") ?? "MENSTRUAL_CYCLE",
           language,
           profile?.objective ?? undefined,
+          {
+            goalPhase: profile?.goal_phase,
+            weightKg: profile?.weight_kg,
+            heightCm: profile?.height_cm,
+            bodyFatPct: profile?.body_fat_pct,
+            age: profile?.age,
+            dailyCalories: profile?.daily_calories,
+          },
         ),
       );
     } catch (err) {
@@ -234,61 +255,41 @@ export default function HomePage() {
     return map;
   }, [profile]);
 
-  if (!ready) return <main className="p-8 text-slate-500">…</main>;
+  const calendarByDate = useMemo(() => {
+    const map: Record<string, CalendarDay> = {};
+    calendar.forEach((d) => (map[d.date] = d));
+    return map;
+  }, [calendar]);
+
+  if (!ready) return <main className="p-8 text-pink-400">🌸</main>;
 
   if (!user) {
     return (
       <main className="mx-auto max-w-md p-8">
-        <h1 className="text-3xl font-bold text-slate-800">{t(language, "title")}</h1>
+        <h1 className={`text-3xl font-bold ${PINK.text}`}>🌸 {t(language, "title")}</h1>
         <p className="text-slate-600">{t(language, "subtitle")}</p>
-        <div className="mt-6 space-y-3 rounded-lg border border-slate-200 bg-white p-6">
+        <div className="mt-6 space-y-3 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
           <div className="flex gap-2">
-            <button
-              onClick={() => setMode("login")}
-              className={`rounded px-3 py-1 text-sm ${mode === "login" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
-            >
+            <button onClick={() => setMode("login")} className={`rounded px-3 py-1 text-sm ${mode === "login" ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
               {t(language, "signIn")}
             </button>
-            <button
-              onClick={() => setMode("register")}
-              className={`rounded px-3 py-1 text-sm ${mode === "register" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
-            >
+            <button onClick={() => setMode("register")} className={`rounded px-3 py-1 text-sm ${mode === "register" ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
               {t(language, "signUp")}
             </button>
           </div>
           {mode === "register" && (
-            <input
-              placeholder={t(language, "nameField")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded border border-slate-300 px-3 py-2"
-            />
+            <input placeholder={t(language, "nameField")} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
           )}
-          <input
-            placeholder={t(language, "email")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <input
-            type="password"
-            placeholder={t(language, "password")}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <button onClick={onAuth} className="w-full rounded bg-teal-600 px-4 py-2 text-white">
+          <input placeholder={t(language, "email")} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
+          <input type="password" placeholder={t(language, "password")} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
+          <button onClick={onAuth} className={`w-full rounded ${PINK.primary} px-4 py-2 text-white`}>
             {mode === "login" ? t(language, "signIn") : t(language, "signUp")}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-rose-600">{error}</p>}
         </div>
         <div className="mt-4 flex justify-center gap-2">
           {LANGUAGES.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setLanguage(lang)}
-              className={`rounded px-2 py-1 text-sm ${language === lang ? "bg-slate-800 text-white" : "bg-slate-100"}`}
-            >
+            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
               {LANGUAGE_LABELS[lang]}
             </button>
           ))}
@@ -300,91 +301,68 @@ export default function HomePage() {
   if (!profile) {
     return (
       <main className="mx-auto max-w-2xl p-8">
-        <h1 className="text-2xl font-bold text-slate-800">{t(language, "setupTitle")}</h1>
-        <div className="mt-5 space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+        <h1 className={`text-2xl font-bold ${PINK.text}`}>🌸 {t(language, "setupTitle")}</h1>
+        <div className="mt-5 space-y-4 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
           <label className="block text-sm text-slate-600">
             Modality
-            <select
-              value={String(form.modality)}
-              onChange={(e) => setForm({ ...form, modality: e.target.value })}
-              className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
-            >
+            <select value={String(form.modality)} onChange={(e) => setForm({ ...form, modality: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
               <option value="MENSTRUAL_CYCLE">Menstrual cycle</option>
               <option value="GESTATIONAL">Gestational</option>
             </select>
           </label>
-          <div className="flex gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <label className="block text-sm text-slate-600">
               {t(language, "height")}
-              <input
-                type="number"
-                value={String(form.height_cm ?? "")}
-                onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })}
-                className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-              />
+              <input type="number" value={String(form.height_cm ?? "")} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
             </label>
             <label className="block text-sm text-slate-600">
               {t(language, "weightKg")}
-              <input
-                type="number"
-                value={String(form.weight_kg ?? "")}
-                onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })}
-                className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-              />
+              <input type="number" value={String(form.weight_kg ?? "")} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            </label>
+            <label className="block text-sm text-slate-600">
+              {t(language, "bodyFat")}
+              <input type="number" value={String(form.body_fat_pct ?? "")} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            </label>
+            <label className="block text-sm text-slate-600">
+              {t(language, "dailyCalories")}
+              <input type="number" value={String(form.daily_calories ?? "")} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
             </label>
           </div>
           <label className="block text-sm text-slate-600">
             {t(language, "objective")}
-            <select
-              value={String(form.objective)}
-              onChange={(e) => setForm({ ...form, objective: e.target.value })}
-              className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
-            >
+            <select value={String(form.objective)} onChange={(e) => setForm({ ...form, objective: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
               {OBJECTIVE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {objectiveLabel(language, opt)}
-                </option>
+                <option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm text-slate-600">
+            {t(language, "goalPhase")}
+            <select value={String(form.goal_phase)} onChange={(e) => setForm({ ...form, goal_phase: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
+              {GOAL_OPTIONS.map((goal) => (
+                <option key={goal} value={goal}>{goalLabel(language, goal)}</option>
               ))}
             </select>
           </label>
           <label className="block text-sm text-slate-600">
             Last period / LMP date
-            <input
-              type="date"
-              value={String(form.last_period_date ?? "")}
-              onChange={(e) => setForm({ ...form, last_period_date: e.target.value })}
-              className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
-            />
+            <input type="date" value={String(form.last_period_date ?? "")} onChange={(e) => setForm({ ...form, last_period_date: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
           </label>
           {form.modality === "MENSTRUAL_CYCLE" ? (
             <label className="block text-sm text-slate-600">
               Cycle length (days)
-              <input
-                type="number"
-                value={String(form.cycle_length_days ?? 28)}
-                onChange={(e) => setForm({ ...form, cycle_length_days: Number(e.target.value) })}
-                className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-              />
+              <input type="number" value={String(form.cycle_length_days ?? 28)} onChange={(e) => setForm({ ...form, cycle_length_days: Number(e.target.value) })} className="mt-1 w-28 rounded border border-pink-200 px-2 py-1" />
             </label>
           ) : (
             <label className="block text-sm text-slate-600">
               Gestation week
-              <input
-                type="number"
-                value={String(form.gestation_week ?? "")}
-                onChange={(e) => setForm({ ...form, gestation_week: Number(e.target.value) })}
-                className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-              />
+              <input type="number" value={String(form.gestation_week ?? "")} onChange={(e) => setForm({ ...form, gestation_week: Number(e.target.value) })} className="mt-1 w-28 rounded border border-pink-200 px-2 py-1" />
             </label>
           )}
-          <button
-            onClick={onSaveOnboarding}
-            disabled={loading}
-            className="rounded bg-teal-600 px-4 py-2 text-white disabled:opacity-50"
-          >
+          <button onClick={onSaveOnboarding} disabled={loading} className={`rounded ${PINK.primary} px-4 py-2 text-white disabled:opacity-50`}>
             {loading ? t(language, "generating") : t(language, "saveContinue")}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-rose-600">{error}</p>}
         </div>
       </main>
     );
@@ -396,118 +374,79 @@ export default function HomePage() {
     <main className="mx-auto max-w-6xl p-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            {t(language, "welcome")}, {user.display_name}
+          <h1 className={`text-2xl font-bold ${PINK.text}`}>
+            🌸 {t(language, "welcome")}, {user.display_name}
           </h1>
           <p className="text-slate-600">
             {timeline
               ? timeline.modality === "GESTATIONAL"
-                ? `Gestation · ${t(language, "cycleToday")} ${timeline.week}`
-                : `${t(language, "cycleToday")} ${timeline.cycle_day} · ${timeline.phase}`
+                ? `${timeline.week} weeks`
+                : `${t(language, "cycleToday")} ${timeline.cycle_day} · ${timeline.phase} · ${goalLabel(language, profile.goal_phase ?? "MAINTENANCE")}`
               : t(language, "noProfileYet")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {LANGUAGES.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setLanguage(lang)}
-              className={`rounded px-2 py-1 text-sm ${language === lang ? "bg-slate-800 text-white" : "bg-slate-100"}`}
-            >
+            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
               {LANGUAGE_LABELS[lang]}
             </button>
           ))}
-          <button onClick={onLogout} className="rounded bg-slate-200 px-3 py-1 text-sm">
+          <button onClick={onLogout} className="rounded bg-pink-100 px-3 py-1 text-sm text-pink-800">
             {t(language, "logout")}
           </button>
         </div>
       </header>
 
-      <nav className="mt-5 flex gap-2 border-b border-slate-200">
+      <nav className="mt-5 flex gap-2 border-b border-pink-100">
         {(["routine", "supplements", "profile"] as Tab[]).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-              tab === item ? "border-teal-600 text-teal-700" : "border-transparent text-slate-500"
-            }`}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === item ? `${PINK.border} ${PINK.text}` : "border-transparent text-slate-500"}`}
           >
-            {item === "routine"
-              ? t(language, "tabRoutine")
-              : item === "supplements"
-                ? t(language, "tabSupplements")
-                : t(language, "tabProfile")}
+            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : t(language, "tabProfile")}
           </button>
         ))}
       </nav>
 
-      {error && <p className="mt-4 text-sm text-red-600">{t(language, "error")}: {error}</p>}
+      {error && <p className="mt-4 text-sm text-rose-600">{t(language, "error")}: {error}</p>}
 
       {tab === "routine" && (
         <section className="mt-5">
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={onTakeData}
-              disabled={loading}
-              className="rounded bg-teal-600 px-5 py-2 text-white hover:bg-teal-700 disabled:opacity-50"
-            >
-              {loading ? t(language, "capturing") : t(language, "takeData")}
+            <button onClick={onTakeData} disabled={loading} className={`rounded-full ${PINK.primary} px-6 py-2 text-white disabled:opacity-50`}>
+              {loading ? t(language, "capturing") : `🌸 ${t(language, "takeData")}`}
             </button>
             <span className="text-sm text-slate-500">{t(language, "selectHint")}</span>
           </div>
 
-          <p className="mt-3 text-xs uppercase tracking-wide text-slate-400">{t(language, "isolated")}</p>
+          <p className="mt-3 text-xs uppercase tracking-wide text-pink-400">{t(language, "isolated")}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {ISOLATED_GROUPS.map((group) => (
-              <Chip
-                key={group}
-                label={muscleLabel(language, group)}
-                active={selected.includes(group)}
-                onClick={() =>
-                  setSelected((c) => (c.includes(group) ? c.filter((g) => g !== group) : [...c, group].slice(0, 4)))
-                }
-              />
+              <Chip key={group} label={muscleLabel(language, group)} active={selected.includes(group)} onClick={() => setSelected((c) => (c.includes(group) ? c.filter((g) => g !== group) : [...c, group].slice(0, 4)))} />
             ))}
           </div>
-          <p className="mt-3 text-xs uppercase tracking-wide text-slate-400">{t(language, "general")}</p>
+          <p className="mt-3 text-xs uppercase tracking-wide text-pink-400">{t(language, "general")}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {GENERAL_GROUPS.map((group) => (
-              <Chip
-                key={group}
-                label={muscleLabel(language, group)}
-                active={selected.includes(group)}
-                onClick={() =>
-                  setSelected((c) => (c.includes(group) ? c.filter((g) => g !== group) : [...c, group].slice(0, 4)))
-                }
-              />
+              <Chip key={group} label={muscleLabel(language, group)} active={selected.includes(group)} onClick={() => setSelected((c) => (c.includes(group) ? c.filter((g) => g !== group) : [...c, group].slice(0, 4)))} />
             ))}
           </div>
 
           {captureResult && (
             <div className="mt-6">
               <div className="flex flex-wrap gap-4 text-sm text-slate-700">
-                <span>
-                  {t(language, "phase")}: <strong>{captureResult.phase_inferred}</strong>
-                </span>
-                <span>
-                  {t(language, "fatigue")}: <strong>{captureResult.fatigue_level}</strong>
-                </span>
-                <span>
-                  {t(language, "kLoad")}: <strong>{captureResult.k_load.toFixed(3)}</strong>
-                </span>
+                <span>{t(language, "phase")}: <strong>{captureResult.phase_inferred}</strong></span>
+                <span>{t(language, "fatigue")}: <strong>{captureResult.fatigue_level}</strong></span>
+                <span>{t(language, "kLoad")}: <strong>{captureResult.k_load.toFixed(3)}</strong></span>
                 {captureResult.total_estimated_minutes != null && (
-                  <span>
-                    {t(language, "totalTime")}:{" "}
-                    <strong>
-                      {captureResult.total_estimated_minutes} {t(language, "minutes")}
-                    </strong>
-                  </span>
+                  <span>{t(language, "totalTime")}: <strong>{captureResult.total_estimated_minutes} {t(language, "minutes")}</strong></span>
                 )}
               </div>
 
               {captureResult.warmup.length > 0 && (
                 <>
-                  <h3 className="mt-4 font-semibold text-slate-700">{t(language, "warmup")}</h3>
+                  <h3 className="mt-4 font-semibold text-pink-700">{t(language, "warmup")}</h3>
                   <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {captureResult.warmup.map((e, i) => (
                       <RoutineCard key={i} entry={adapt(e)} language={language} />
@@ -523,45 +462,59 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          {!captureResult && !loading && (
-            <p className="mt-6 text-slate-500">{t(language, "noRoutine")}</p>
-          )}
+          {!captureResult && !loading && <p className="mt-6 text-slate-500">{t(language, "noRoutine")}</p>}
         </section>
       )}
 
       {tab === "supplements" && (
         <section className="mt-5">
-          <button onClick={loadSupplements} className="rounded bg-teal-600 px-4 py-2 text-white">
-            {t(language, "generate")}
-          </button>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="text-sm text-slate-600">
+              {t(language, "objective")}
+              <select value={profile.objective ?? "HYPERTROPHY"} onChange={(e) => saveProfile({ objective: e.target.value })} className="ml-2 rounded border border-pink-200 px-2 py-1">
+                {OBJECTIVE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-slate-600">
+              {t(language, "goalPhase")}
+              <select value={profile.goal_phase ?? "MAINTENANCE"} onChange={(e) => saveProfile({ goal_phase: e.target.value })} className="ml-2 rounded border border-pink-200 px-2 py-1">
+                {GOAL_OPTIONS.map((goal) => (
+                  <option key={goal} value={goal}>{goalLabel(language, goal)}</option>
+                ))}
+              </select>
+            </label>
+            <button onClick={loadSupplements} className={`rounded-full ${PINK.primary} px-5 py-2 text-white`}>
+              {t(language, "generate")}
+            </button>
+          </div>
+
+          {supplements?.daily_macros && (
+            <div className="mt-4 rounded-2xl border border-pink-100 bg-pink-50 p-4">
+              <h3 className={`font-semibold ${PINK.text}`}>🍓 {t(language, "dailyMacros")}</h3>
+              <div className="mt-1 flex flex-wrap gap-4 text-sm text-slate-700">
+                <span>{t(language, "kcal")}: <strong>{supplements.daily_macros.kcal}</strong></span>
+                <span>{t(language, "protein")}: <strong>{supplements.daily_macros.protein_g} g</strong></span>
+                <span>{t(language, "carbs")}: <strong>{supplements.daily_macros.carbs_g} g</strong></span>
+                <span>{t(language, "fat")}: <strong>{supplements.daily_macros.fat_g} g</strong></span>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {supplements?.items.map((item) => {
-              const colors =
-                item.safety === "SAFE"
-                  ? "bg-green-100 text-green-700"
-                  : item.safety === "CAUTION"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-red-100 text-red-700";
-              const label =
-                item.safety === "SAFE"
-                  ? t(language, "safe")
-                  : item.safety === "CAUTION"
-                    ? t(language, "caution")
-                    : t(language, "avoid");
+              const colors = item.safety === "SAFE" ? "bg-green-100 text-green-700" : item.safety === "CAUTION" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
+              const label = item.safety === "SAFE" ? t(language, "safe") : item.safety === "CAUTION" ? t(language, "caution") : t(language, "avoid");
               return (
-                <div key={item.supplement_id} className="rounded-lg border border-slate-200 bg-white p-4">
+                <div key={item.supplement_id} className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-slate-800">{localized(item.name, language)}</h3>
                     <span className={`rounded px-2 py-0.5 text-xs ${colors}`}>{label}</span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{localized(item.reason, language)}</p>
-                  <p className="text-sm text-slate-700">
-                    {t(language, "dosage")}: {localized(item.dosage, language)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {t(language, "macros")}: {item.macros.protein_g}P / {item.macros.carbs_g}C /{" "}
-                    {item.macros.fat_g}F · {item.macros.kcal} kcal
-                  </p>
+                  <p className="text-sm text-slate-700">{t(language, "dosage")}: {localized(item.dosage, language)}</p>
+                  <p className="text-xs text-slate-500">{t(language, "macros")}: {item.macros.protein_g}P / {item.macros.carbs_g}C / {item.macros.fat_g}F · {item.macros.kcal} kcal</p>
                 </div>
               );
             })}
@@ -570,44 +523,96 @@ export default function HomePage() {
       )}
 
       {tab === "profile" && (
-        <section className="mt-5 grid gap-6 lg:grid-cols-2">
-          <div>
-            <h2 className="font-semibold text-slate-700">{t(language, "profile")}</h2>
-            <div className="mt-3 space-y-3">
-              <label className="block text-sm text-slate-600">
-                {t(language, "height")}
-                <input
-                  type="number"
-                  defaultValue={profile.height_cm ?? undefined}
-                  onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })}
-                  className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-                />
-              </label>
-              <label className="block text-sm text-slate-600">
-                {t(language, "weightKg")}
-                <input
-                  type="number"
-                  defaultValue={profile.weight_kg ?? undefined}
-                  onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })}
-                  className="mt-1 w-28 rounded border border-slate-300 px-2 py-1"
-                />
-              </label>
-              <button
-                onClick={async () => {
-                  const saved = await updateMyProfile({ ...form, language });
-                  setProfile(saved);
-                }}
-                className="rounded bg-teal-600 px-4 py-2 text-white"
-              >
+        <section className="mt-5 space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+              <h2 className={`font-semibold ${PINK.text}`}>{t(language, "profile")}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <label className="block text-sm text-slate-600">
+                  {t(language, "height")}
+                  <input type="number" defaultValue={profile.height_cm ?? undefined} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+                </label>
+                <label className="block text-sm text-slate-600">
+                  {t(language, "weightKg")}
+                  <input type="number" defaultValue={profile.weight_kg ?? undefined} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+                </label>
+                <label className="block text-sm text-slate-600">
+                  {t(language, "bodyFat")}
+                  <input type="number" defaultValue={profile.body_fat_pct ?? undefined} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+                </label>
+                <label className="block text-sm text-slate-600">
+                  {t(language, "dailyCalories")}
+                  <input type="number" defaultValue={profile.daily_calories ?? undefined} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+                </label>
+              </div>
+              <button onClick={() => saveProfile(form)} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
+                {t(language, "save")}
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+              <h2 className={`font-semibold ${PINK.text}`}>🏋️ {t(language, "machines")}</h2>
+              <p className="text-sm text-slate-500">{t(language, "machinesHint")}</p>
+              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                {machines.map((machine) => {
+                  const checked = (profile.available_machines ?? []).includes(machine.id);
+                  return (
+                    <label key={machine.id} className="flex items-start gap-2 rounded-lg border border-pink-100 p-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          const current = new Set(profile.available_machines ?? []);
+                          if (checked) current.delete(machine.id);
+                          else current.add(machine.id);
+                          setProfile({ ...profile, available_machines: [...current] });
+                        }}
+                        className="mt-1 accent-pink-500"
+                      />
+                      <span>
+                        <strong>{machine.name}</strong>{" "}
+                        <span className="text-pink-500">×{machine.weight_factor}</span>
+                        <span className="block text-xs text-slate-500">{machine.notes}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <button onClick={() => saveProfile({ available_machines: profile.available_machines ?? [] })} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
                 {t(language, "save")}
               </button>
             </div>
           </div>
 
-          <div>
-            <h2 className="font-semibold text-slate-700">{t(language, "myLoads")}</h2>
+          <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className={`font-semibold ${PINK.text}`}>🌸 {t(language, "calendar")}</h2>
+              <input type="month" value={calendarMonth} onChange={(e) => setCalendarMonth(e.target.value)} className="rounded border border-pink-200 px-2 py-1 text-sm" />
+            </div>
+            <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs">
+              {calendar.map((day) => {
+                const style = KIND_STYLE[day.kind] ?? KIND_STYLE.REST;
+                return (
+                  <div key={day.date} title={day.note ? localized(day.note, language) : ""} className={`rounded-lg p-2 ${style.bg}`}>
+                    <div className="font-semibold">{day.date.slice(-2)}</div>
+                    <div>{style.icon}</div>
+                    {day.cycle_day && <div className="text-[10px]">d{day.cycle_day}</div>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+              <span>🌸 {t(language, "period")}</span>
+              <span>💗 {t(language, "ovulation")}</span>
+              <span>🌷 {t(language, "lowImpact")}</span>
+              <span>{t(language, "strengthDay")}</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+            <h2 className={`font-semibold ${PINK.text}`}>{t(language, "myLoads")}</h2>
             <p className="text-sm text-slate-500">{t(language, "loadNote")}</p>
-            <div className="mt-3 max-h-96 space-y-1 overflow-y-auto pr-1">
+            <div className="mt-3 grid gap-1 sm:grid-cols-2">
               {catalog.map((exercise) => (
                 <div key={exercise.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate text-slate-700">{exercise.name}</span>
@@ -621,18 +626,12 @@ export default function HomePage() {
                       if (weight > 0) loads.push({ exercise_id: exercise.id, weight_kg: weight, reps: 10 });
                       setProfile({ ...profile, loads });
                     }}
-                    className="w-24 rounded border border-slate-300 px-2 py-1"
+                    className="w-24 rounded border border-pink-200 px-2 py-1"
                   />
                 </div>
               ))}
             </div>
-            <button
-              onClick={async () => {
-                const saved = await updateMyProfile({ loads: profile.loads });
-                setProfile(saved);
-              }}
-              className="mt-3 rounded bg-teal-600 px-4 py-2 text-white"
-            >
+            <button onClick={() => saveProfile({ loads: profile.loads })} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
               {t(language, "save")}
             </button>
           </div>

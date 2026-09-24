@@ -116,6 +116,8 @@ export interface SupplementAdvice {
   language: Language;
   modality?: string;
   objective?: string;
+  goal_phase?: string;
+  daily_macros?: { protein_g: number; carbs_g: number; fat_g: number; kcal: number };
   items: SupplementAdviceItem[];
 }
 
@@ -251,17 +253,66 @@ export async function getSupplements(
   modality: "MENSTRUAL_CYCLE" | "GESTATIONAL",
   language: Language,
   objective?: string,
-  week?: number,
+  extras: {
+    goalPhase?: string;
+    weightKg?: number;
+    heightCm?: number;
+    bodyFatPct?: number;
+    age?: number;
+    dailyCalories?: number;
+  } = {},
 ): Promise<SupplementAdvice> {
   const query = new URLSearchParams({ modality, language });
   if (objective) query.set("objective", objective);
-  if (week) query.set("week", String(week));
+  if (extras.goalPhase) query.set("goal_phase", extras.goalPhase);
+  if (extras.weightKg) query.set("weight_kg", String(extras.weightKg));
+  if (extras.heightCm) query.set("height_cm", String(extras.heightCm));
+  if (extras.bodyFatPct) query.set("body_fat_pct", String(extras.bodyFatPct));
+  if (extras.age) query.set("age", String(extras.age));
+  if (extras.dailyCalories) query.set("daily_calories", String(extras.dailyCalories));
   const response = await fetch(`${API_URL}/api/v1/supplements?${query.toString()}`, {
     cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`supplements failed: ${response.status}`);
   }
+  return response.json();
+}
+
+export interface GymMachine {
+  id: string;
+  name: string;
+  type: string;
+  unit?: string | null;
+  weight_factor: number;
+  exercises: string[];
+  notes: string;
+  image_url?: string | null;
+}
+
+export async function getMachines(language: Language): Promise<GymMachine[]> {
+  const response = await fetch(`${API_URL}/api/v1/machines?language=${language}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`machines failed: ${response.status}`);
+  return response.json();
+}
+
+export interface CalendarDay {
+  date: string;
+  kind: "CYCLE" | "OVULATION" | "STRENGTH" | "LOW_IMPACT" | "REST";
+  cycle_day?: number;
+  phase?: string;
+  label?: Record<string, string>;
+  note?: Record<string, string>;
+}
+
+export async function getCalendar(month: string, language: Language): Promise<{ month: string; days: CalendarDay[] }> {
+  const response = await fetch(
+    `${API_URL}/api/v1/calendar?month=${month}&language=${language}`,
+    { headers: authHeaders() },
+  );
+  if (!response.ok) throw new Error(`calendar failed: ${response.status}`);
   return response.json();
 }
 
@@ -363,8 +414,13 @@ export interface MyProfile {
   language: string;
   height_cm?: number;
   weight_kg?: number;
+  body_fat_pct?: number;
+  daily_calories?: number;
+  age?: number;
   objective?: string;
+  goal_phase?: string;
   modality?: string;
+  available_machines?: string[];
   last_period_date?: string;
   cycle_length_days?: number;
   gestation_week?: number;
