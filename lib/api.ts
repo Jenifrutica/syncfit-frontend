@@ -444,6 +444,7 @@ export interface AuthUser {
   id: string;
   email: string;
   display_name: string;
+  role: "ATHLETE" | "GYM_ADMIN" | "SUPER_ADMIN";
 }
 
 export async function register(
@@ -506,6 +507,8 @@ export interface MyProfile {
   available_machines?: string[];
   current_supplements?: string[];
   symptoms?: string[];
+  pain_levels?: Record<string, number>;
+  symptom_notes?: string;
   supplement_macros?: { supplement_id: string; macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number } }[];
   weight_unit?: string;
   photo_url?: string;
@@ -642,4 +645,65 @@ export async function getShared(token: string): Promise<SharedProfile> {
   const response = await fetch(`${API_URL}/api/v1/shared/${token}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`shared profile failed: ${response.status}`);
   return response.json();
+}
+
+
+/* --- Admin ---------------------------------------------------------------- */
+
+export async function createGymAdmin(email: string, password: string, displayName: string): Promise<AuthUser> {
+  const r = await fetch(`${API_URL}/api/v1/admin/gym-admins`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ email, password, display_name: displayName }),
+  });
+  if (!r.ok) throw new Error(`create gym admin failed: ${r.status}`);
+  return r.json();
+}
+
+export async function listGymAdmins(): Promise<AuthUser[]> {
+  const r = await fetch(`${API_URL}/api/v1/admin/gym-admins`, { headers: authHeaders() });
+  if (!r.ok) throw new Error(`gym admins failed: ${r.status}`);
+  return r.json();
+}
+
+export interface GymInfo {
+  id: string;
+  name: string;
+  code: string;
+  owner_user_id: string;
+  machines: { id: string; name: string; purpose?: string | null; image_url?: string | null; weight_factor: number }[];
+}
+
+export async function createGym(name: string): Promise<GymInfo> {
+  const r = await fetch(`${API_URL}/api/v1/gyms`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ name }) });
+  if (!r.ok) throw new Error(`create gym failed: ${r.status}`);
+  return r.json();
+}
+
+export async function listMyGyms(): Promise<GymInfo[]> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/mine`, { headers: authHeaders() });
+  if (!r.ok) throw new Error(`my gyms failed: ${r.status}`);
+  return r.json();
+}
+
+export async function addGymMachine(gymId: string, name: string, purpose?: string, imageUrl?: string): Promise<unknown> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ name, purpose, image_url: imageUrl }),
+  });
+  if (!r.ok) throw new Error(`add machine failed: ${r.status}`);
+  return r.json();
+}
+
+export async function joinGym(code: string): Promise<unknown> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/join`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ code }) });
+  if (!r.ok) throw new Error(`join gym failed: ${r.status}`);
+  return r.json();
+}
+
+export async function fetchGymQr(gymId: string): Promise<string> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/qr.png`, { headers: authHeaders() });
+  if (!r.ok) throw new Error(`qr failed: ${r.status}`);
+  return URL.createObjectURL(await r.blob());
 }

@@ -30,6 +30,7 @@ import {
   getStats,
   getSupplementCatalog,
   getSupplementIntakes,
+  joinGym,
   getSupplements,
   getSymptoms,
   listShares,
@@ -56,8 +57,9 @@ import { Check, Dumbbell, Flame, Flower, Heart, Leaf, Pill, Search } from "@/com
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { ExerciseMedia } from "@/components/media/ExerciseMedia";
 import { WorkoutRunner } from "@/components/workout/WorkoutRunner";
+import { AdminPanel } from "@/components/admin/AdminPanel";
 
-type Tab = "routine" | "supplements" | "machines" | "profile";
+type Tab = "routine" | "supplements" | "machines" | "profile" | "admin";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -192,6 +194,7 @@ export default function HomePage() {
   const [shareLabel, setShareLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [machineFormOpen, setMachineFormOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
   const [symptoms, setSymptoms] = useState<{ id: string; name: string; modality: string; advice: string }[]>([]);
   const [workout, setWorkout] = useState(false);
   const [exercisesCount, setExercisesCount] = useState(5);
@@ -264,6 +267,14 @@ export default function HomePage() {
     } catch (err) {
       setError((err as Error).message);
     }
+  };
+
+  const updateEntry = (index: number, field: string, value: number) => {
+    setCaptureResult((prev) => {
+      if (!prev) return prev;
+      const routine = prev.routine.map((e, i) => (i === index ? { ...e, [field]: value } : e));
+      return { ...prev, routine };
+    });
   };
 
   const onTakeData = async () => {
@@ -524,13 +535,13 @@ export default function HomePage() {
       </header>
 
       <nav className="mt-5 flex gap-2 border-b border-pink-100">
-        {(["routine", "supplements", "machines", "profile"] as Tab[]).map((item) => (
+        {((user.role === "ATHLETE" ? ["routine", "supplements", "machines", "profile"] : ["routine", "supplements", "machines", "profile", "admin"]) as Tab[]).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === item ? "border-pink-500 text-pink-600" : "border-transparent text-slate-500"}`}
           >
-            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : item === "machines" ? t(language, "myMachines") : t(language, "profile")}
+            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : item === "machines" ? t(language, "myMachines") : item === "admin" ? "Admin" : t(language, "profile")}
           </button>
         ))}
       </nav>
@@ -563,6 +574,48 @@ export default function HomePage() {
                 <option value="NO_ENERGY">{t(language, "energyNo")}</option>
               </select>
             </label>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-pink-100 bg-white p-4">
+            <h3 className="font-semibold text-pink-700">Síntomas y dolor</h3>
+            <p className="text-xs text-slate-500">Marca lo que sientes y la densidad (1-10 flores). La IA adapta la rutina. Puedes escribir otros síntomas.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {symptoms.filter((s) => (profile.modality === "GESTATIONAL" ? true : s.modality !== "GESTATIONAL")).map((s) => {
+                const active = (profile.symptoms ?? []).includes(s.id);
+                return (
+                  <button key={s.id} onClick={() => {
+                    const cur = new Set(profile.symptoms ?? []);
+                    if (active) cur.delete(s.id); else cur.add(s.id);
+                    saveProfile({ symptoms: [...cur] });
+                  }} className={`rounded-full border px-3 py-1 text-sm ${active ? "border-pink-500 bg-pink-500 text-white" : "border-pink-200 bg-white text-pink-700"}`}>{s.name}</button>
+                );
+              })}
+            </div>
+            {(profile.symptoms ?? []).map((sid) => {
+              const level = (profile.pain_levels ?? {})[sid] ?? 0;
+              const symptom = symptoms.find((x) => x.id === sid);
+              return (
+                <div key={sid} className="mt-2 flex items-center gap-2 text-sm">
+                  <span className="min-w-[7rem] text-slate-600">{symptom?.name ?? sid}</span>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                      <button key={n} onClick={() => saveProfile({ pain_levels: { ...(profile.pain_levels ?? {}), [sid]: n } })} title={`${n}/10`} className={n <= level ? "text-pink-500" : "text-pink-200"}>
+                        <Flower size={16} />
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-xs text-slate-400">{level}/10</span>
+                </div>
+              );
+            })}
+            <textarea
+              value={profile.symptom_notes ?? ""}
+              onChange={(e) => setForm({ ...form, symptom_notes: e.target.value })}
+              onBlur={(e) => saveProfile({ symptom_notes: e.target.value })}
+              placeholder="Otros síntomas (mareo, náusea, hormigueo, lesión...)"
+              className="mt-2 w-full rounded border border-pink-200 px-2 py-1 text-sm"
+              rows={2}
+            />
           </div>
 
           <p className="mt-3 text-xs uppercase tracking-wide text-pink-400">{t(language, "isolated")}</p>
@@ -604,6 +657,27 @@ export default function HomePage() {
                   </div>
                 </>
               )}
+              <div className="mt-4 rounded-2xl border border-pink-100 bg-white p-4">
+                <h3 className="font-semibold text-pink-700">Editar rutina</h3>
+                <p className="text-xs text-slate-500">Ajusta series, reps y peso antes de iniciar. La IA recomienda, tú decides.</p>
+                <div className="mt-2 space-y-1">
+                  {captureResult.routine.map((e, i) => (
+                    <div key={i} className="flex flex-wrap items-center gap-3 text-sm">
+                      <span className="min-w-[10rem] flex-1 truncate text-slate-700">{String(e.name)}</span>
+                      <label className="text-slate-500">series
+                        <input type="number" min={0} value={Number(e.series ?? 3)} onChange={(ev) => updateEntry(i, "series", Number(ev.target.value))} className="ml-1 w-16 rounded border border-pink-200 px-1 py-0.5" />
+                      </label>
+                      <label className="text-slate-500">reps
+                        <input type="number" min={0} value={Number(e.reps ?? 10)} onChange={(ev) => updateEntry(i, "reps", Number(ev.target.value))} className="ml-1 w-16 rounded border border-pink-200 px-1 py-0.5" />
+                      </label>
+                      <label className="text-slate-500">kg
+                        <input type="number" min={0} value={Number(e.weight_suggested_kg ?? 0)} onChange={(ev) => updateEntry(i, "weight_suggested_kg", Number(ev.target.value))} className="ml-1 w-20 rounded border border-pink-200 px-1 py-0.5" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {captureResult.routine.map((e, i) => (<RoutineCard key={i} entry={adapt(e)} language={language} />))}
               </div>
@@ -716,6 +790,11 @@ export default function HomePage() {
 
       {tab === "machines" && (
         <section className="mt-5">
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-pink-100 bg-white p-3">
+            <span className="text-sm text-slate-600">Unirse a un gimnasio:</span>
+            <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Código (p.ej. A1B2C3)" className="rounded border border-pink-200 px-2 py-1 text-sm" />
+            <button onClick={async () => { try { await joinGym(joinCode); setJoinCode(""); getMachines(language).then(setMachines); setProfile(await getMyProfile()); } catch (e) { setError((e as Error).message); } }} className="rounded-full bg-pink-500 px-4 py-1 text-sm text-white">Unirse</button>
+          </div>
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-pink-700">{t(language, "myMachinesSelected")}</h2>
             <button onClick={() => setMachineFormOpen((v) => !v)} className="flex items-center gap-1 rounded-full bg-pink-500 px-4 py-2 text-sm text-white">
@@ -793,6 +872,8 @@ export default function HomePage() {
           )}
         </section>
       )}
+
+      {tab === "admin" && <AdminPanel user={user} />}
 
       {tab === "profile" && (
         <section className="mt-5 space-y-6">
