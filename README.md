@@ -67,3 +67,31 @@ TypeScript, Next.js, React, Tailwind CSS, HTML5 Canvas, D3.js.
 - [`syncfit-simulator`](../syncfit-simulator) — mock telemetry during development.
 
 All code, comments, documentation and commits in this repository are written in English.
+
+## Context for a new session
+
+**What it is.** Next.js (App Router) + TypeScript + Tailwind UI, pink theme.
+
+**Run.** `npm install` then `npm run dev` (http://localhost:3000). API via
+`NEXT_PUBLIC_API_URL` (default http://localhost:8000) and `NEXT_PUBLIC_WS_URL`.
+
+**Layout.** `app/page.tsx` (main app: auth → onboarding → dashboard with tabs
+Routine / Supplements / My machines / Profile), `app/shared/[token]/page.tsx`
+(public read-only shared profile), `lib/api.ts` (client + token), `lib/i18n.ts`
+(EN/ES/ZH), `components/icons.tsx` (SVG, no emoji),
+`components/auth/AuthPanel.tsx`, `components/media/ExerciseMedia.tsx`,
+`components/workout/WorkoutRunner.tsx`.
+
+**Decoupled seams (work without context).**
+- **Auth**: `components/auth/` (README there). Swap AuthPanel for OAuth/wizard.
+- **Animations**: `components/media/` (README there). Populate `media_url` in the
+  contracts catalog; no code change needed.
+
+**Flows.** Login/signup (JWT in localStorage) → onboarding (modality, body comp,
+goal, last period/cycle, machines, symptoms) → Routine: pick muscle groups,
+exercise count, time budget, energy → "Tomar datos" → editable result →
+"Iniciar rutina" (WorkoutRunner: stopwatch, rest countdown, per-set weight).
+Supplements (current with editable macros + reminders, suggested with brands).
+Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
+
+**Run checks.** `npm run typecheck` and `npm run build`.
