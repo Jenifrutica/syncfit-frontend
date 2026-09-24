@@ -57,9 +57,9 @@ import { Check, Dumbbell, Flame, Flower, Heart, Leaf, Pill, Search } from "@/com
 import { AuthPanel } from "@/components/auth/AuthPanel";
 import { ExerciseMedia } from "@/components/media/ExerciseMedia";
 import { WorkoutRunner } from "@/components/workout/WorkoutRunner";
-import { AdminPanel } from "@/components/admin/AdminPanel";
+import { AdminShell } from "@/components/admin/AdminShell";
 
-type Tab = "routine" | "supplements" | "machines" | "profile" | "admin";
+type Tab = "routine" | "supplements" | "machines" | "profile";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -422,6 +422,10 @@ export default function HomePage() {
     );
   }
 
+  if (user.role !== "ATHLETE") {
+    return <AdminShell user={user} language={language} setLanguage={setLanguage} onLogout={onLogout} />;
+  }
+
   if (!profile) {
     return (
       <main className="mx-auto max-w-2xl p-8">
@@ -535,13 +539,13 @@ export default function HomePage() {
       </header>
 
       <nav className="mt-5 flex gap-2 border-b border-pink-100">
-        {((user.role === "ATHLETE" ? ["routine", "supplements", "machines", "profile"] : ["routine", "supplements", "machines", "profile", "admin"]) as Tab[]).map((item) => (
+        {(["routine", "supplements", "machines", "profile"] as Tab[]).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === item ? "border-pink-500 text-pink-600" : "border-transparent text-slate-500"}`}
           >
-            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : item === "machines" ? t(language, "myMachines") : item === "admin" ? "Admin" : t(language, "profile")}
+            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : item === "machines" ? t(language, "myMachines") : t(language, "profile")}
           </button>
         ))}
       </nav>
@@ -896,8 +900,6 @@ export default function HomePage() {
           )}
         </section>
       )}
-
-      {tab === "admin" && <AdminPanel user={user} />}
 
       {tab === "profile" && (
         <section className="mt-5 space-y-6">

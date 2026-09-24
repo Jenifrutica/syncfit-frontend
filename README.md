@@ -75,8 +75,9 @@ All code, comments, documentation and commits in this repository are written in 
 **Run.** `npm install` then `npm run dev` (http://localhost:3000). API via
 `NEXT_PUBLIC_API_URL` (default http://localhost:8000) and `NEXT_PUBLIC_WS_URL`.
 
-**Layout.** `app/page.tsx` (main app: auth → onboarding → dashboard with tabs
-Routine / Supplements / My machines / Profile), `app/shared/[token]/page.tsx`
+**Layout.** `app/page.tsx` (main app: auth → if `role !== "ATHLETE"` render
+`components/admin/AdminShell.tsx` only; otherwise onboarding → dashboard with
+tabs Routine / Supplements / My machines / Profile), `app/shared/[token]/page.tsx`
 (public read-only shared profile), `lib/api.ts` (client + token), `lib/i18n.ts`
 (EN/ES/ZH), `components/icons.tsx` (SVG, no emoji),
 `components/auth/AuthPanel.tsx`, `components/media/ExerciseMedia.tsx`,
@@ -99,8 +100,10 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 
 ## Admin UI (temporary) and roles
 
-- After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` get an
-  extra **Admin** tab; athletes see a **join gym by code** box in My machines.
+- After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` are
+  **admin-only**: `app/page.tsx` returns `AdminShell` and they never get the
+  athlete tabs, onboarding, cycle/gestational tracking or profile. Athletes see
+  a **join gym by code** box in My machines.
 - `components/admin/AdminPanel.tsx` (single screen for now): super admin creates
   gym admins; gym admin creates gyms, sees the code + QR and adds machines.
 - **Temporary:** it is a single screen. README in `components/admin/` lists the
