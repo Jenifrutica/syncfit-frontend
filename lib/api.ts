@@ -455,7 +455,7 @@ export async function register(
   const response = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, display_name: displayName }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName }),
   });
   if (!response.ok) throw new Error(`register failed: ${response.status}`);
   const data = await response.json();
@@ -467,7 +467,7 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
   });
   if (!response.ok) throw new Error(`login failed: ${response.status}`);
   const data = await response.json();
@@ -654,7 +654,7 @@ export async function createGymAdmin(email: string, password: string, displayNam
   const r = await fetch(`${API_URL}/api/v1/admin/gym-admins`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ email, password, display_name: displayName }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName }),
   });
   if (!r.ok) throw new Error(`create gym admin failed: ${r.status}`);
   return r.json();
