@@ -11,10 +11,15 @@ import {
   IntakeRecord,
   MyProfile,
   RoutineEntry,
+  ShareLinkInfo,
+  SharePermission,
+  ShareRole,
   Stats,
   SupplementAdvice,
   SupplementCatalogItem,
   capture,
+  createShare,
+  deleteShare,
   getCalendar,
   getCatalog,
   getMachines,
@@ -24,6 +29,7 @@ import {
   getSupplementCatalog,
   getSupplementIntakes,
   getSupplements,
+  listShares,
   login,
   logoutLocal,
   register,
@@ -159,6 +165,16 @@ export default function HomePage() {
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [stats, setStats] = useState<Stats | null>(null);
+  const [shares, setShares] = useState<ShareLinkInfo[]>([]);
+  const [shareRole, setShareRole] = useState<ShareRole>("TRAINER");
+  const [sharePermissions, setSharePermissions] = useState<SharePermission[]>([
+    "PROFILE",
+    "ROUTINE",
+    "PROGRESS",
+  ]);
+  const [shareLabel, setShareLabel] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+  const [machineFormOpen, setMachineFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,6 +212,7 @@ export default function HomePage() {
       getCalendar(calendarMonth, language).then((c) => setCalendar(c.days)).catch(() => setCalendar([]));
       getStats().then(setStats).catch(() => setStats(null));
       getSupplementIntakes(today()).then(setIntakes).catch(() => setIntakes([]));
+      listShares().then(setShares).catch(() => setShares([]));
     }
   }, [user, profile, calendarMonth, language]);
 
@@ -274,6 +291,50 @@ export default function HomePage() {
       ...list.filter((i) => i.supplement_id !== supplementId),
       { supplement_id: supplementId, date: today(), taken: next },
     ]);
+  };
+
+  const shareUrl = (token: string) =>
+    typeof window !== "undefined" ? `${window.location.origin}/shared/${token}` : `/shared/${token}`;
+
+  const onCreateShare = async () => {
+    setError(null);
+    try {
+      const link = await createShare(shareRole, sharePermissions, shareLabel || undefined);
+      setShares((list) => [link, ...list]);
+      setShareLabel("");
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const onDeleteShare = async (token: string) => {
+    await deleteShare(token).catch(() => null);
+    setShares((list) => list.filter((s) => s.token !== token));
+  };
+
+  const onCopy = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(shareUrl(token));
+      setCopied(token);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* clipboard may be unavailable */
+    }
+  };
+
+  const onPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => saveProfile({ photo_url: String(reader.result) });
+    reader.readAsDataURL(file);
+  };
+
+  const toggleCurrentSupplement = (id: string) => {
+    const current = new Set(profile?.current_supplements ?? []);
+    if (current.has(id)) current.delete(id);
+    else current.add(id);
+    saveProfile({ current_supplements: [...current] });
   };
 
   const loadsById = useMemo(() => {
@@ -395,7 +456,12 @@ export default function HomePage() {
     <main className="mx-auto max-w-6xl p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Flower size={22} className="text-pink-500" />
+          {profile.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.photo_url} alt="profile" className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <Flower size={22} className="text-pink-500" />
+          )}
           <div>
             <h1 className="text-xl font-bold text-pink-700">
               {t(language, "welcome")}, {user.display_name}
@@ -515,24 +581,34 @@ export default function HomePage() {
           )}
 
           <div className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
-            <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Pill size={18} /> {t(language, "dailyReminders")}</h3>
-            <div className="mt-2 space-y-2">
-              {dailyCatalog.map((item) => {
+            <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Pill size={18} /> {t(language, "currentSupplements")}</h3>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {supplementCatalog.map((item) => {
+                const isCurrent = (profile.current_supplements ?? []).includes(item.id);
                 const taken = intakes.some((i) => i.supplement_id === item.id && i.taken);
                 return (
-                  <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-pink-100 p-2">
+                  <div key={item.id} className={`flex items-start justify-between gap-3 rounded-lg border p-2 ${isCurrent ? "border-pink-400 bg-pink-50" : "border-pink-100"}`}>
                     <div className="text-sm">
                       <strong className="text-slate-800">{item.name}</strong>
-                      <span className="block text-xs text-slate-500">{item.dosage}{item.brand_examples.length ? ` · ${t(language, "brands")}: ${item.brand_examples.slice(0, 2).join(", ")}` : ""}</span>
+                      <span className="block text-xs text-slate-500">{item.dosage}{item.brand_examples.length ? ` · ${item.brand_examples.slice(0, 2).join(", ")}` : ""}</span>
                     </div>
-                    <button onClick={() => toggleIntake(item.id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
-                      <Check size={14} /> {taken ? t(language, "taken") : t(language, "markTaken")}
-                    </button>
+                    <div className="flex shrink-0 gap-1">
+                      <button onClick={() => toggleCurrentSupplement(item.id)} className={`rounded-full px-3 py-1 text-xs ${isCurrent ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}>
+                        {isCurrent ? t(language, "removeMachine") : t(language, "addMachine")}
+                      </button>
+                      {isCurrent && item.is_daily && (
+                        <button onClick={() => toggleIntake(item.id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
+                          <Check size={12} /> {taken ? t(language, "taken") : t(language, "markTaken")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Leaf size={18} /> {t(language, "suggestedSupplements")}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {supplements?.items.map((item) => {
@@ -558,42 +634,78 @@ export default function HomePage() {
 
       {tab === "machines" && (
         <section className="mt-5">
-          <div className="flex items-center gap-2 rounded-full border border-pink-200 bg-white px-4 py-2">
-            <Search size={18} className="text-pink-500" />
-            <input value={machineSearch} onChange={(e) => setMachineSearch(e.target.value)} placeholder={t(language, "searchMachines")} className="w-full outline-none" />
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-pink-700">{t(language, "myMachinesSelected")}</h2>
+            <button onClick={() => setMachineFormOpen((v) => !v)} className="flex items-center gap-1 rounded-full bg-pink-500 px-4 py-2 text-sm text-white">
+              <Dumbbell size={16} /> {machineFormOpen ? t(language, "myMachinesSelected") : t(language, "addMachine")}
+            </button>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredMachines.map((machine) => {
-              const checked = (profile.available_machines ?? []).includes(machine.id);
-              return (
-                <div key={machine.id} className={`overflow-hidden rounded-2xl border ${checked ? "border-pink-400" : "border-pink-100"} bg-white shadow-sm`}>
-                  {machine.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={machine.image_url} alt={machine.name} className="h-36 w-full object-cover" />
-                  )}
-                  <div className="p-4">
-                    <div className="flex items-start justify-between">
-                      <h3 className="font-semibold text-slate-800">{machine.name}</h3>
-                      <span className="rounded bg-pink-50 px-2 py-0.5 text-xs text-pink-700">×{machine.weight_factor}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">{machine.notes}</p>
+
+          {!machineFormOpen && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(profile.available_machines ?? []).map((id) => {
+                const machine = machines.find((m) => m.id === id);
+                if (!machine) return null;
+                return (
+                  <div key={id} className="flex items-center justify-between rounded-xl border border-pink-200 bg-white p-3">
+                    <span className="text-sm text-slate-700">{machine.name} <span className="text-pink-500">×{machine.weight_factor}</span></span>
                     <button
                       onClick={() => {
-                        const current = new Set(profile.available_machines ?? []);
-                        if (checked) current.delete(machine.id);
-                        else current.add(machine.id);
-                        saveProfile({ available_machines: [...current] });
+                        const next = (profile.available_machines ?? []).filter((m) => m !== id);
+                        saveProfile({ available_machines: next });
                       }}
-                      className={`mt-3 flex items-center gap-1 rounded-full px-3 py-1 text-sm ${checked ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}
+                      className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700"
                     >
-                      <Check size={14} /> {checked ? t(language, "taken") : t(language, "myMachines")}
+                      {t(language, "removeMachine")}
                     </button>
                   </div>
-                </div>
-              );
-            })}
-            {filteredMachines.length === 0 && <p className="text-slate-500">{t(language, "noResults")}</p>}
-          </div>
+                );
+              })}
+              {(profile.available_machines ?? []).length === 0 && (
+                <p className="text-slate-500">{t(language, "noResults")}</p>
+              )}
+            </div>
+          )}
+
+          {machineFormOpen && (
+            <>
+              <div className="mt-4 flex items-center gap-2 rounded-full border border-pink-200 bg-white px-4 py-2">
+                <Search size={18} className="text-pink-500" />
+                <input value={machineSearch} onChange={(e) => setMachineSearch(e.target.value)} placeholder={t(language, "searchMachines")} className="w-full outline-none" />
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredMachines.map((machine) => {
+                  const checked = (profile.available_machines ?? []).includes(machine.id);
+                  return (
+                    <div key={machine.id} className={`overflow-hidden rounded-2xl border ${checked ? "border-pink-400" : "border-pink-100"} bg-white shadow-sm`}>
+                      {machine.image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={machine.image_url} alt={machine.name} className="h-36 w-full object-cover" />
+                      )}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between">
+                          <h3 className="font-semibold text-slate-800">{machine.name}</h3>
+                          <span className="rounded bg-pink-50 px-2 py-0.5 text-xs text-pink-700">×{machine.weight_factor}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{machine.notes}</p>
+                        <button
+                          onClick={() => {
+                            const current = new Set(profile.available_machines ?? []);
+                            if (checked) current.delete(machine.id);
+                            else current.add(machine.id);
+                            saveProfile({ available_machines: [...current] });
+                          }}
+                          className={`mt-3 flex items-center gap-1 rounded-full px-3 py-1 text-sm ${checked ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}
+                        >
+                          <Check size={14} /> {checked ? t(language, "removeMachine") : t(language, "addMachine")}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -602,6 +714,18 @@ export default function HomePage() {
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
               <h2 className="font-semibold text-pink-700">{t(language, "profile")}</h2>
+              <div className="mt-3 flex items-center gap-3">
+                {profile.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.photo_url} alt="profile" className="h-16 w-16 rounded-full object-cover" />
+                ) : (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-pink-100 text-pink-400"><Flower size={24} /></span>
+                )}
+                <label className="cursor-pointer rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-700">
+                  {t(language, "changePhoto")}
+                  <input type="file" accept="image/*" onChange={onPhoto} className="hidden" />
+                </label>
+              </div>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <label className="block text-sm text-slate-600">{t(language, "height")}<input type="number" defaultValue={profile.height_cm ?? undefined} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
                 <label className="block text-sm text-slate-600">{t(language, "weightKg")}<input type="number" defaultValue={profile.weight_kg ?? undefined} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
@@ -642,8 +766,58 @@ export default function HomePage() {
           </div>
 
           <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold text-pink-700">{t(language, "myLoads")}</h2>
-            <p className="text-sm text-slate-500">{t(language, "loadNote")}</p>
+            <h2 className="flex items-center gap-2 font-semibold text-pink-700"><Heart size={18} /> {t(language, "share")}</h2>
+            <p className="text-sm text-slate-500">{t(language, "shareWith")}</p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <label className="text-sm text-slate-600">{t(language, "shareWith")}
+                <select value={shareRole} onChange={(e) => setShareRole(e.target.value as ShareRole)} className="ml-2 rounded border border-pink-200 px-2 py-1">
+                  {(["TRAINER", "COACH", "PARTNER", "FRIEND", "FAMILY", "OTHER"] as ShareRole[]).map((r) => (<option key={r} value={r}>{r}</option>))}
+                </select>
+              </label>
+              <input value={shareLabel} onChange={(e) => setShareLabel(e.target.value)} placeholder="label" className="rounded border border-pink-200 px-2 py-1 text-sm" />
+              <button onClick={onCreateShare} className="rounded-full bg-pink-500 px-4 py-2 text-sm text-white">{t(language, "createLink")}</button>
+            </div>
+            <p className="mt-3 text-sm text-slate-600">{t(language, "permissions")}</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {(["PROFILE", "ROUTINE", "CALENDAR", "PROGRESS", "SUPPLEMENTS", "MACHINES", "LOADS"] as SharePermission[]).map((perm) => (
+                <label key={perm} className="flex items-center gap-1 rounded-full bg-pink-50 px-3 py-1 text-xs text-pink-700">
+                  <input
+                    type="checkbox"
+                    className="accent-pink-500"
+                    checked={sharePermissions.includes(perm)}
+                    onChange={() => setSharePermissions((list) => list.includes(perm) ? list.filter((p) => p !== perm) : [...list, perm])}
+                  />
+                  {perm}
+                </label>
+              ))}
+            </div>
+            <div className="mt-4 space-y-2">
+              {shares.length === 0 && <p className="text-sm text-slate-500">{t(language, "noLinks")}</p>}
+              {shares.map((s) => (
+                <div key={s.token} className="flex items-center justify-between gap-2 rounded-lg border border-pink-100 p-2 text-sm">
+                  <span className="truncate"><strong>{s.role}</strong> · {s.permissions.join(", ")}</span>
+                  <span className="flex shrink-0 gap-1">
+                    <button onClick={() => onCopy(s.token)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">
+                      {copied === s.token ? t(language, "copied") : t(language, "copyLink")}
+                    </button>
+                    <button onClick={() => onDeleteShare(s.token)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">{t(language, "removeMachine")}</button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-pink-700">{t(language, "myLoads")}</h2>
+              <label className="text-sm text-slate-600">{t(language, "unit")}
+                <select value={profile.weight_unit ?? "KG"} onChange={(e) => saveProfile({ weight_unit: e.target.value })} className="ml-2 rounded border border-pink-200 px-2 py-1">
+                  <option value="KG">kg</option>
+                  <option value="LB">lb</option>
+                </select>
+              </label>
+            </div>
+            <p className="text-sm text-slate-500">{t(language, "loadNote")} ({profile.weight_unit ?? "KG"})</p>
             <div className="mt-3 grid gap-1 sm:grid-cols-2">
               {catalog.map((exercise) => (
                 <div key={exercise.id} className="flex items-center justify-between gap-2 text-sm">
