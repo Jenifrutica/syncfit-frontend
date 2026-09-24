@@ -16,6 +16,7 @@ import {
   SharePermission,
   ShareRole,
   Stats,
+  SymptomInfo,
   SupplementAdvice,
   SupplementCatalogItem,
   capture,
@@ -30,6 +31,7 @@ import {
   getSupplementCatalog,
   getSupplementIntakes,
   getSupplements,
+  getSymptoms,
   listShares,
   login,
   logoutLocal,
@@ -51,6 +53,9 @@ import {
   t,
 } from "@/lib/i18n";
 import { Check, Dumbbell, Flame, Flower, Heart, Leaf, Pill, Search } from "@/components/icons";
+import { AuthPanel } from "@/components/auth/AuthPanel";
+import { ExerciseMedia } from "@/components/media/ExerciseMedia";
+import { WorkoutRunner } from "@/components/workout/WorkoutRunner";
 
 type Tab = "routine" | "supplements" | "machines" | "profile";
 
@@ -90,10 +95,7 @@ function SetsSummary({ entry, language }: { entry: RoutineEntry; language: Langu
 function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Language }) {
   return (
     <div className="overflow-hidden rounded-xl border border-pink-100 bg-white shadow-sm">
-      {entry.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={entry.image_url} alt={entry.exercise_original} className="h-36 w-full object-cover" />
-      )}
+      <ExerciseMedia mediaUrl={entry.media_url} imageUrl={entry.image_url} alt={entry.exercise_original} />
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-slate-800">{entry.exercise_original}</h3>
@@ -190,6 +192,8 @@ export default function HomePage() {
   const [shareLabel, setShareLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [machineFormOpen, setMachineFormOpen] = useState(false);
+  const [symptoms, setSymptoms] = useState<{ id: string; name: string; modality: string; advice: string }[]>([]);
+  const [workout, setWorkout] = useState(false);
   const [exercisesCount, setExercisesCount] = useState(5);
   const [timeBudget, setTimeBudget] = useState<number | "">("");
   const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
@@ -223,6 +227,7 @@ export default function HomePage() {
     getCatalog(language).then(setCatalog).catch(() => setCatalog([]));
     getMachines(language).then(setMachines).catch(() => setMachines([]));
     getSupplementCatalog(language).then(setSupplementCatalog).catch(() => setSupplementCatalog([]));
+    getSymptoms(language).then(setSymptoms).catch(() => setSymptoms([]));
   }, [language]);
 
   useEffect(() => {
@@ -389,38 +394,20 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <main className="mx-auto max-w-md p-8">
-        <h1 className="flex items-center gap-2 text-3xl font-bold text-pink-600">
-          <Flower size={28} /> {t(language, "title")}
-        </h1>
-        <p className="text-slate-600">{t(language, "subtitle")}</p>
-        <div className="mt-6 space-y-3 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
-          <div className="flex gap-2">
-            <button onClick={() => setMode("login")} className={`rounded px-3 py-1 text-sm ${mode === "login" ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
-              {t(language, "signIn")}
-            </button>
-            <button onClick={() => setMode("register")} className={`rounded px-3 py-1 text-sm ${mode === "register" ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
-              {t(language, "signUp")}
-            </button>
-          </div>
-          {mode === "register" && (
-            <input placeholder={t(language, "nameField")} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
-          )}
-          <input placeholder={t(language, "email")} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
-          <input type="password" placeholder={t(language, "password")} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
-          <button onClick={onAuth} className="w-full rounded bg-pink-500 px-4 py-2 text-white hover:bg-pink-600">
-            {mode === "login" ? t(language, "signIn") : t(language, "signUp")}
-          </button>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
-        </div>
-        <div className="mt-4 flex justify-center gap-2">
-          {LANGUAGES.map((lang) => (
-            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
-              {LANGUAGE_LABELS[lang]}
-            </button>
-          ))}
-        </div>
-      </main>
+      <AuthPanel
+        language={language}
+        setLanguage={setLanguage}
+        mode={mode}
+        setMode={setMode}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        name={name}
+        setName={setName}
+        onAuth={onAuth}
+        error={error}
+      />
     );
   }
 
@@ -486,6 +473,16 @@ export default function HomePage() {
   }
 
   const timeline = profile.timeline;
+
+  if (workout && captureResult) {
+    return (
+      <WorkoutRunner
+        entries={captureResult.routine.map(adapt)}
+        language={language}
+        onExit={() => setWorkout(false)}
+      />
+    );
+  }
 
   return (
     <main className="mx-auto max-w-6xl p-6">
@@ -589,6 +586,16 @@ export default function HomePage() {
                 <span>{t(language, "kLoad")}: <strong>{captureResult.k_load.toFixed(3)}</strong></span>
                 {captureResult.total_estimated_minutes != null && (<span>{t(language, "totalTime")}: <strong>{captureResult.total_estimated_minutes} {t(language, "minutes")}</strong></span>)}
               </div>
+              <button onClick={() => setWorkout(true)} className="mt-3 flex items-center gap-2 rounded-full bg-pink-600 px-5 py-2 text-white hover:bg-pink-700">
+                <Dumbbell size={18} /> Iniciar rutina
+              </button>
+
+              {captureResult.alerts && captureResult.alerts.length > 0 && (
+                <ul className="mt-2 list-inside list-disc text-sm text-amber-700">
+                  {captureResult.alerts.map((a, i) => (<li key={i}>{a}</li>))}
+                </ul>
+              )}
+
               {captureResult.warmup.length > 0 && (
                 <>
                   <h3 className="mt-4 font-semibold text-pink-700">{t(language, "warmup")}</h3>
@@ -882,6 +889,27 @@ export default function HomePage() {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+            <h2 className="font-semibold text-pink-700">Symptoms</h2>
+            <p className="text-sm text-slate-500">Select what you feel; the routine adapts (cramps, low back, knee, contractions, dilation).</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {symptoms
+                .filter((s) => (profile.modality === "GESTATIONAL" ? true : s.modality !== "GESTATIONAL"))
+                .map((s) => {
+                  const active = (profile.symptoms ?? []).includes(s.id);
+                  return (
+                    <button key={s.id} onClick={() => {
+                      const current = new Set(profile.symptoms ?? []);
+                      if (active) current.delete(s.id); else current.add(s.id);
+                      saveProfile({ symptoms: [...current] });
+                    }} className={`rounded-full border px-3 py-1 text-sm ${active ? "border-pink-500 bg-pink-500 text-white" : "border-pink-200 bg-white text-pink-700"}`}>
+                      {s.name}
+                    </button>
+                  );
+                })}
             </div>
           </div>
 

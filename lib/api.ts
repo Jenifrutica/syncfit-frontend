@@ -340,6 +340,21 @@ export async function getSupplementCatalog(language: Language): Promise<Suppleme
   return response.json();
 }
 
+export interface SymptomInfo {
+  id: string;
+  name: string;
+  modality: string;
+  advice: string;
+  impact_cap?: string;
+  block_training?: boolean;
+}
+
+export async function getSymptoms(language: Language): Promise<SymptomInfo[]> {
+  const response = await fetch(`${API_URL}/api/v1/symptoms?language=${language}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`symptoms failed: ${response.status}`);
+  return response.json();
+}
+
 export interface IntakeRecord {
   supplement_id: string;
   date: string;
@@ -490,6 +505,7 @@ export interface MyProfile {
   modality?: string;
   available_machines?: string[];
   current_supplements?: string[];
+  symptoms?: string[];
   supplement_macros?: { supplement_id: string; macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number } }[];
   weight_unit?: string;
   photo_url?: string;
@@ -533,6 +549,7 @@ export interface CaptureResult {
   fatigue_level: string;
   k_load: number;
   total_estimated_minutes?: number;
+  alerts?: string[];
   warmup: Record<string, unknown>[];
   routine: Record<string, unknown>[];
   timeline?: Timeline | null;
