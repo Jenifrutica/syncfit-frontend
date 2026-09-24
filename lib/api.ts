@@ -56,6 +56,17 @@ export interface TelemetryFrame {
   ppg_window: { sample_rate_hz: number; window_size: number; samples: number[] };
 }
 
+export type EnergyLevel = "ENERGY" | "MODERATE" | "NO_ENERGY";
+
+export interface SetPrescription {
+  type: "WARMUP" | "ACTIVATION" | "APPROXIMATION" | "EFFECTIVE";
+  reps: number;
+  weight_kg: number;
+  rest_seconds: number;
+  estimated_seconds: number;
+  tempo?: string | null;
+}
+
 export interface RoutineEntry {
   exercise_original: string;
   blocked: boolean;
@@ -67,9 +78,13 @@ export interface RoutineEntry {
   exercise_id?: string;
   muscle_groups?: string[];
   impact?: string;
+  role?: string;
   description?: LocalizedText;
   image_url?: string;
   media_url?: string | null;
+  rest_seconds?: number;
+  estimated_seconds?: number;
+  sets?: SetPrescription[];
 }
 
 export interface RoutineResponse {
@@ -80,7 +95,68 @@ export interface RoutineResponse {
   fatigue_level?: string | null;
   k_load_multiplier?: number | null;
   alerts: string[];
+  total_estimated_minutes?: number;
+  warmup?: RoutineEntry[];
   routine: RoutineEntry[];
+  variation_pct?: number;
+}
+
+export interface SupplementAdviceItem {
+  supplement_id: string;
+  name: LocalizedText;
+  category: string;
+  safety: "SAFE" | "CAUTION" | "AVOID";
+  dosage: LocalizedText;
+  macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number };
+  reason: LocalizedText;
+  image_url?: string;
+}
+
+export interface SupplementAdvice {
+  language: Language;
+  modality?: string;
+  objective?: string;
+  items: SupplementAdviceItem[];
+}
+
+export interface ExerciseLoad {
+  exercise_id: string;
+  weight_kg: number;
+  reps?: number;
+}
+
+export interface Profile {
+  profile_id: string;
+  display_name: string;
+  language: Language;
+  is_guest: boolean;
+  height_cm?: number;
+  weight_kg?: number;
+  objective?: string;
+  modality?: "MENSTRUAL_CYCLE" | "GESTATIONAL";
+  loads: ExerciseLoad[];
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  description: string;
+  muscle_groups: string[];
+  equipment: string;
+  impact: string;
+  image_url: string;
+  media_url: string | null;
+}
+
+export interface RoutineOptions {
+  engine?: "simulator" | "ai";
+  withTelemetry?: boolean;
+  profileId?: string;
+  exercisesCount?: number;
+  timeBudgetMinutes?: number;
+  energy?: EnergyLevel;
+  objective?: string;
+  includeWarmup?: boolean;
 }
 
 export const SAMPLE_FRAME: TelemetryFrame = {
@@ -134,19 +210,23 @@ export async function getMuscleGroups(): Promise<string[]> {
 export async function generateRoutine(
   muscleGroups: string[],
   language: Language,
-  options: { engine?: "simulator" | "ai"; withTelemetry?: boolean } = {},
+  options: RoutineOptions = {},
 ): Promise<RoutineResponse> {
   const engine = options.engine ?? "simulator";
   const body: Record<string, unknown> = {
-    schema_version: "1.1.0",
+    schema_version: "1.2.0",
     muscle_groups: muscleGroups,
     language,
-    exercises_per_group: 2,
+    exercises_count: options.exercisesCount ?? 5,
+    include_warmup: options.includeWarmup ?? true,
   };
-  if (options.withTelemetry) {
-    body.telemetry = SAMPLE_FRAME;
-  }
-  const response = await fetch(`${API_URL}/api/v1/routines?engine=${engine}`, {
+  if (options.withTelemetry) body.telemetry = SAMPLE_FRAME;
+  if (options.timeBudgetMinutes) body.time_budget_minutes = options.timeBudgetMinutes;
+  if (options.energy) body.energy_level = options.energy;
+  if (options.objective) body.objective = options.objective;
+  const query = new URLSearchParams({ engine });
+  if (options.profileId) query.set("profile_id", options.profileId);
+  const response = await fetch(`${API_URL}/api/v1/routines?${query.toString()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -156,3 +236,49 @@ export async function generateRoutine(
   }
   return response.json();
 }
+
+export async function getCatalog(language: Language): Promise<CatalogItem[]> {
+  const response = await fetch(`${API_URL}/api/v1/catalog?language=${language}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`catalog failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getSupplements(
+  modality: "MENSTRUAL_CYCLE" | "GESTATIONAL",
+  language: Language,
+  objective?: string,
+  week?: number,
+): Promise<SupplementAdvice> {
+  const query = new URLSearchParams({ modality, language });
+  if (objective) query.set("objective", objective);
+  if (week) query.set("week", String(week));
+  const response = await fetch(`${API_URL}/api/v1/supplements?${query.toString()}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`supplements failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function saveProfile(profile: Profile): Promise<Profile> {
+  const body = {
+    schema_version: "1.2.0",
+    ...profile,
+    loads: profile.loads.map((load) => ({ ...load, reps: load.reps ?? 10 })),
+  };
+  const response = await fetch(`${API_URL}/api/v1/profiles`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`profile failed: ${response.status}`);
+  }
+  return response.json();
+}
+
