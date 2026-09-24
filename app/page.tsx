@@ -594,7 +594,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <button onClick={() => toggleCurrentSupplement(item.id)} className={`rounded-full px-3 py-1 text-xs ${isCurrent ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}>
-                        {isCurrent ? t(language, "removeMachine") : t(language, "addMachine")}
+                        {isCurrent ? t(language, "remove") : t(language, "add")}
                       </button>
                       {isCurrent && item.is_daily && (
                         <button onClick={() => toggleIntake(item.id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
@@ -637,7 +637,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-pink-700">{t(language, "myMachinesSelected")}</h2>
             <button onClick={() => setMachineFormOpen((v) => !v)} className="flex items-center gap-1 rounded-full bg-pink-500 px-4 py-2 text-sm text-white">
-              <Dumbbell size={16} /> {machineFormOpen ? t(language, "myMachinesSelected") : t(language, "addMachine")}
+              <Dumbbell size={16} /> {machineFormOpen ? t(language, "close") : t(language, "addMachine")}
             </button>
           </div>
 
@@ -656,13 +656,16 @@ export default function HomePage() {
                       }}
                       className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700"
                     >
-                      {t(language, "removeMachine")}
+                      {t(language, "remove")}
                     </button>
                   </div>
                 );
               })}
               {(profile.available_machines ?? []).length === 0 && (
-                <p className="text-slate-500">{t(language, "noResults")}</p>
+                <div className="rounded-xl border border-dashed border-pink-200 bg-white p-4 text-sm text-slate-500">
+                  <p className="font-medium text-pink-700">{t(language, "noMachines")}</p>
+                  <p>{t(language, "noMachinesHint")}</p>
+                </div>
               )}
             </div>
           )}
@@ -697,7 +700,7 @@ export default function HomePage() {
                           }}
                           className={`mt-3 flex items-center gap-1 rounded-full px-3 py-1 text-sm ${checked ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}
                         >
-                          <Check size={14} /> {checked ? t(language, "removeMachine") : t(language, "addMachine")}
+                          <Check size={14} /> {checked ? t(language, "remove") : t(language, "add")}
                         </button>
                       </div>
                     </div>
@@ -800,7 +803,7 @@ export default function HomePage() {
                     <button onClick={() => onCopy(s.token)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">
                       {copied === s.token ? t(language, "copied") : t(language, "copyLink")}
                     </button>
-                    <button onClick={() => onDeleteShare(s.token)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">{t(language, "removeMachine")}</button>
+                    <button onClick={() => onDeleteShare(s.token)} className="rounded-full bg-pink-100 px-3 py-1 text-xs text-pink-700">{t(language, "remove")}</button>
                   </span>
                 </div>
               ))}

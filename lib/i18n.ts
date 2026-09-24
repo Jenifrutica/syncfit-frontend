@@ -131,6 +131,11 @@ const TRANSLATIONS: Record<Language, Dict> = {
     sharedBy: "Shared profile of",
     viewOnly: "View only",
     myMachinesSelected: "My machines",
+    add: "Add",
+    remove: "Remove",
+    close: "Done",
+    noMachines: "No machines yet.",
+    noMachinesHint: "Tap \"Add machine\" to pick the ones in your gym.",
   },
   ES: {
     title: "SyncFit Edge",
@@ -248,6 +253,11 @@ const TRANSLATIONS: Record<Language, Dict> = {
     sharedBy: "Perfil compartido de",
     viewOnly: "Solo lectura",
     myMachinesSelected: "Mis máquinas",
+    add: "Añadir",
+    remove: "Quitar",
+    close: "Listo",
+    noMachines: "Aún no tienes máquinas.",
+    noMachinesHint: "Toca \"Agregar máquina\" para elegir las de tu gimnasio.",
   },
   ZH: {
     title: "SyncFit Edge",
@@ -365,6 +375,11 @@ const TRANSLATIONS: Record<Language, Dict> = {
     sharedBy: "共享资料：",
     viewOnly: "只读",
     myMachinesSelected: "我的器械",
+    add: "添加",
+    remove: "移除",
+    close: "完成",
+    noMachines: "还没有器械。",
+    noMachinesHint: "点击“添加器械”选择健身房的器械。",
   },
 };
 
