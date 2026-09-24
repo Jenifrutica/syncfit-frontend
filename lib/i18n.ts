@@ -87,6 +87,22 @@ const TRANSLATIONS: Record<Language, Dict> = {
     cycleToday: "Today",
     noProfileYet: "Complete your profile to start.",
     haveAccount: "I already have an account",
+    goalPhase: "Goal phase",
+    bodyFat: "Body fat (%)",
+    dailyCalories: "Daily calories",
+    machines: "My gym machines",
+    machinesHint: "Select the machines you have. Weights are estimated per machine.",
+    calendar: "Cycle calendar",
+    dailyMacros: "Daily macros",
+    protein: "Protein",
+    carbs: "Carbs",
+    fat: "Fat",
+    kcal: "kcal",
+    period: "Period",
+    ovulation: "Ovulation",
+    strengthDay: "Strength",
+    lowImpact: "Low impact",
+    rest: "Rest",
   },
   ES: {
     title: "SyncFit Edge",
@@ -160,6 +176,22 @@ const TRANSLATIONS: Record<Language, Dict> = {
     cycleToday: "Hoy",
     noProfileYet: "Completa tu perfil para empezar.",
     haveAccount: "Ya tengo una cuenta",
+    goalPhase: "Fase de objetivo",
+    bodyFat: "Grasa corporal (%)",
+    dailyCalories: "Calorías diarias",
+    machines: "Máquinas de mi gimnasio",
+    machinesHint: "Selecciona las máquinas que tienes. Los pesos se estiman por máquina.",
+    calendar: "Calendario del ciclo",
+    dailyMacros: "Macros diarias",
+    protein: "Proteína",
+    carbs: "Carbohidratos",
+    fat: "Grasa",
+    kcal: "kcal",
+    period: "Menstruación",
+    ovulation: "Ovulación",
+    strengthDay: "Fuerza",
+    lowImpact: "Bajo impacto",
+    rest: "Descanso",
   },
   ZH: {
     title: "SyncFit Edge",
@@ -233,6 +265,22 @@ const TRANSLATIONS: Record<Language, Dict> = {
     cycleToday: "今天",
     noProfileYet: "请完善个人资料以开始。",
     haveAccount: "我已有账户",
+    goalPhase: "目标阶段",
+    bodyFat: "体脂率 (%)",
+    dailyCalories: "每日热量",
+    machines: "我的健身房器械",
+    machinesHint: "选择你有的器械，重量会按器械估算。",
+    calendar: "周期日历",
+    dailyMacros: "每日营养",
+    protein: "蛋白质",
+    carbs: "碳水",
+    fat: "脂肪",
+    kcal: "千卡",
+    period: "月经期",
+    ovulation: "排卵期",
+    strengthDay: "力量",
+    lowImpact: "低冲击",
+    rest: "休息",
   },
 };
 
@@ -296,4 +344,18 @@ export function objectiveLabel(language: Language, objective: string): string {
 export function localized(text: Record<string, string> | undefined, language: Language): string {
   if (!text) return "";
   return text[language.toLowerCase()] ?? text.en ?? "";
+}
+
+const GOAL_LABELS: Record<string, Record<Language, string>> = {
+  VOLUME: { EN: "Volume (bulk)", ES: "Volumen", ZH: "增肌期" },
+  DEFINITION: { EN: "Definition (cut)", ES: "Definición", ZH: "减脂期" },
+  MAINTENANCE: { EN: "Maintenance", ES: "Mantenimiento", ZH: "维持" },
+  STRENGTH_FOCUS: { EN: "Strength focus", ES: "Enfoque fuerza", ZH: "力量优先" },
+  RECOVERY: { EN: "Recovery", ES: "Recuperación", ZH: "恢复期" },
+};
+
+export const GOAL_OPTIONS = ["VOLUME", "DEFINITION", "MAINTENANCE", "STRENGTH_FOCUS", "RECOVERY"] as const;
+
+export function goalLabel(language: Language, goal: string): string {
+  return GOAL_LABELS[goal]?.[language] ?? goal.replace(/_/g, " ");
 }
