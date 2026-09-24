@@ -282,3 +282,140 @@ export async function saveProfile(profile: Profile): Promise<Profile> {
   return response.json();
 }
 
+/* --- Authentication ------------------------------------------------------- */
+
+const TOKEN_KEY = "syncfit-token";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string | null): void {
+  if (typeof window === "undefined") return;
+  if (token) window.localStorage.setItem(TOKEN_KEY, token);
+  else window.localStorage.removeItem(TOKEN_KEY);
+}
+
+export function logoutLocal(): void {
+  setToken(null);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  display_name: string;
+}
+
+export async function register(
+  email: string,
+  password: string,
+  displayName: string,
+): Promise<AuthUser> {
+  const response = await fetch(`${API_URL}/api/v1/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, display_name: displayName }),
+  });
+  if (!response.ok) throw new Error(`register failed: ${response.status}`);
+  const data = await response.json();
+  setToken(data.access_token);
+  return data.user as AuthUser;
+}
+
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) throw new Error(`login failed: ${response.status}`);
+  const data = await response.json();
+  setToken(data.access_token);
+  return data.user as AuthUser;
+}
+
+export async function getMe(): Promise<AuthUser | null> {
+  if (!getToken()) return null;
+  const response = await fetch(`${API_URL}/api/v1/auth/me`, { headers: authHeaders() });
+  if (!response.ok) {
+    if (response.status === 401) setToken(null);
+    return null;
+  }
+  return response.json();
+}
+
+export interface Timeline {
+  modality: string;
+  cycle_day?: number;
+  cycle_length_days?: number;
+  week?: number;
+  phase?: string;
+}
+
+export interface MyProfile {
+  profile_id: string;
+  language: string;
+  height_cm?: number;
+  weight_kg?: number;
+  objective?: string;
+  modality?: string;
+  last_period_date?: string;
+  cycle_length_days?: number;
+  gestation_week?: number;
+  loads: ExerciseLoad[];
+  timeline?: Timeline | null;
+}
+
+export async function getMyProfile(): Promise<MyProfile | null> {
+  const response = await fetch(`${API_URL}/api/v1/profiles/me`, { headers: authHeaders() });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`profile failed: ${response.status}`);
+  return response.json();
+}
+
+export async function updateMyProfile(data: Record<string, unknown>): Promise<MyProfile> {
+  const response = await fetch(`${API_URL}/api/v1/profiles/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`onboarding failed: ${response.status}`);
+  return response.json();
+}
+
+export async function getCycle(): Promise<{ timeline: Timeline | null }> {
+  const response = await fetch(`${API_URL}/api/v1/cycle`, { headers: authHeaders() });
+  if (!response.ok) throw new Error(`cycle failed: ${response.status}`);
+  return response.json();
+}
+
+export interface CaptureResult {
+  session_id: string;
+  routine_id: string;
+  scenario: string;
+  phase_inferred: string;
+  fatigue_level: string;
+  k_load: number;
+  total_estimated_minutes?: number;
+  warmup: Record<string, unknown>[];
+  routine: Record<string, unknown>[];
+  timeline?: Timeline | null;
+}
+
+export async function capture(path?: string): Promise<CaptureResult> {
+  const query = new URLSearchParams();
+  if (path) query.set("muscle_groups", path);
+  const response = await fetch(`${API_URL}/api/v1/capture?${query.toString()}`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`capture failed: ${response.status}`);
+  return response.json();
+}
+
