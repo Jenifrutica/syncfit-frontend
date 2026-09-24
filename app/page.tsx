@@ -8,19 +8,26 @@ import {
   CaptureResult,
   CatalogItem,
   GymMachine,
+  IntakeRecord,
   MyProfile,
   RoutineEntry,
+  Stats,
   SupplementAdvice,
+  SupplementCatalogItem,
   capture,
   getCalendar,
   getCatalog,
   getMachines,
   getMe,
   getMyProfile,
+  getStats,
+  getSupplementCatalog,
+  getSupplementIntakes,
   getSupplements,
   login,
   logoutLocal,
   register,
+  setSupplementIntake,
   updateMyProfile,
 } from "@/lib/api";
 import { GENERAL_GROUPS, ISOLATED_GROUPS } from "@/lib/api";
@@ -36,15 +43,11 @@ import {
   objectiveLabel,
   t,
 } from "@/lib/i18n";
+import { Check, Dumbbell, Flame, Flower, Heart, Leaf, Pill, Search } from "@/components/icons";
 
-type Tab = "routine" | "supplements" | "profile";
+type Tab = "routine" | "supplements" | "machines" | "profile";
 
-const PINK = {
-  primary: "bg-pink-500 hover:bg-pink-600",
-  text: "text-pink-600",
-  border: "border-pink-500",
-  soft: "bg-pink-100",
-};
+const today = () => new Date().toISOString().slice(0, 10);
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -123,13 +126,21 @@ function adapt(entry: Record<string, unknown>): RoutineEntry {
   };
 }
 
-const KIND_STYLE: Record<string, { bg: string; icon: string }> = {
-  CYCLE: { bg: "bg-rose-500 text-white", icon: "🌸" },
-  OVULATION: { bg: "bg-rose-300 text-rose-900", icon: "💗" },
-  STRENGTH: { bg: "bg-pink-400 text-white", icon: "" },
-  LOW_IMPACT: { bg: "bg-pink-200 text-pink-900", icon: "🌷" },
-  REST: { bg: "bg-slate-100 text-slate-500", icon: "" },
+const KIND_STYLE: Record<string, string> = {
+  CYCLE: "bg-rose-500 text-white",
+  OVULATION: "bg-rose-300 text-rose-900",
+  STRENGTH: "bg-pink-400 text-white",
+  LOW_IMPACT: "bg-pink-200 text-pink-900",
+  REST: "bg-slate-100 text-slate-500",
 };
+
+function KindIcon({ kind }: { kind: string }) {
+  if (kind === "CYCLE") return <Flower size={14} />;
+  if (kind === "OVULATION") return <Heart size={14} />;
+  if (kind === "LOW_IMPACT") return <Leaf size={14} />;
+  if (kind === "STRENGTH") return <Dumbbell size={14} />;
+  return null;
+}
 
 export default function HomePage() {
   const [language, setLanguage] = useState<Language>("EN");
@@ -140,10 +151,14 @@ export default function HomePage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
   const [supplements, setSupplements] = useState<SupplementAdvice | null>(null);
+  const [supplementCatalog, setSupplementCatalog] = useState<SupplementCatalogItem[]>([]);
+  const [intakes, setIntakes] = useState<IntakeRecord[]>([]);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [machines, setMachines] = useState<GymMachine[]>([]);
+  const [machineSearch, setMachineSearch] = useState("");
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,6 +171,8 @@ export default function HomePage() {
     cycle_length_days: 28,
     objective: "HYPERTROPHY",
     goal_phase: "VOLUME",
+    weekly_training_goal: 4,
+    rest_days_allowance: 3,
     loads: [],
   });
 
@@ -171,10 +188,15 @@ export default function HomePage() {
   useEffect(() => {
     getCatalog(language).then(setCatalog).catch(() => setCatalog([]));
     getMachines(language).then(setMachines).catch(() => setMachines([]));
+    getSupplementCatalog(language).then(setSupplementCatalog).catch(() => setSupplementCatalog([]));
   }, [language]);
 
   useEffect(() => {
-    if (user && profile) getCalendar(calendarMonth, language).then((c) => setCalendar(c.days)).catch(() => setCalendar([]));
+    if (user && profile) {
+      getCalendar(calendarMonth, language).then((c) => setCalendar(c.days)).catch(() => setCalendar([]));
+      getStats().then(setStats).catch(() => setStats(null));
+      getSupplementIntakes(today()).then(setIntakes).catch(() => setIntakes([]));
+    }
   }, [user, profile, calendarMonth, language]);
 
   const onAuth = async () => {
@@ -204,17 +226,12 @@ export default function HomePage() {
     }
   };
 
-  const onSaveOnboarding = async () => {
-    setLoading(true);
-    await saveProfile(form);
-    setLoading(false);
-  };
-
   const onTakeData = async () => {
     setError(null);
     setLoading(true);
     try {
       setCaptureResult(await capture(selected.length ? selected.join(",") : undefined));
+      getStats().then(setStats).catch(() => null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -249,31 +266,44 @@ export default function HomePage() {
     if (tab === "supplements" && user && profile) void loadSupplements();
   }, [tab, user, profile, loadSupplements]);
 
+  const toggleIntake = async (supplementId: string) => {
+    const current = intakes.find((i) => i.supplement_id === supplementId);
+    const next = !current?.taken;
+    await setSupplementIntake(supplementId, today(), next).catch(() => null);
+    setIntakes((list) => [
+      ...list.filter((i) => i.supplement_id !== supplementId),
+      { supplement_id: supplementId, date: today(), taken: next },
+    ]);
+  };
+
   const loadsById = useMemo(() => {
     const map: Record<string, number> = {};
     profile?.loads.forEach((l) => (map[l.exercise_id] = l.weight_kg));
     return map;
   }, [profile]);
 
-  const calendarByDate = useMemo(() => {
-    const map: Record<string, CalendarDay> = {};
-    calendar.forEach((d) => (map[d.date] = d));
-    return map;
-  }, [calendar]);
+  const trainingDates = useMemo(() => new Set(stats?.training_dates ?? []), [stats]);
+  const dailyCatalog = useMemo(() => supplementCatalog.filter((s) => s.is_daily), [supplementCatalog]);
+  const filteredMachines = useMemo(() => {
+    const q = machineSearch.trim().toLowerCase();
+    return q ? machines.filter((m) => m.name.toLowerCase().includes(q)) : machines;
+  }, [machines, machineSearch]);
 
-  if (!ready) return <main className="p-8 text-pink-400">🌸</main>;
+  if (!ready) return <main className="p-8 text-pink-400"><Flower size={24} /></main>;
 
   if (!user) {
     return (
       <main className="mx-auto max-w-md p-8">
-        <h1 className={`text-3xl font-bold ${PINK.text}`}>🌸 {t(language, "title")}</h1>
+        <h1 className="flex items-center gap-2 text-3xl font-bold text-pink-600">
+          <Flower size={28} /> {t(language, "title")}
+        </h1>
         <p className="text-slate-600">{t(language, "subtitle")}</p>
         <div className="mt-6 space-y-3 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
           <div className="flex gap-2">
-            <button onClick={() => setMode("login")} className={`rounded px-3 py-1 text-sm ${mode === "login" ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
+            <button onClick={() => setMode("login")} className={`rounded px-3 py-1 text-sm ${mode === "login" ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
               {t(language, "signIn")}
             </button>
-            <button onClick={() => setMode("register")} className={`rounded px-3 py-1 text-sm ${mode === "register" ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
+            <button onClick={() => setMode("register")} className={`rounded px-3 py-1 text-sm ${mode === "register" ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
               {t(language, "signUp")}
             </button>
           </div>
@@ -282,14 +312,14 @@ export default function HomePage() {
           )}
           <input placeholder={t(language, "email")} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
           <input type="password" placeholder={t(language, "password")} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
-          <button onClick={onAuth} className={`w-full rounded ${PINK.primary} px-4 py-2 text-white`}>
+          <button onClick={onAuth} className="w-full rounded bg-pink-500 px-4 py-2 text-white hover:bg-pink-600">
             {mode === "login" ? t(language, "signIn") : t(language, "signUp")}
           </button>
           {error && <p className="text-sm text-rose-600">{error}</p>}
         </div>
         <div className="mt-4 flex justify-center gap-2">
           {LANGUAGES.map((lang) => (
-            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
+            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-700"}`}>
               {LANGUAGE_LABELS[lang]}
             </button>
           ))}
@@ -301,7 +331,9 @@ export default function HomePage() {
   if (!profile) {
     return (
       <main className="mx-auto max-w-2xl p-8">
-        <h1 className={`text-2xl font-bold ${PINK.text}`}>🌸 {t(language, "setupTitle")}</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-pink-600">
+          <Flower size={24} /> {t(language, "setupTitle")}
+        </h1>
         <div className="mt-5 space-y-4 rounded-2xl border border-pink-100 bg-white p-6 shadow-sm">
           <label className="block text-sm text-slate-600">
             Modality
@@ -311,55 +343,44 @@ export default function HomePage() {
             </select>
           </label>
           <div className="grid grid-cols-2 gap-4">
-            <label className="block text-sm text-slate-600">
-              {t(language, "height")}
-              <input type="number" value={String(form.height_cm ?? "")} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            <label className="block text-sm text-slate-600">{t(language, "height")}<input type="number" value={String(form.height_cm ?? "")} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+            <label className="block text-sm text-slate-600">{t(language, "weightKg")}<input type="number" value={String(form.weight_kg ?? "")} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+            <label className="block text-sm text-slate-600">{t(language, "bodyFat")}<input type="number" value={String(form.body_fat_pct ?? "")} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+            <label className="block text-sm text-slate-600">{t(language, "dailyCalories")}<input type="number" value={String(form.daily_calories ?? "")} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-600">{t(language, "objective")}
+              <select value={String(form.objective)} onChange={(e) => setForm({ ...form, objective: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
+                {OBJECTIVE_OPTIONS.map((opt) => (<option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>))}
+              </select>
             </label>
-            <label className="block text-sm text-slate-600">
-              {t(language, "weightKg")}
-              <input type="number" value={String(form.weight_kg ?? "")} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-            </label>
-            <label className="block text-sm text-slate-600">
-              {t(language, "bodyFat")}
-              <input type="number" value={String(form.body_fat_pct ?? "")} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-            </label>
-            <label className="block text-sm text-slate-600">
-              {t(language, "dailyCalories")}
-              <input type="number" value={String(form.daily_calories ?? "")} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            <label className="block text-sm text-slate-600">{t(language, "goalPhase")}
+              <select value={String(form.goal_phase)} onChange={(e) => setForm({ ...form, goal_phase: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
+                {GOAL_OPTIONS.map((goal) => (<option key={goal} value={goal}>{goalLabel(language, goal)}</option>))}
+              </select>
             </label>
           </div>
-          <label className="block text-sm text-slate-600">
-            {t(language, "objective")}
-            <select value={String(form.objective)} onChange={(e) => setForm({ ...form, objective: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
-              {OBJECTIVE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm text-slate-600">
-            {t(language, "goalPhase")}
-            <select value={String(form.goal_phase)} onChange={(e) => setForm({ ...form, goal_phase: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1">
-              {GOAL_OPTIONS.map((goal) => (
-                <option key={goal} value={goal}>{goalLabel(language, goal)}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm text-slate-600">
-            Last period / LMP date
+          <div className="grid grid-cols-2 gap-4">
+            <label className="block text-sm text-slate-600">Weekly training goal
+              <input type="number" value={String(form.weekly_training_goal ?? 4)} onChange={(e) => setForm({ ...form, weekly_training_goal: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            </label>
+            <label className="block text-sm text-slate-600">Rest days allowance
+              <input type="number" value={String(form.rest_days_allowance ?? 3)} onChange={(e) => setForm({ ...form, rest_days_allowance: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
+            </label>
+          </div>
+          <label className="block text-sm text-slate-600">Last period / LMP date
             <input type="date" value={String(form.last_period_date ?? "")} onChange={(e) => setForm({ ...form, last_period_date: e.target.value })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
           </label>
           {form.modality === "MENSTRUAL_CYCLE" ? (
-            <label className="block text-sm text-slate-600">
-              Cycle length (days)
+            <label className="block text-sm text-slate-600">Cycle length (days)
               <input type="number" value={String(form.cycle_length_days ?? 28)} onChange={(e) => setForm({ ...form, cycle_length_days: Number(e.target.value) })} className="mt-1 w-28 rounded border border-pink-200 px-2 py-1" />
             </label>
           ) : (
-            <label className="block text-sm text-slate-600">
-              Gestation week
+            <label className="block text-sm text-slate-600">Gestation week
               <input type="number" value={String(form.gestation_week ?? "")} onChange={(e) => setForm({ ...form, gestation_week: Number(e.target.value) })} className="mt-1 w-28 rounded border border-pink-200 px-2 py-1" />
             </label>
           )}
-          <button onClick={onSaveOnboarding} disabled={loading} className={`rounded ${PINK.primary} px-4 py-2 text-white disabled:opacity-50`}>
+          <button onClick={() => saveProfile(form)} disabled={loading} className="rounded bg-pink-500 px-4 py-2 text-white disabled:opacity-50">
             {loading ? t(language, "generating") : t(language, "saveContinue")}
           </button>
           {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -372,39 +393,46 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-6xl p-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className={`text-2xl font-bold ${PINK.text}`}>
-            🌸 {t(language, "welcome")}, {user.display_name}
-          </h1>
-          <p className="text-slate-600">
-            {timeline
-              ? timeline.modality === "GESTATIONAL"
-                ? `${timeline.week} weeks`
-                : `${t(language, "cycleToday")} ${timeline.cycle_day} · ${timeline.phase} · ${goalLabel(language, profile.goal_phase ?? "MAINTENANCE")}`
-              : t(language, "noProfileYet")}
-          </p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Flower size={22} className="text-pink-500" />
+          <div>
+            <h1 className="text-xl font-bold text-pink-700">
+              {t(language, "welcome")}, {user.display_name}
+            </h1>
+            <p className="text-sm text-slate-600">
+              {timeline
+                ? timeline.modality === "GESTATIONAL"
+                  ? `${timeline.week} weeks`
+                  : `${t(language, "cycleToday")} ${timeline.cycle_day} · ${timeline.phase} · ${goalLabel(language, profile.goal_phase ?? "MAINTENANCE")}`
+                : t(language, "noProfileYet")}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          {LANGUAGES.map((lang) => (
-            <button key={lang} onClick={() => setLanguage(lang)} className={`rounded px-2 py-1 text-sm ${language === lang ? `${PINK.primary} text-white` : "bg-pink-50 text-pink-700"}`}>
-              {LANGUAGE_LABELS[lang]}
-            </button>
-          ))}
-          <button onClick={onLogout} className="rounded bg-pink-100 px-3 py-1 text-sm text-pink-800">
+          <span className="flex items-center gap-1 rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-700">
+            <Flame size={16} /> {stats?.streak_days ?? 0}
+          </span>
+          <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="rounded border border-pink-200 px-2 py-1 text-sm">
+            {LANGUAGES.map((lang) => (<option key={lang} value={lang}>{LANGUAGE_LABELS[lang]}</option>))}
+          </select>
+          <button onClick={() => setTab("profile")} className="rounded-full bg-pink-500 px-3 py-1 text-sm text-white hover:bg-pink-600">
+            {t(language, "profile")}
+          </button>
+          <button onClick={onLogout} className="rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-800">
             {t(language, "logout")}
           </button>
         </div>
       </header>
 
       <nav className="mt-5 flex gap-2 border-b border-pink-100">
-        {(["routine", "supplements", "profile"] as Tab[]).map((item) => (
+        {(["routine", "supplements", "machines", "profile"] as Tab[]).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === item ? `${PINK.border} ${PINK.text}` : "border-transparent text-slate-500"}`}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === item ? "border-pink-500 text-pink-600" : "border-transparent text-slate-500"}`}
           >
-            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : t(language, "tabProfile")}
+            {item === "routine" ? t(language, "tabRoutine") : item === "supplements" ? t(language, "tabSupplements") : item === "machines" ? t(language, "myMachines") : t(language, "profile")}
           </button>
         ))}
       </nav>
@@ -414,8 +442,8 @@ export default function HomePage() {
       {tab === "routine" && (
         <section className="mt-5">
           <div className="flex flex-wrap items-center gap-3">
-            <button onClick={onTakeData} disabled={loading} className={`rounded-full ${PINK.primary} px-6 py-2 text-white disabled:opacity-50`}>
-              {loading ? t(language, "capturing") : `🌸 ${t(language, "takeData")}`}
+            <button onClick={onTakeData} disabled={loading} className="flex items-center gap-2 rounded-full bg-pink-500 px-6 py-2 text-white disabled:opacity-50">
+              <Dumbbell size={18} /> {loading ? t(language, "capturing") : t(language, "takeData")}
             </button>
             <span className="text-sm text-slate-500">{t(language, "selectHint")}</span>
           </div>
@@ -439,26 +467,18 @@ export default function HomePage() {
                 <span>{t(language, "phase")}: <strong>{captureResult.phase_inferred}</strong></span>
                 <span>{t(language, "fatigue")}: <strong>{captureResult.fatigue_level}</strong></span>
                 <span>{t(language, "kLoad")}: <strong>{captureResult.k_load.toFixed(3)}</strong></span>
-                {captureResult.total_estimated_minutes != null && (
-                  <span>{t(language, "totalTime")}: <strong>{captureResult.total_estimated_minutes} {t(language, "minutes")}</strong></span>
-                )}
+                {captureResult.total_estimated_minutes != null && (<span>{t(language, "totalTime")}: <strong>{captureResult.total_estimated_minutes} {t(language, "minutes")}</strong></span>)}
               </div>
-
               {captureResult.warmup.length > 0 && (
                 <>
                   <h3 className="mt-4 font-semibold text-pink-700">{t(language, "warmup")}</h3>
                   <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {captureResult.warmup.map((e, i) => (
-                      <RoutineCard key={i} entry={adapt(e)} language={language} />
-                    ))}
+                    {captureResult.warmup.map((e, i) => (<RoutineCard key={i} entry={adapt(e)} language={language} />))}
                   </div>
                 </>
               )}
-
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {captureResult.routine.map((e, i) => (
-                  <RoutineCard key={i} entry={adapt(e)} language={language} />
-                ))}
+                {captureResult.routine.map((e, i) => (<RoutineCard key={i} entry={adapt(e)} language={language} />))}
               </div>
             </div>
           )}
@@ -467,32 +487,24 @@ export default function HomePage() {
       )}
 
       {tab === "supplements" && (
-        <section className="mt-5">
+        <section className="mt-5 space-y-6">
           <div className="flex flex-wrap items-end gap-4">
-            <label className="text-sm text-slate-600">
-              {t(language, "objective")}
+            <label className="text-sm text-slate-600">{t(language, "objective")}
               <select value={profile.objective ?? "HYPERTROPHY"} onChange={(e) => saveProfile({ objective: e.target.value })} className="ml-2 rounded border border-pink-200 px-2 py-1">
-                {OBJECTIVE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>
-                ))}
+                {OBJECTIVE_OPTIONS.map((opt) => (<option key={opt} value={opt}>{objectiveLabel(language, opt)}</option>))}
               </select>
             </label>
-            <label className="text-sm text-slate-600">
-              {t(language, "goalPhase")}
+            <label className="text-sm text-slate-600">{t(language, "goalPhase")}
               <select value={profile.goal_phase ?? "MAINTENANCE"} onChange={(e) => saveProfile({ goal_phase: e.target.value })} className="ml-2 rounded border border-pink-200 px-2 py-1">
-                {GOAL_OPTIONS.map((goal) => (
-                  <option key={goal} value={goal}>{goalLabel(language, goal)}</option>
-                ))}
+                {GOAL_OPTIONS.map((goal) => (<option key={goal} value={goal}>{goalLabel(language, goal)}</option>))}
               </select>
             </label>
-            <button onClick={loadSupplements} className={`rounded-full ${PINK.primary} px-5 py-2 text-white`}>
-              {t(language, "generate")}
-            </button>
+            <button onClick={loadSupplements} className="rounded-full bg-pink-500 px-5 py-2 text-white">{t(language, "generate")}</button>
           </div>
 
           {supplements?.daily_macros && (
-            <div className="mt-4 rounded-2xl border border-pink-100 bg-pink-50 p-4">
-              <h3 className={`font-semibold ${PINK.text}`}>🍓 {t(language, "dailyMacros")}</h3>
+            <div className="rounded-2xl border border-pink-100 bg-pink-50 p-4">
+              <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Leaf size={18} /> {t(language, "dailyMacros")}</h3>
               <div className="mt-1 flex flex-wrap gap-4 text-sm text-slate-700">
                 <span>{t(language, "kcal")}: <strong>{supplements.daily_macros.kcal}</strong></span>
                 <span>{t(language, "protein")}: <strong>{supplements.daily_macros.protein_g} g</strong></span>
@@ -502,10 +514,31 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
+            <h3 className="flex items-center gap-2 font-semibold text-pink-700"><Pill size={18} /> {t(language, "dailyReminders")}</h3>
+            <div className="mt-2 space-y-2">
+              {dailyCatalog.map((item) => {
+                const taken = intakes.some((i) => i.supplement_id === item.id && i.taken);
+                return (
+                  <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-pink-100 p-2">
+                    <div className="text-sm">
+                      <strong className="text-slate-800">{item.name}</strong>
+                      <span className="block text-xs text-slate-500">{item.dosage}{item.brand_examples.length ? ` · ${t(language, "brands")}: ${item.brand_examples.slice(0, 2).join(", ")}` : ""}</span>
+                    </div>
+                    <button onClick={() => toggleIntake(item.id)} className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${taken ? "bg-green-100 text-green-700" : "bg-pink-500 text-white"}`}>
+                      <Check size={14} /> {taken ? t(language, "taken") : t(language, "markTaken")}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {supplements?.items.map((item) => {
               const colors = item.safety === "SAFE" ? "bg-green-100 text-green-700" : item.safety === "CAUTION" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
               const label = item.safety === "SAFE" ? t(language, "safe") : item.safety === "CAUTION" ? t(language, "caution") : t(language, "avoid");
+              const meta = supplementCatalog.find((s) => s.id === item.supplement_id);
               return (
                 <div key={item.supplement_id} className="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between">
@@ -514,6 +547,7 @@ export default function HomePage() {
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{localized(item.reason, language)}</p>
                   <p className="text-sm text-slate-700">{t(language, "dosage")}: {localized(item.dosage, language)}</p>
+                  {meta?.brand_examples.length ? <p className="text-xs text-pink-600">{t(language, "brands")}: {meta.brand_examples.join(", ")}</p> : null}
                   <p className="text-xs text-slate-500">{t(language, "macros")}: {item.macros.protein_g}P / {item.macros.carbs_g}C / {item.macros.fat_g}F · {item.macros.kcal} kcal</p>
                 </div>
               );
@@ -522,95 +556,93 @@ export default function HomePage() {
         </section>
       )}
 
+      {tab === "machines" && (
+        <section className="mt-5">
+          <div className="flex items-center gap-2 rounded-full border border-pink-200 bg-white px-4 py-2">
+            <Search size={18} className="text-pink-500" />
+            <input value={machineSearch} onChange={(e) => setMachineSearch(e.target.value)} placeholder={t(language, "searchMachines")} className="w-full outline-none" />
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredMachines.map((machine) => {
+              const checked = (profile.available_machines ?? []).includes(machine.id);
+              return (
+                <div key={machine.id} className={`overflow-hidden rounded-2xl border ${checked ? "border-pink-400" : "border-pink-100"} bg-white shadow-sm`}>
+                  {machine.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={machine.image_url} alt={machine.name} className="h-36 w-full object-cover" />
+                  )}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between">
+                      <h3 className="font-semibold text-slate-800">{machine.name}</h3>
+                      <span className="rounded bg-pink-50 px-2 py-0.5 text-xs text-pink-700">×{machine.weight_factor}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{machine.notes}</p>
+                    <button
+                      onClick={() => {
+                        const current = new Set(profile.available_machines ?? []);
+                        if (checked) current.delete(machine.id);
+                        else current.add(machine.id);
+                        saveProfile({ available_machines: [...current] });
+                      }}
+                      className={`mt-3 flex items-center gap-1 rounded-full px-3 py-1 text-sm ${checked ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-700"}`}
+                    >
+                      <Check size={14} /> {checked ? t(language, "taken") : t(language, "myMachines")}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredMachines.length === 0 && <p className="text-slate-500">{t(language, "noResults")}</p>}
+          </div>
+        </section>
+      )}
+
       {tab === "profile" && (
         <section className="mt-5 space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-              <h2 className={`font-semibold ${PINK.text}`}>{t(language, "profile")}</h2>
+              <h2 className="font-semibold text-pink-700">{t(language, "profile")}</h2>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <label className="block text-sm text-slate-600">
-                  {t(language, "height")}
-                  <input type="number" defaultValue={profile.height_cm ?? undefined} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-                </label>
-                <label className="block text-sm text-slate-600">
-                  {t(language, "weightKg")}
-                  <input type="number" defaultValue={profile.weight_kg ?? undefined} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-                </label>
-                <label className="block text-sm text-slate-600">
-                  {t(language, "bodyFat")}
-                  <input type="number" defaultValue={profile.body_fat_pct ?? undefined} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-                </label>
-                <label className="block text-sm text-slate-600">
-                  {t(language, "dailyCalories")}
-                  <input type="number" defaultValue={profile.daily_calories ?? undefined} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" />
-                </label>
+                <label className="block text-sm text-slate-600">{t(language, "height")}<input type="number" defaultValue={profile.height_cm ?? undefined} onChange={(e) => setForm({ ...form, height_cm: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+                <label className="block text-sm text-slate-600">{t(language, "weightKg")}<input type="number" defaultValue={profile.weight_kg ?? undefined} onChange={(e) => setForm({ ...form, weight_kg: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+                <label className="block text-sm text-slate-600">{t(language, "bodyFat")}<input type="number" defaultValue={profile.body_fat_pct ?? undefined} onChange={(e) => setForm({ ...form, body_fat_pct: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+                <label className="block text-sm text-slate-600">{t(language, "dailyCalories")}<input type="number" defaultValue={profile.daily_calories ?? undefined} onChange={(e) => setForm({ ...form, daily_calories: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+                <label className="block text-sm text-slate-600">Weekly goal<input type="number" defaultValue={profile.weekly_training_goal ?? 4} onChange={(e) => setForm({ ...form, weekly_training_goal: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
+                <label className="block text-sm text-slate-600">Rest allowance<input type="number" defaultValue={profile.rest_days_allowance ?? 3} onChange={(e) => setForm({ ...form, rest_days_allowance: Number(e.target.value) })} className="mt-1 w-full rounded border border-pink-200 px-2 py-1" /></label>
               </div>
-              <button onClick={() => saveProfile(form)} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
-                {t(language, "save")}
-              </button>
+              <button onClick={() => saveProfile(form)} className="mt-3 rounded-full bg-pink-500 px-4 py-2 text-white">{t(language, "save")}</button>
             </div>
 
             <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-              <h2 className={`font-semibold ${PINK.text}`}>🏋️ {t(language, "machines")}</h2>
-              <p className="text-sm text-slate-500">{t(language, "machinesHint")}</p>
-              <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
-                {machines.map((machine) => {
-                  const checked = (profile.available_machines ?? []).includes(machine.id);
-                  return (
-                    <label key={machine.id} className="flex items-start gap-2 rounded-lg border border-pink-100 p-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          const current = new Set(profile.available_machines ?? []);
-                          if (checked) current.delete(machine.id);
-                          else current.add(machine.id);
-                          setProfile({ ...profile, available_machines: [...current] });
-                        }}
-                        className="mt-1 accent-pink-500"
-                      />
-                      <span>
-                        <strong>{machine.name}</strong>{" "}
-                        <span className="text-pink-500">×{machine.weight_factor}</span>
-                        <span className="block text-xs text-slate-500">{machine.notes}</span>
-                      </span>
-                    </label>
-                  );
-                })}
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-2 font-semibold text-pink-700"><Flower size={18} /> {t(language, "calendar")}</h2>
+                <input type="month" value={calendarMonth} onChange={(e) => setCalendarMonth(e.target.value)} className="rounded border border-pink-200 px-2 py-1 text-sm" />
               </div>
-              <button onClick={() => saveProfile({ available_machines: profile.available_machines ?? [] })} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
-                {t(language, "save")}
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className={`font-semibold ${PINK.text}`}>🌸 {t(language, "calendar")}</h2>
-              <input type="month" value={calendarMonth} onChange={(e) => setCalendarMonth(e.target.value)} className="rounded border border-pink-200 px-2 py-1 text-sm" />
-            </div>
-            <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs">
-              {calendar.map((day) => {
-                const style = KIND_STYLE[day.kind] ?? KIND_STYLE.REST;
-                return (
-                  <div key={day.date} title={day.note ? localized(day.note, language) : ""} className={`rounded-lg p-2 ${style.bg}`}>
+              <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700">
+                <span className="flex items-center gap-1"><Flame size={16} className="text-pink-500" /> {t(language, "streak")}: <strong>{stats?.streak_days ?? 0}</strong></span>
+                <span>{t(language, "trainingDays")}: <strong>{stats?.week_training_days ?? 0}/{stats?.weekly_goal ?? 4}</strong></span>
+                <span>{t(language, "restDaysLeft")}: <strong>{stats?.rest_days_left ?? 0}</strong></span>
+              </div>
+              <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs">
+                {calendar.map((day) => (
+                  <div key={day.date} title={day.note ? localized(day.note, language) : ""} className={`rounded-lg p-2 ${KIND_STYLE[day.kind] ?? KIND_STYLE.REST} ${trainingDates.has(day.date) ? "ring-2 ring-pink-500" : ""}`}>
                     <div className="font-semibold">{day.date.slice(-2)}</div>
-                    <div>{style.icon}</div>
+                    <div className="flex justify-center"><KindIcon kind={day.kind} /></div>
                     {day.cycle_day && <div className="text-[10px]">d{day.cycle_day}</div>}
                   </div>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
-              <span>🌸 {t(language, "period")}</span>
-              <span>💗 {t(language, "ovulation")}</span>
-              <span>🌷 {t(language, "lowImpact")}</span>
-              <span>{t(language, "strengthDay")}</span>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1"><Flower size={14} /> {t(language, "period")}</span>
+                <span className="flex items-center gap-1"><Heart size={14} /> {t(language, "ovulation")}</span>
+                <span className="flex items-center gap-1"><Leaf size={14} /> {t(language, "lowImpact")}</span>
+                <span className="flex items-center gap-1"><Dumbbell size={14} /> {t(language, "strengthDay")}</span>
+              </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-            <h2 className={`font-semibold ${PINK.text}`}>{t(language, "myLoads")}</h2>
+            <h2 className="font-semibold text-pink-700">{t(language, "myLoads")}</h2>
             <p className="text-sm text-slate-500">{t(language, "loadNote")}</p>
             <div className="mt-3 grid gap-1 sm:grid-cols-2">
               {catalog.map((exercise) => (
@@ -631,9 +663,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => saveProfile({ loads: profile.loads })} className={`mt-3 rounded-full ${PINK.primary} px-4 py-2 text-white`}>
-              {t(language, "save")}
-            </button>
+            <button onClick={() => saveProfile({ loads: profile.loads })} className="mt-3 rounded-full bg-pink-500 px-4 py-2 text-white">{t(language, "save")}</button>
           </div>
         </section>
       )}

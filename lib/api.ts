@@ -316,6 +316,72 @@ export async function getCalendar(month: string, language: Language): Promise<{ 
   return response.json();
 }
 
+export interface SupplementCatalogItem {
+  id: string;
+  name: string;
+  category: string;
+  dosage: string;
+  frequency?: string | null;
+  is_daily: boolean;
+  brand_examples: string[];
+  macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number };
+  safety_general: string;
+  safety_pregnancy: string;
+  notes: string;
+}
+
+export async function getSupplementCatalog(language: Language): Promise<SupplementCatalogItem[]> {
+  const response = await fetch(`${API_URL}/api/v1/supplements/catalog?language=${language}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`supplement catalog failed: ${response.status}`);
+  return response.json();
+}
+
+export interface IntakeRecord {
+  supplement_id: string;
+  date: string;
+  taken: boolean;
+}
+
+export async function getSupplementIntakes(date: string): Promise<IntakeRecord[]> {
+  const response = await fetch(`${API_URL}/api/v1/supplement-intakes?date=${date}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`intakes failed: ${response.status}`);
+  return response.json();
+}
+
+export async function setSupplementIntake(
+  supplementId: string,
+  date: string,
+  taken: boolean,
+): Promise<IntakeRecord> {
+  const response = await fetch(`${API_URL}/api/v1/supplement-intakes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ supplement_id: supplementId, date, taken }),
+  });
+  if (!response.ok) throw new Error(`intake failed: ${response.status}`);
+  return response.json();
+}
+
+export interface Stats {
+  streak_days: number;
+  today_trained: boolean;
+  week_training_days: number;
+  weekly_goal: number;
+  rest_days_allowance: number;
+  rest_days_left: number;
+  training_dates: string[];
+}
+
+export async function getStats(): Promise<Stats> {
+  const response = await fetch(`${API_URL}/api/v1/stats`, { headers: authHeaders() });
+  if (!response.ok) throw new Error(`stats failed: ${response.status}`);
+  return response.json();
+}
+
 export async function saveProfile(profile: Profile): Promise<Profile> {
   const body = {
     schema_version: "1.2.0",
@@ -421,6 +487,8 @@ export interface MyProfile {
   goal_phase?: string;
   modality?: string;
   available_machines?: string[];
+  weekly_training_goal?: number;
+  rest_days_allowance?: number;
   last_period_date?: string;
   cycle_length_days?: number;
   gestation_week?: number;
