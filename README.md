@@ -110,3 +110,23 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
   improvements (split routes, real photo upload, edit/delete, audit log).
 - Decoupled seams for later work without context: `components/auth/`,
   `components/media/`, `components/admin/`.
+
+### Next steps for a fresh session (read this, then just do it)
+
+1. **Split the admin screen into routes** — replace the temp single screen with
+   `app/admin/layout.tsx` + `app/admin/super/page.tsx` (create/list gym admins,
+   audit log) and `app/admin/gym/page.tsx` (own gyms, machines, QR). Keep
+   `AdminShell.tsx` as the shared layout; `app/page.tsx` already early-returns it
+   for `role !== "ATHLETE"`, so only the internals change.
+2. **Real photo upload** for machines (presigned URL / S3) instead of a URL field.
+3. **Edit/delete machines** + per-machine weight calibration, and pagination.
+4. **Gym custom machines → routine weights**: `GET /api/v1/gyms/mine/machines`
+   exists; wire the gym machine `weight_factor` into the load adjustment used in
+   `components/workout/WorkoutRunner.tsx`.
+5. **Admin tests** (frontend): role-gating (admin never sees athlete tabs) and
+   the create-gym / add-machine flows.
+
+Backend endpoints already available (no changes needed): `/api/v1/admin/gym-admins`
+(GET/POST), `/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
+`/api/v1/gyms/mine`, `/api/v1/gyms/mine/machines`, `/api/v1/gyms/{id}/qr.png`,
+`/api/v1/gyms/join`.
