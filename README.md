@@ -95,3 +95,15 @@ Supplements (current with editable macros + reminders, suggested with brands).
 Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 
 **Run checks.** `npm run typecheck` and `npm run build`.
+
+
+## Admin UI (temporary) and roles
+
+- After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` get an
+  extra **Admin** tab; athletes see a **join gym by code** box in My machines.
+- `components/admin/AdminPanel.tsx` (single screen for now): super admin creates
+  gym admins; gym admin creates gyms, sees the code + QR and adds machines.
+- **Temporary:** it is a single screen. README in `components/admin/` lists the
+  improvements (split routes, real photo upload, edit/delete, audit log).
+- Decoupled seams for later work without context: `components/auth/`,
+  `components/media/`, `components/admin/`.
