@@ -31,7 +31,7 @@ function flatten(entries: RoutineEntry[]): Step[] {
 }
 
 const labelFor = (type: string, language: Language) =>
-  type === "WARMUP" ? t(language, "warmup") : type === "APPROXIMATION" ? t(language, "approximation") : type === "ACTIVATION" ? "Activation" : t(language, "effective");
+  type === "WARMUP" ? t(language, "warmup") : type === "APPROXIMATION" ? t(language, "approximation") : type === "ACTIVATION" ? t(language, "activation") : t(language, "effective");
 
 export function WorkoutRunner({ entries, language, onExit }: { entries: RoutineEntry[]; language: Language; onExit: () => void }) {
   const steps = useMemo(() => flatten(entries), [entries]);
@@ -71,38 +71,38 @@ export function WorkoutRunner({ entries, language, onExit }: { entries: RoutineE
   return (
     <main className="mx-auto max-w-2xl p-6">
       <header className="flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-bold text-pink-700"><Dumbbell size={22} /> Routine</h1>
+        <h1 className="flex items-center gap-2 text-xl font-bold text-pink-700"><Dumbbell size={22} /> {t(language, "workoutTitle")}</h1>
         <button onClick={onExit} className="rounded-full bg-pink-100 px-4 py-1 text-sm text-pink-800">{t(language, "close")}</button>
       </header>
 
       <div className="mt-4 flex items-center gap-4 text-sm text-slate-700">
         <span className="flex items-center gap-1"><Flame size={16} className="text-pink-500" /> {mmss(elapsedView)}</span>
-        <button onClick={() => setRunning((r) => !r)} className="rounded-full bg-pink-500 px-4 py-1 text-white">{running ? "Pause" : "Start"}</button>
+        <button onClick={() => setRunning((r) => !r)} className="rounded-full bg-pink-500 px-4 py-1 text-white">{running ? t(language, "pause") : t(language, "start")}</button>
       </div>
 
       {done ? (
         <div className="mt-8 rounded-2xl border border-pink-200 bg-white p-6 text-center">
           <Check size={32} className="mx-auto text-pink-500" />
-          <p className="mt-2 text-lg font-semibold text-pink-700">Routine complete</p>
-          <p className="text-sm text-slate-500">Total time {mmss(elapsedView)}</p>
+          <p className="mt-2 text-lg font-semibold text-pink-700">{t(language, "routineComplete")}</p>
+          <p className="text-sm text-slate-500">{t(language, "totalTime")} {mmss(elapsedView)}</p>
         </div>
       ) : (
         <div className="mt-5 rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-pink-400">Step {index + 1}/{steps.length}</p>
+          <p className="text-xs uppercase tracking-wide text-pink-400">{t(language, "step")} {index + 1}/{steps.length}</p>
           <h2 className="text-xl font-bold text-slate-800">{current.exercise}</h2>
           {current.image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={current.image} alt={current.exercise} className="mt-2 h-40 w-full rounded-lg object-cover" />
           )}
           <p className="mt-2 text-slate-700">
-            {labelFor(current.setType, language)} · {current.reps} reps
+            {labelFor(current.setType, language)} · {current.reps} {t(language, "repsShort")}
           </p>
 
           {rest !== null && running ? (
             <div className="mt-4 rounded-xl bg-pink-50 p-4 text-center">
-              <p className="text-sm text-pink-700">Rest</p>
+              <p className="text-sm text-pink-700">{t(language, "rest")}</p>
               <p className="text-3xl font-bold text-pink-700">{mmss(rest)}</p>
-              <button onClick={() => { setRest(null); setIndex((i) => Math.min(i + 1, steps.length - 1)); }} className="mt-2 rounded-full bg-pink-500 px-4 py-1 text-sm text-white">Skip rest</button>
+              <button onClick={() => { setRest(null); setIndex((i) => Math.min(i + 1, steps.length - 1)); }} className="mt-2 rounded-full bg-pink-500 px-4 py-1 text-sm text-white">{t(language, "skipRest")}</button>
             </div>
           ) : (
             <div className="mt-4 flex items-end gap-3">
@@ -115,7 +115,7 @@ export function WorkoutRunner({ entries, language, onExit }: { entries: RoutineE
                   className="ml-2 w-24 rounded border border-pink-200 px-2 py-1"
                 />
               </label>
-              <button onClick={finishSet} disabled={!running} className="rounded-full bg-pink-500 px-5 py-2 text-white disabled:opacity-50">Set done</button>
+              <button onClick={finishSet} disabled={!running} className="rounded-full bg-pink-500 px-5 py-2 text-white disabled:opacity-50">{t(language, "setDone")}</button>
             </div>
           )}
         </div>

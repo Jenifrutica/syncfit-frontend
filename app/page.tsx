@@ -8,10 +8,17 @@ import {
   CaptureResult,
   CatalogItem,
   EnergyLevel,
+  ExerciseAlternative,
+  ExerciseVariant,
+  getExerciseAlternatives,
   GymMachine,
   IntakeRecord,
+  JoinedGym,
   MyProfile,
   RoutineEntry,
+  activateGym,
+  getJoinedGyms,
+  leaveGym,
   ShareLinkInfo,
   SharePermission,
   ShareRole,
@@ -58,6 +65,7 @@ import { AuthPanel } from "@/components/auth/AuthPanel";
 import { ExerciseMedia } from "@/components/media/ExerciseMedia";
 import { WorkoutRunner } from "@/components/workout/WorkoutRunner";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { ExerciseDetailModal } from "@/components/routine/ExerciseDetailModal";
 
 type Tab = "routine" | "supplements" | "machines" | "profile";
 
@@ -94,15 +102,23 @@ function SetsSummary({ entry, language }: { entry: RoutineEntry; language: Langu
   );
 }
 
-function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Language }) {
+function RoutineCard({ entry, language, onOpen }: { entry: RoutineEntry; language: Language; onOpen?: () => void }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-pink-100 bg-white shadow-sm">
+    <div
+      onClick={onOpen}
+      className={`overflow-hidden rounded-xl border border-pink-100 bg-white shadow-sm ${onOpen ? "cursor-pointer transition hover:border-pink-300" : ""}`}
+    >
       <ExerciseMedia mediaUrl={entry.media_url} imageUrl={entry.image_url} alt={entry.exercise_original} />
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-slate-800">{entry.exercise_original}</h3>
           {entry.impact && <span className="rounded bg-pink-50 px-2 py-0.5 text-xs text-pink-700">{entry.impact}</span>}
         </div>
+        {entry.machine_name && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-pink-100 px-2 py-0.5 text-xs text-pink-700">
+            <Dumbbell size={12} /> {localized(entry.machine_name, language)}
+          </span>
+        )}
         {entry.blocked && (
           <div className="rounded border-l-4 border-pink-400 bg-pink-50 p-2 text-sm text-pink-800">
             <strong>{t(language, "blocked")}:</strong> {entry.block_reason}
@@ -116,7 +132,7 @@ function RoutineCard({ entry, language }: { entry: RoutineEntry; language: Langu
         {entry.description && <p className="text-sm text-slate-600">{localized(entry.description, language)}</p>}
         {entry.how_to && (
           <p className="rounded bg-pink-50 p-2 text-xs text-pink-800">
-            <strong>How to:</strong> {localized(entry.how_to, language)}
+            <strong>{t(language, "howTo")}:</strong> {localized(entry.how_to, language)}
           </p>
         )}
         {entry.tips && entry.tips.length > 0 && (
@@ -148,6 +164,11 @@ function adapt(entry: Record<string, unknown>): RoutineEntry {
     tips: (entry.tips as Record<string, string>[]) ?? undefined,
     image_url: entry.image_url as string | undefined,
     sets: entry.sets as RoutineEntry["sets"],
+    machine_id: entry.machine_id as string | undefined,
+    machine_name: (entry.machine_name as RoutineEntry["machine_name"]) ?? undefined,
+    movement_pattern: entry.movement_pattern as string | undefined,
+    compound: entry.compound as boolean | undefined,
+    rationale: entry.rationale as string | undefined,
   };
 }
 
@@ -181,6 +202,11 @@ export default function HomePage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [machines, setMachines] = useState<GymMachine[]>([]);
   const [machineSearch, setMachineSearch] = useState("");
+  const [joinedGyms, setJoinedGyms] = useState<JoinedGym[]>([]);
+  const [gymFilter, setGymFilter] = useState<string>("ALL");
+  const [detailIndex, setDetailIndex] = useState<number | null>(null);
+  const [changeIndex, setChangeIndex] = useState<number | null>(null);
+  const [changeOptions, setChangeOptions] = useState<ExerciseAlternative[]>([]);
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [stats, setStats] = useState<Stats | null>(null);
@@ -207,6 +233,7 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [documentId, setDocumentId] = useState("");
   const [form, setForm] = useState<Record<string, unknown>>({
     modality: "MENSTRUAL_CYCLE",
     cycle_length_days: 28,
@@ -231,7 +258,24 @@ export default function HomePage() {
     getMachines(language).then(setMachines).catch(() => setMachines([]));
     getSupplementCatalog(language).then(setSupplementCatalog).catch(() => setSupplementCatalog([]));
     getSymptoms(language).then(setSymptoms).catch(() => setSymptoms([]));
+    getJoinedGyms(language).then(setJoinedGyms).catch(() => setJoinedGyms([]));
   }, [language]);
+
+  // Live gym machines: refresh on focus, when entering the tab, and by polling.
+  useEffect(() => {
+    if (!user || tab !== "machines") return;
+    const refresh = () => { getJoinedGyms(language).then(setJoinedGyms).catch(() => null); };
+    refresh();
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    const id = setInterval(refresh, 15000);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(id);
+    };
+  }, [user, tab, language]);
 
   useEffect(() => {
     if (user && profile) {
@@ -245,7 +289,10 @@ export default function HomePage() {
   const onAuth = async () => {
     setError(null);
     try {
-      const me = mode === "login" ? await login(email, password) : await register(email, password, name);
+      if (mode === "register" && !/^[0-9]{6,15}$/.test(documentId.trim())) {
+        throw new Error(t(language, "documentId") + ": 6-15");
+      }
+      const me = mode === "login" ? await login(email, password) : await register(email, password, name, documentId);
       setUser(me);
       setProfile(await getMyProfile().catch(() => null));
     } catch (err) {
@@ -277,6 +324,69 @@ export default function HomePage() {
     });
   };
 
+  const replaceEntry = (index: number, item: CatalogItem) => {
+    setCaptureResult((prev) => {
+      if (!prev) return prev;
+      const routine = prev.routine.map((e, i) =>
+        i === index
+          ? {
+              ...e,
+              exercise_id: item.id,
+              name: item.name,
+              image_url: item.image_url,
+              description: { en: item.description },
+              machine_id: undefined,
+              machine_name: undefined,
+            }
+          : e,
+      );
+      return { ...prev, routine };
+    });
+  };
+
+  const removeEntry = (index: number) => {
+    setCaptureResult((prev) => {
+      if (!prev) return prev;
+      return { ...prev, routine: prev.routine.filter((_, i) => i !== index) };
+    });
+  };
+
+  const applyVariant = (index: number, variant: ExerciseVariant) => {
+    setCaptureResult((prev) => {
+      if (!prev) return prev;
+      const routine = prev.routine.map((e, i) =>
+        i === index
+          ? { ...e, exercise_id: variant.id, name: variant.name, image_url: variant.image_url, machine_id: undefined, machine_name: undefined }
+          : e,
+      );
+      return { ...prev, routine };
+    });
+    setDetailIndex(null);
+  };
+
+  const openChange = async (index: number) => {
+    const entry = captureResult?.routine[index];
+    const exerciseId = entry?.exercise_id as string | undefined;
+    setChangeIndex(index);
+    setChangeOptions([]);
+    if (exerciseId) {
+      getExerciseAlternatives(exerciseId, language).then(setChangeOptions).catch(() => setChangeOptions([]));
+    }
+  };
+
+  const applyAlternative = (index: number, alt: ExerciseAlternative) => {
+    setCaptureResult((prev) => {
+      if (!prev) return prev;
+      const routine = prev.routine.map((e, i) =>
+        i === index
+          ? { ...e, exercise_id: alt.id, name: alt.name, image_url: alt.image_url, machine_id: undefined, machine_name: undefined }
+          : e,
+      );
+      return { ...prev, routine };
+    });
+    setChangeIndex(null);
+  };
+
   const onTakeData = async () => {
     setError(null);
     setLoading(true);
@@ -286,6 +396,7 @@ export default function HomePage() {
           exercisesCount,
           timeBudgetMinutes: timeBudget === "" ? undefined : Number(timeBudget),
           energy,
+          language,
         }),
       );
       getStats().then(setStats).catch(() => null);
@@ -401,6 +512,24 @@ export default function HomePage() {
     return q ? machines.filter((m) => m.name.toLowerCase().includes(q)) : machines;
   }, [machines, machineSearch]);
 
+  // Hash map index of joined gyms for O(1) lookup while filtering by gym.
+  const joinedGymIndex = useMemo(() => new Map(joinedGyms.map((g) => [g.gym_id, g])), [joinedGyms]);
+  const visibleJoinedGyms = useMemo(() => {
+    if (gymFilter === "ALL") return joinedGyms;
+    const only = joinedGymIndex.get(gymFilter);
+    return only ? [only] : joinedGyms;
+  }, [joinedGyms, gymFilter, joinedGymIndex]);
+
+  const detailRaw = captureResult && detailIndex != null ? captureResult.routine[detailIndex] : null;
+  const detailEntry = detailRaw ? adapt(detailRaw) : null;
+  const detailBaselineKg = detailEntry?.exercise_id
+    ? (profile?.loads ?? []).find((l) => l.exercise_id === detailEntry.exercise_id)?.weight_kg
+    : undefined;
+  const detailMachineFactor = detailEntry?.machine_id
+    ? joinedGyms.flatMap((g) => g.machines).find((m) => m.id === detailEntry.machine_id)?.weight_factor
+    : undefined;
+
+
   if (!ready) return <main className="p-8 text-pink-400"><Flower size={24} /></main>;
 
   if (!user) {
@@ -416,6 +545,8 @@ export default function HomePage() {
         setPassword={setPassword}
         name={name}
         setName={setName}
+        documentId={documentId}
+        setDocumentId={setDocumentId}
         onAuth={onAuth}
         error={error}
       />
@@ -581,8 +712,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-3 rounded-2xl border border-pink-100 bg-white p-4">
-            <h3 className="font-semibold text-pink-700">Síntomas y dolor</h3>
-            <p className="text-xs text-slate-500">Marca lo que sientes y la densidad (1-10 flores). La IA adapta la rutina. Puedes escribir otros síntomas.</p>
+            <h3 className="font-semibold text-pink-700">{t(language, "symptomsTitle")}</h3>
+            <p className="text-xs text-slate-500">{t(language, "symptomsHint")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {symptoms.filter((s) => (profile.modality === "GESTATIONAL" ? true : s.modality !== "GESTATIONAL")).map((s) => {
                 const active = (profile.symptoms ?? []).includes(s.id);
@@ -596,7 +727,7 @@ export default function HomePage() {
               })}
             </div>
             <div className="mt-3">
-              <span className="text-sm font-medium text-slate-700">Dolor general (1-10 flores)</span>
+              <span className="text-sm font-medium text-slate-700">{t(language, "overallPain")}</span>
               <div className="flex items-center gap-1">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
                   const level = (profile.pain_levels ?? {})["OVERALL"] ?? 0;
@@ -640,7 +771,7 @@ export default function HomePage() {
               value={profile.symptom_notes ?? ""}
               onChange={(e) => setForm({ ...form, symptom_notes: e.target.value })}
               onBlur={(e) => saveProfile({ symptom_notes: e.target.value })}
-              placeholder="Otros síntomas (mareo, náusea, hormigueo, lesión...)"
+              placeholder={t(language, "symptomsPlaceholder")}
               className="mt-2 w-full rounded border border-pink-200 px-2 py-1 text-sm"
               rows={2}
             />
@@ -666,9 +797,14 @@ export default function HomePage() {
                 <span>{t(language, "fatigue")}: <strong>{captureResult.fatigue_level}</strong></span>
                 <span>{t(language, "kLoad")}: <strong>{captureResult.k_load.toFixed(3)}</strong></span>
                 {captureResult.total_estimated_minutes != null && (<span>{t(language, "totalTime")}: <strong>{captureResult.total_estimated_minutes} {t(language, "minutes")}</strong></span>)}
+                {captureResult.engine_used && (
+                  <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs text-pink-700">
+                    {t(language, "reasonedBy")}: <strong>{captureResult.engine_used === "deepseek" ? "DeepSeek" : "SyncFit"}</strong>
+                  </span>
+                )}
               </div>
               <button onClick={() => setWorkout(true)} className="mt-3 flex items-center gap-2 rounded-full bg-pink-600 px-5 py-2 text-white hover:bg-pink-700">
-                <Dumbbell size={18} /> Iniciar rutina
+                <Dumbbell size={18} /> {t(language, "startRoutine")}
               </button>
 
               {captureResult.alerts && captureResult.alerts.length > 0 && (
@@ -686,29 +822,81 @@ export default function HomePage() {
                 </>
               )}
               <div className="mt-4 rounded-2xl border border-pink-100 bg-white p-4">
-                <h3 className="font-semibold text-pink-700">Editar rutina</h3>
-                <p className="text-xs text-slate-500">Ajusta series, reps y peso antes de iniciar. La IA recomienda, tú decides.</p>
-                <div className="mt-2 space-y-1">
+                <h3 className="font-semibold text-pink-700">{t(language, "editRoutine")}</h3>
+                <p className="text-xs text-slate-500">{t(language, "editRoutineHint")}</p>
+                <div className="mt-2 space-y-2">
                   {captureResult.routine.map((e, i) => (
-                    <div key={i} className="flex flex-wrap items-center gap-3 text-sm">
-                      <span className="min-w-[10rem] flex-1 truncate text-slate-700">{String(e.name)}</span>
-                      <label className="text-slate-500">series
+                    <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                      <select
+                        value={String(e.exercise_id ?? "")}
+                        onChange={(ev) => { const item = catalog.find((c) => c.id === ev.target.value); if (item) replaceEntry(i, item); }}
+                        className="min-w-[10rem] flex-1 rounded border border-pink-200 px-2 py-1"
+                      >
+                        {!e.exercise_id && <option value="">{String(e.name ?? "")}</option>}
+                        {catalog.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      </select>
+                      <label className="text-slate-500">{t(language, "series")}
                         <input type="number" min={0} value={Number(e.series ?? 3)} onChange={(ev) => updateEntry(i, "series", Number(ev.target.value))} className="ml-1 w-16 rounded border border-pink-200 px-1 py-0.5" />
                       </label>
-                      <label className="text-slate-500">reps
+                      <label className="text-slate-500">{t(language, "repsLabel")}
                         <input type="number" min={0} value={Number(e.reps ?? 10)} onChange={(ev) => updateEntry(i, "reps", Number(ev.target.value))} className="ml-1 w-16 rounded border border-pink-200 px-1 py-0.5" />
                       </label>
-                      <label className="text-slate-500">kg
+                      <label className="text-slate-500">{t(language, "kg")}
                         <input type="number" min={0} value={Number(e.weight_suggested_kg ?? 0)} onChange={(ev) => updateEntry(i, "weight_suggested_kg", Number(ev.target.value))} className="ml-1 w-20 rounded border border-pink-200 px-1 py-0.5" />
                       </label>
+                      <button onClick={() => openChange(i)} className="rounded-full bg-pink-100 px-3 py-0.5 text-xs text-pink-700">{t(language, "changeExercise")}</button>
+                      <button onClick={() => removeEntry(i)} className="rounded-full bg-white px-3 py-0.5 text-xs text-slate-500">{t(language, "removeExercise")}</button>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {captureResult.routine.map((e, i) => (<RoutineCard key={i} entry={adapt(e)} language={language} />))}
+                {captureResult.routine.map((e, i) => (
+                  <RoutineCard key={i} entry={adapt(e)} language={language} onOpen={() => setDetailIndex(i)} />
+                ))}
               </div>
+
+              {changeIndex != null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setChangeIndex(null)}>
+                  <div className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-2xl border border-pink-100 bg-white p-5 shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-pink-700">{t(language, "changeExercise")}</h3>
+                    <p className="text-xs text-slate-500">{t(language, "otherWays")}</p>
+                    <ul className="mt-3 space-y-1">
+                      {changeOptions.map((alt) => (
+                        <li key={alt.id}>
+                          <button
+                            onClick={() => applyAlternative(changeIndex, alt)}
+                            className="flex w-full items-center justify-between rounded-lg border border-pink-100 bg-white px-3 py-2 text-left text-sm hover:border-pink-400"
+                          >
+                            <span className="text-slate-700">{alt.name}</span>
+                            <span className="text-xs text-slate-400">
+                              {(alt.required_equipment ?? []).join("+") || "-"}
+                              {alt.available ? ` · ${t(language, "available")}` : ""}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                      {changeOptions.length === 0 && <li className="text-xs text-slate-500">…</li>}
+                    </ul>
+                    <button onClick={() => setChangeIndex(null)} className="mt-3 rounded-full bg-white px-4 py-1 text-sm text-slate-600">{t(language, "close")}</button>
+                  </div>
+                </div>
+              )}
+
+              {detailEntry && detailIndex != null && (
+                <ExerciseDetailModal
+                  entry={detailEntry}
+                  language={language}
+                  baselineKg={detailBaselineKg}
+                  kLoad={captureResult.k_load}
+                  machineFactor={detailMachineFactor}
+                  biomarkers={captureResult.biomarkers}
+                  onClose={() => setDetailIndex(null)}
+                  onSelectVariant={(v) => applyVariant(detailIndex, v)}
+                  onRemove={() => { removeEntry(detailIndex); setDetailIndex(null); }}
+                />
+              )}
             </div>
           )}
           {!captureResult && !loading && <p className="mt-6 text-slate-500">{t(language, "noRoutine")}</p>}
@@ -819,10 +1007,66 @@ export default function HomePage() {
       {tab === "machines" && (
         <section className="mt-5">
           <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-pink-100 bg-white p-3">
-            <span className="text-sm text-slate-600">Unirse a un gimnasio:</span>
-            <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Código (p.ej. A1B2C3)" className="rounded border border-pink-200 px-2 py-1 text-sm" />
-            <button onClick={async () => { try { await joinGym(joinCode); setJoinCode(""); getMachines(language).then(setMachines); setProfile(await getMyProfile()); } catch (e) { setError((e as Error).message); } }} className="rounded-full bg-pink-500 px-4 py-1 text-sm text-white">Unirse</button>
+            <span className="text-sm text-slate-600">{t(language, "joinGymLabel")}</span>
+            <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder={t(language, "joinCodePlaceholder")} className="rounded border border-pink-200 px-2 py-1 text-sm" />
+            <button onClick={async () => { try { await joinGym(joinCode); setJoinCode(""); getMachines(language).then(setMachines); setJoinedGyms(await getJoinedGyms(language)); setProfile(await getMyProfile()); } catch (e) { setError((e as Error).message); } }} className="rounded-full bg-pink-500 px-4 py-1 text-sm text-white">{t(language, "joinButton")}</button>
+            <button onClick={() => { getJoinedGyms(language).then(setJoinedGyms).catch(() => null); }} className="rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-700">{t(language, "refresh")}</button>
           </div>
+
+          {joinedGyms.length > 0 && (
+            <div className="mb-4 rounded-2xl border border-pink-100 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold text-pink-700">{t(language, "joinedGyms")}</h3>
+                <div className="flex items-center gap-2">
+                  {joinedGyms.length > 1 && (
+                    <select value={gymFilter} onChange={(e) => setGymFilter(e.target.value)} className="rounded border border-pink-200 px-2 py-1 text-sm">
+                      <option value="ALL">{t(language, "allGyms")}</option>
+                      {joinedGyms.map((g) => (<option key={g.gym_id} value={g.gym_id}>{g.name}</option>))}
+                    </select>
+                  )}
+                  <button onClick={() => { getJoinedGyms(language).then(setJoinedGyms).catch(() => null); }} className="rounded-full bg-pink-100 px-3 py-0.5 text-xs text-pink-700">{t(language, "refresh")}</button>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{t(language, "gymMachinesHint")}</p>
+              <div className="mt-3 space-y-4">
+                {visibleJoinedGyms.map((g) => (
+                  <div key={g.gym_id} className="rounded-xl border border-pink-50 bg-pink-50/30 p-3">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <strong className="text-slate-700">{g.name}</strong>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">#{g.code}</span>
+                      {g.active ? (
+                        <span className="rounded-full bg-pink-500 px-2 py-0.5 text-xs text-white">{t(language, "activeGym")}</span>
+                      ) : (
+                        <button onClick={async () => { try { await activateGym(g.gym_id, language); setJoinedGyms(await getJoinedGyms(language)); setProfile(await getMyProfile()); } catch (e) { setError((e as Error).message); } }} className="rounded-full bg-white px-2 py-0.5 text-xs text-pink-700">{t(language, "setActive")}</button>
+                      )}
+                      <button onClick={async () => { try { await leaveGym(g.gym_id); setJoinedGyms(await getJoinedGyms(language)); setProfile(await getMyProfile()); } catch (e) { setError((e as Error).message); } }} className="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500">{t(language, "leaveGym")}</button>
+                    </div>
+                    {g.machines.length === 0 ? (
+                      <p className="mt-2 text-xs text-slate-500">{t(language, "adminNoMachines")}</p>
+                    ) : (
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {g.machines.map((m) => (
+                          <div key={m.id} className="flex items-center gap-3 rounded-xl border border-pink-200 bg-white p-2">
+                            {m.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={m.image_url} alt={m.name_text ?? ""} className="h-12 w-12 rounded object-cover" />
+                            ) : (
+                              <span className="flex h-12 w-12 items-center justify-center rounded bg-pink-50 text-pink-300"><Dumbbell size={18} /></span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-slate-700">{localized(m.name, language)}</p>
+                              <p className="text-xs text-slate-500"><span className="rounded bg-pink-100 px-1.5 py-0.5 text-pink-700">{g.name}</span> ×{m.weight_factor}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-pink-700">{t(language, "myMachinesSelected")}</h2>
             <button onClick={() => setMachineFormOpen((v) => !v)} className="flex items-center gap-1 rounded-full bg-pink-500 px-4 py-2 text-sm text-white">

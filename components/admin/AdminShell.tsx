@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthUser } from "@/lib/api";
-import { LANGUAGES, LANGUAGE_LABELS, Language } from "@/lib/i18n";
+import { LANGUAGES, LANGUAGE_LABELS, Language, t } from "@/lib/i18n";
 import { Flower } from "@/components/icons";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 
@@ -27,9 +27,9 @@ export function AdminShell({
         <div className="flex items-center gap-2">
           <Flower size={22} className="text-pink-500" />
           <div>
-            <h1 className="text-xl font-bold text-pink-700">SyncFit Edge · Admin</h1>
+            <h1 className="text-xl font-bold text-pink-700">SyncFit Edge · {t(language, "adminTitle")}</h1>
             <p className="text-sm text-slate-600">
-              {user.display_name} · {user.role === "SUPER_ADMIN" ? "Administrador general" : "Administrador de gimnasio"}
+              {user.display_name} · {user.role === "SUPER_ADMIN" ? t(language, "adminSuperAdmin") : t(language, "adminGymAdmin")}
             </p>
           </div>
         </div>
@@ -37,10 +37,10 @@ export function AdminShell({
           <select value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="rounded border border-pink-200 px-2 py-1 text-sm">
             {LANGUAGES.map((lang) => (<option key={lang} value={lang}>{LANGUAGE_LABELS[lang]}</option>))}
           </select>
-          <button onClick={onLogout} className="rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-800">Salir</button>
+          <button onClick={onLogout} className="rounded-full bg-pink-100 px-3 py-1 text-sm text-pink-800">{t(language, "logout")}</button>
         </div>
       </header>
-      <AdminPanel user={user} />
+      <AdminPanel user={user} language={language} />
     </main>
   );
 }

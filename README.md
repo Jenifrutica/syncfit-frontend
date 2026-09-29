@@ -23,6 +23,14 @@ Make the adaptive prescription readable in real time: live waveforms, a dual-mod
 | Structure | Complexity | Purpose |
 |-----------|:----------:|---------|
 | **Rolling Ring Buffer** | O(1) append | Fixed-length buffer feeding the real-time waveform canvas, keeping rendering smooth at high frequency. |
+| **Set** | O(1) has | `training_dates` membership for the streak ring (`new Set(stats.training_dates)`). |
+| **Hash map (Map)** | O(1) get | `joinedGymIndex` maps `gym_id → gym` so the joined-gym selector filters in O(1) instead of scanning. |
+| **Grouped arrays** | O(G + M) | Joined gyms each carry their machines, so the UI renders per-gym groups with a name tag. |
+| **Routine editor** | O(n) | "Take data" results are edited in place: swap an exercise via the catalog `select` (`replaceEntry`) or remove it (`removeEntry`). |
+| **Localized machine text** | — | Gym machines store `name`/`purpose` as `{"en","es","zh"}` and are rendered with `localized(...)`; all UI strings go through `t(language, key)` (EN default). |
+| **Live gym machines** | O(1) refetch | My Machines refreshes on window focus, on tab entry and every 15 s (plus a manual button), so admin edits appear without reload. |
+| **Pattern + rationale** | — | The exercise modal shows the `movement_pattern` and the evidence-based `rationale` returned by the engine. |
+| **Exercise detail modal** | — | Clicking a `RoutineCard` opens `ExerciseDetailModal`: animation placeholder, machine photo, estimated weight (`base × k_load × machine factor`), measured biomarkers, and swap/remove. Alternatives come from the movement family. |
 
 ## Suggested structure
 
@@ -102,12 +110,18 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 
 - After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` are
   **admin-only**: `app/page.tsx` returns `AdminShell` and they never get the
-  athlete tabs, onboarding, cycle/gestational tracking or profile. Athletes see
-  a **join gym by code** box in My machines.
-- `components/admin/AdminPanel.tsx` (single screen for now): super admin creates
-  gym admins; gym admin creates gyms, sees the code + QR and adds machines.
+  athlete tabs, onboarding, cycle/gestational tracking or profile.
+- **Athletes and gyms:** a **join gym by code** box in My machines. Joined gyms
+  appear with the gym **name tag** on each machine; when there is more than one
+  gym a **selector** filters the view, and each gym can be set **active** or left.
+  Machines are read live from the backend (`GET /gyms/joined`), so admin edits
+  show up automatically. See the `Map`/`Set` rows under **Data Structures**.
+- `components/admin/AdminPanel.tsx` (single screen for now, i18n EN/ES/ZH): super
+  admin creates gym admins; gym admin creates gyms, sees the code + QR and
+  manages machines (list, add, edit, delete). Machine photos are uploaded files
+  compressed client-side (`fileToDataUrl`) and stored as data URLs.
 - **Temporary:** it is a single screen. README in `components/admin/` lists the
-  improvements (split routes, real photo upload, edit/delete, audit log).
+  improvements (split routes, object storage, audit log).
 - Decoupled seams for later work without context: `components/auth/`,
   `components/media/`, `components/admin/`.
 
@@ -118,15 +132,17 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
    audit log) and `app/admin/gym/page.tsx` (own gyms, machines, QR). Keep
    `AdminShell.tsx` as the shared layout; `app/page.tsx` already early-returns it
    for `role !== "ATHLETE"`, so only the internals change.
-2. **Real photo upload** for machines (presigned URL / S3) instead of a URL field.
-3. **Edit/delete machines** + per-machine weight calibration, and pagination.
-4. **Gym custom machines → routine weights**: `GET /api/v1/gyms/mine/machines`
-   exists; wire the gym machine `weight_factor` into the load adjustment used in
-   `components/workout/WorkoutRunner.tsx`.
+2. **Object storage for photos** (S3/presigned URLs). Today machine photos are
+   uploaded files compressed client-side and stored as data URLs (see below).
+3. **Reorder machines** + richer per-machine calibration, and pagination
+   (add/edit/delete already done).
+4. **Gym custom machines → routine weights**: machines are embedded in
+   `GET /api/v1/gyms/mine`; wire the gym machine `weight_factor` into the load
+   adjustment used in `components/workout/WorkoutRunner.tsx`.
 5. **Admin tests** (frontend): role-gating (admin never sees athlete tabs) and
    the create-gym / add-machine flows.
 
-Backend endpoints already available (no changes needed): `/api/v1/admin/gym-admins`
-(GET/POST), `/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
-`/api/v1/gyms/mine`, `/api/v1/gyms/mine/machines`, `/api/v1/gyms/{id}/qr.png`,
-`/api/v1/gyms/join`.
+Backend endpoints used by the admin UI: `/api/v1/admin/gym-admins` (GET/POST),
+`/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
+`/api/v1/gyms/mine`, `POST/PATCH/DELETE /api/v1/gyms/{gym_id}/machines[/{machine_id}]`,
+`/api/v1/gyms/{id}/qr.png`, `/api/v1/gyms/join`.

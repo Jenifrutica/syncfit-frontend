@@ -14,12 +14,14 @@ export interface AuthPanelProps {
   setPassword: (v: string) => void;
   name: string;
   setName: (v: string) => void;
+  documentId: string;
+  setDocumentId: (v: string) => void;
   onAuth: () => void;
   error: string | null;
 }
 
 export function AuthPanel(props: AuthPanelProps) {
-  const { language, setLanguage, mode, setMode, email, setEmail, password, setPassword, name, setName, onAuth, error } = props;
+  const { language, setLanguage, mode, setMode, email, setEmail, password, setPassword, name, setName, documentId, setDocumentId, onAuth, error } = props;
   return (
     <main className="mx-auto max-w-md p-8">
       <h1 className="flex items-center gap-2 text-3xl font-bold text-pink-600">
@@ -36,7 +38,10 @@ export function AuthPanel(props: AuthPanelProps) {
           </button>
         </div>
         {mode === "register" && (
-          <input placeholder={t(language, "nameField")} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
+          <>
+            <input placeholder={t(language, "nameField")} value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
+            <input inputMode="numeric" placeholder={t(language, "documentId")} value={documentId} onChange={(e) => setDocumentId(e.target.value.replace(/\D/g, "").slice(0, 15))} className="w-full rounded border border-pink-200 px-3 py-2" />
+          </>
         )}
         <input placeholder={t(language, "email")} value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />
         <input type="password" placeholder={t(language, "password")} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded border border-pink-200 px-3 py-2" />

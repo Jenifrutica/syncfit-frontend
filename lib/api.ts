@@ -87,6 +87,11 @@ export interface RoutineEntry {
   rest_seconds?: number;
   estimated_seconds?: number;
   sets?: SetPrescription[];
+  machine_id?: string;
+  machine_name?: LocalizedText;
+  movement_pattern?: string;
+  compound?: boolean;
+  rationale?: string;
 }
 
 export interface RoutineResponse {
@@ -444,18 +449,21 @@ export interface AuthUser {
   id: string;
   email: string;
   display_name: string;
+  document_id?: string | null;
   role: "ATHLETE" | "GYM_ADMIN" | "SUPER_ADMIN";
+  active?: boolean;
 }
 
 export async function register(
   email: string,
   password: string,
   displayName: string,
+  documentId: string,
 ): Promise<AuthUser> {
   const response = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName, document_id: documentId.trim() }),
   });
   if (!response.ok) throw new Error(`register failed: ${response.status}`);
   const data = await response.json();
@@ -495,6 +503,7 @@ export interface Timeline {
 
 export interface MyProfile {
   profile_id: string;
+  document_id?: string | null;
   language: string;
   height_cm?: number;
   weight_kg?: number;
@@ -512,6 +521,7 @@ export interface MyProfile {
   supplement_macros?: { supplement_id: string; macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number } }[];
   weight_unit?: string;
   photo_url?: string;
+  active_gym_id?: string | null;
   weekly_training_goal?: number;
   rest_days_allowance?: number;
   last_period_date?: string;
@@ -551,6 +561,10 @@ export interface CaptureResult {
   phase_inferred: string;
   fatigue_level: string;
   k_load: number;
+  biomarkers?: { delta_temperature_c: number; rmssd_hrv_ms: number; isometric_force_loss_pct: number };
+  assessment?: { phase_inferred: string; fatigue_level: string; autonomic_status?: string; articular_risk_pct?: number };
+  machine_preferences?: Record<string, { exercise_id: string; pattern?: string | null; name?: string | null; weight_factor?: number | null }>;
+  engine_used?: string;
   total_estimated_minutes?: number;
   alerts?: string[];
   warmup: Record<string, unknown>[];
@@ -565,9 +579,11 @@ export async function capture(
     timeBudgetMinutes?: number;
     energy?: EnergyLevel;
     includeWarmup?: boolean;
+    language?: Language;
   } = {},
 ): Promise<CaptureResult> {
   const query = new URLSearchParams();
+  if (options.language) query.set("language", options.language);
   if (path) query.set("muscle_groups", path);
   if (options.exercisesCount) query.set("exercises_count", String(options.exercisesCount));
   if (options.timeBudgetMinutes) query.set("time_budget_minutes", String(options.timeBudgetMinutes));
@@ -671,7 +687,7 @@ export interface GymInfo {
   name: string;
   code: string;
   owner_user_id: string;
-  machines: { id: string; name: string; purpose?: string | null; image_url?: string | null; weight_factor: number }[];
+  machines: GymMachineInfo[];
 }
 
 export async function createGym(name: string): Promise<GymInfo> {
@@ -680,25 +696,166 @@ export async function createGym(name: string): Promise<GymInfo> {
   return r.json();
 }
 
-export async function listMyGyms(): Promise<GymInfo[]> {
-  const r = await fetch(`${API_URL}/api/v1/gyms/mine`, { headers: authHeaders() });
+export async function listMyGyms(language?: Language): Promise<GymInfo[]> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/mine${query}`, { headers: authHeaders() });
   if (!r.ok) throw new Error(`my gyms failed: ${r.status}`);
   return r.json();
 }
 
-export async function addGymMachine(gymId: string, name: string, purpose?: string, imageUrl?: string): Promise<unknown> {
-  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines`, {
+export async function updateGym(gymId: string, name: string, language?: Language): Promise<GymInfo> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}${query}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ name }),
+  });
+  if (!r.ok) throw new Error(`update gym failed: ${r.status}`);
+  return r.json();
+}
+
+export async function deleteGym(gymId: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}`, { method: "DELETE", headers: authHeaders() });
+  if (!r.ok) throw new Error(`delete gym failed: ${r.status}`);
+}
+
+export interface ExerciseVariant {
+  id: string;
+  name: string;
+  equipment_type?: string | null;
+  equipment: string;
+  impact: string;
+  image_url?: string | null;
+  media_url?: string | null;
+  variant_of?: string | null;
+}
+
+export async function getExerciseVariants(exerciseId: string, language: Language): Promise<ExerciseVariant[]> {
+  const r = await fetch(`${API_URL}/api/v1/exercises/${exerciseId}/variants?language=${language}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`variants failed: ${r.status}`);
+  return r.json();
+}
+
+export interface GymMachineInfo {
+  id: string;
+  gym_id: string;
+  name: LocalizedText;
+  name_text?: string;
+  purpose?: LocalizedText | null;
+  purpose_text?: string | null;
+  exercise_ids?: string[];
+  equipment_key?: string | null;
+  equipment_type?: string | null;
+  image_url?: string | null;
+  weight_factor: number;
+}
+
+export async function addGymMachine(
+  gymId: string,
+  name: string,
+  purpose?: string,
+  imageUrl?: string,
+  language?: Language,
+  exerciseIds?: string[],
+  equipmentKey?: string,
+  equipmentType?: string,
+): Promise<GymMachineInfo> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines${query}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ name, purpose, image_url: imageUrl }),
+    body: JSON.stringify({ name, purpose, image_url: imageUrl, exercise_ids: exerciseIds, equipment_key: equipmentKey, equipment_type: equipmentType }),
   });
   if (!r.ok) throw new Error(`add machine failed: ${r.status}`);
   return r.json();
 }
 
-export async function joinGym(code: string): Promise<unknown> {
+export async function updateGymMachine(
+  gymId: string,
+  machineId: string,
+  patch: { name?: string; purpose?: string | null; image_url?: string | null; weight_factor?: number; exercise_ids?: string[]; equipment_key?: string | null; equipment_type?: string | null },
+  language?: Language,
+): Promise<GymMachineInfo> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines/${machineId}${query}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(patch),
+  });
+  if (!r.ok) throw new Error(`update machine failed: ${r.status}`);
+  return r.json();
+}
+
+export async function deleteGymMachine(gymId: string, machineId: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines/${machineId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!r.ok) throw new Error(`delete machine failed: ${r.status}`);
+}
+
+/**
+ * Read an image file and return a compressed JPEG data URL (client-side).
+ * The image is scaled down to `maxSize` px on its longest side and encoded
+ * at 0.8 quality so it can be stored directly in the DB without bloating
+ * API responses.
+ */
+export async function fileToDataUrl(file: File, maxSize = 1024): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("invalid image"));
+    image.src = dataUrl;
+  });
+  const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+  const width = Math.max(1, Math.round(img.width * scale));
+  const height = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", 0.8);
+}
+
+export async function joinGym(code: string): Promise<JoinedGym> {
   const r = await fetch(`${API_URL}/api/v1/gyms/join`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ code }) });
   if (!r.ok) throw new Error(`join gym failed: ${r.status}`);
+  return r.json();
+}
+
+export interface JoinedGym {
+  gym_id: string;
+  name: string;
+  code: string;
+  active: boolean;
+  joined_at?: string | null;
+  machines: GymMachineInfo[];
+}
+
+export async function getJoinedGyms(language?: Language): Promise<JoinedGym[]> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/joined${query}`, { headers: authHeaders() });
+  if (!r.ok) throw new Error(`joined gyms failed: ${r.status}`);
+  return r.json();
+}
+
+export async function leaveGym(gymId: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/leave`, { method: "DELETE", headers: authHeaders() });
+  if (!r.ok) throw new Error(`leave gym failed: ${r.status}`);
+}
+
+export async function activateGym(gymId: string, language?: Language): Promise<JoinedGym> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/activate${query}`, { method: "POST", headers: authHeaders() });
+  if (!r.ok) throw new Error(`activate gym failed: ${r.status}`);
   return r.json();
 }
 
@@ -706,4 +863,87 @@ export async function fetchGymQr(gymId: string): Promise<string> {
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/qr.png`, { headers: authHeaders() });
   if (!r.ok) throw new Error(`qr failed: ${r.status}`);
   return URL.createObjectURL(await r.blob());
+}
+
+
+export interface ExerciseAlternative {
+  id: string;
+  name: string;
+  movement_pattern?: string | null;
+  equipment_type?: string | null;
+  required_equipment?: string[];
+  available?: boolean;
+  variant_of?: string | null;
+  image_url?: string | null;
+}
+
+export async function getExerciseAlternatives(exerciseId: string, language: Language): Promise<ExerciseAlternative[]> {
+  const r = await fetch(`${API_URL}/api/v1/exercises/${exerciseId}/alternatives?language=${language}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`alternatives failed: ${r.status}`);
+  return r.json();
+}
+
+/* --- Super admin: users ---------------------------------------------------- */
+
+export interface AdminUser extends AuthUser {
+  created_at?: string | null;
+}
+
+export async function listUsers(search?: string, role?: string): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+  if (search) query.set("search", search);
+  if (role) query.set("role", role);
+  const r = await fetch(`${API_URL}/api/v1/admin/users?${query.toString()}`, { headers: authHeaders(), cache: "no-store" });
+  if (!r.ok) throw new Error(`users failed: ${r.status}`);
+  return r.json();
+}
+
+export async function getUserDetail(id: string): Promise<{ user: AdminUser; profile: Record<string, unknown> | null }> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}`, { headers: authHeaders() });
+  if (!r.ok) throw new Error(`user detail failed: ${r.status}`);
+  return r.json();
+}
+
+export async function updateUser(id: string, patch: Record<string, unknown>): Promise<AdminUser> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(patch),
+  });
+  if (!r.ok) throw new Error(`update user failed: ${r.status}`);
+  return r.json();
+}
+
+export async function setUserActive(id: string, active: boolean): Promise<AdminUser> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/${active ? "activate" : "deactivate"}`, { method: "POST", headers: authHeaders() });
+  if (!r.ok) throw new Error(`active failed: ${r.status}`);
+  return r.json();
+}
+
+export async function resetUserPassword(id: string, password: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ password }),
+  });
+  if (!r.ok) throw new Error(`reset password failed: ${r.status}`);
+}
+
+export async function setUserRole(id: string, role: string, adminPassword: string): Promise<AdminUser> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/role`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ role, admin_password: adminPassword }),
+  });
+  if (!r.ok) throw new Error(`role failed: ${r.status}`);
+  return r.json();
+}
+
+export async function deleteUser(id: string, adminPassword: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ admin_password: adminPassword }),
+  });
+  if (!r.ok) throw new Error(`delete user failed: ${r.status}`);
 }
