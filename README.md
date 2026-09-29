@@ -76,6 +76,24 @@ TypeScript, Next.js, React, Tailwind CSS, HTML5 Canvas, D3.js.
 
 All code, comments, documentation and commits in this repository are written in English.
 
+## Handoff for the team
+
+**Role.** Next.js (App Router) + TypeScript + Tailwind UI. Consumes the backend
+REST API; JWT in `localStorage`.
+
+**Run / test.** `npm install` · `npm run dev` (http://localhost:3000) ·
+`npm run typecheck` · `npm run build`.
+
+**Entry points.** `app/page.tsx` (auth → admin-only early return for
+`role !== "ATHLETE"` → onboarding → dashboard), `app/shared/[token]/page.tsx`,
+`lib/api.ts` (client + types), `lib/i18n.ts` (EN/ES/ZH),
+`components/{auth,media,admin,workout,routine}`.
+
+**Recent features.** Super-admin users console; gym-admin equipment with
+`equipment_key`; routine editor with **Change exercise** list
+(`getExerciseAlternatives`); live gym-machine refresh; "Reasoned by DeepSeek"
+badge; per-exercise detail modal.
+
 ## Context for a new session
 
 **What it is.** Next.js (App Router) + TypeScript + Tailwind UI, pink theme.
