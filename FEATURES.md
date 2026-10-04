@@ -19,12 +19,12 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getMe` | `GET /auth/me` | page (sesión) | `SessionProvider` + guardas | ☑ |
 | `getToken` / `setToken` / `logoutLocal` | — (localStorage) | page | `SessionProvider` (`signOut`) | ☑ |
 | `getMyProfile` | `GET /profiles/me` | page | `SessionProvider` (sin perfil → `/bienvenida`) | ☑ |
-| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida` ☑ · `/app` (hoja "cómo me siento"), `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
+| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida` ☑ · `/app` hoja "cómo me siento" ☑ · `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
 | `saveProfile` | `POST /profiles` (invitado/legacy) | page | `/app/perfil` (cargas base) | ☐ |
-| `getCycle` | `GET /cycle` | sin uso | `/app` (anillo del ciclo) | ☐ |
-| `getCalendar` | `GET /calendar` | page | `/app/calendario`, tira semanal de `/app` | ☐ |
-| `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☐ |
-| `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☐ |
+| `getCycle` | `GET /cycle` | sin uso | no hace falta: el anillo usa `profile.timeline` + calendario | — |
+| `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app` ☑ · `/app/calendario` | ☐ |
+| `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
+| `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☑ |
 | `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` (opciones) | ☐ |
 | `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☐ |
 | `generateRoutine` | `POST /routines` | sin uso | modo demo para el jurado (opcional) | ☐ |
@@ -84,7 +84,7 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 - ☐ Elegir hasta 4 grupos musculares (aislados + generales).
 - ☐ Número de ejercicios principales, tiempo disponible (o sin límite), energía
   (con energía / moderada / sin energía), incluir calentamiento.
-- ☐ Síntomas y nivel de dolor (general y por síntoma) antes de capturar.
+- ☑ Síntomas y dolor general: hoja "Registrar cómo me siento" en Hoy (fase 3a). El dolor por síntoma sigue en la rutina anterior hasta la fase 3b.
 - ☐ Filtro por gimnasio unido (todos / uno) para la captura.
 - ☐ Resultado: fase, fatiga, `k_load`, RMSSD, pérdida de fuerza, alertas,
   minutos totales, motor usado ("Razonado por DeepSeek").

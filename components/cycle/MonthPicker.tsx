@@ -6,23 +6,9 @@ import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/components/ui/Button";
 import type { Language } from "@/lib/i18n";
+import { addDays, fromISODate, toISODate } from "@/lib/dates";
 
 const LOCALE: Record<Language, string> = { ES: "es", EN: "en", ZH: "zh-CN" };
-
-/** Local YYYY-MM-DD (no timezone shift). */
-export function toISODate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-export function fromISODate(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function addDays(date: Date, days: number): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
-}
 
 /**
  * Month grid date picker (Monday first). Arrow keys move by day/week,
