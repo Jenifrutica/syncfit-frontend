@@ -29,7 +29,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☑ |
 | `generateRoutine` | `POST /routines` | sin uso | modo demo para el jurado (opcional) | ☐ |
 | `sendTelemetry` | `POST /telemetry` | sin uso | onda de pulso en vivo durante el escaneo (opcional) | ☐ |
-| `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` buscar en catálogo ☑ · `/gym` (ejercicios por máquina) | ☐ |
+| `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` buscar en catálogo ☑ · `/gym` (ejercicios por máquina) | ☑ |
 | `getExerciseAlternatives` | `GET /exercises/{id}/alternatives` | page (botón Cambiar) | `/app/rutina` (hoja "Cambiar") | ☑ |
 | `getExerciseVariants` | `GET /exercises/{id}/variants` | ExerciseDetailModal | `/app/rutina` (detalle del ejercicio) | ☑ |
 | `getMachines` | `GET /machines` | page (mis máquinas) | `/app/gimnasios` (mis máquinas), `/compartido` | ☑ |
@@ -45,24 +45,25 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `listShares` | `GET /shares` | page | `/app/perfil` | ☑ |
 | `deleteShare` | `DELETE /shares/{token}` | page | `/app/perfil` (con confirmación) | ☑ |
 | `getShared` | `GET /shared/{token}` | shared/[token] | `/compartido/[token]` (+ redirección desde `/shared/[token]`) | ☑ |
-| `createGym` | `POST /gyms` | AdminPanel | `/gym` | ☐ |
-| `listMyGyms` | `GET /gyms/mine` | AdminPanel | `/gym` | ☐ |
-| `updateGym` | `PATCH /gyms/{id}` | AdminPanel | `/gym` | ☐ |
-| `deleteGym` | `DELETE /gyms/{id}` | AdminPanel | `/gym` | ☐ |
-| `addGymMachine` | `POST /gyms/{id}/machines` | AdminPanel | `/gym` | ☐ |
-| `updateGymMachine` | `PATCH /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☐ |
-| `deleteGymMachine` | `DELETE /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☐ |
-| `fileToDataUrl` | — (compresión de imagen) | AdminPanel | foto de perfil `/app/perfil` ☑ (antes se subía sin comprimir) · `/gym` | ☐ |
-| `fetchGymQr` | `GET /gyms/{id}/qr.png` | AdminPanel | `/gym` | ☐ |
-| `createGymAdmin` | `POST /admin/gym-admins` | AdminPanel | `/admin` | ☐ |
-| `listGymAdmins` | `GET /admin/gym-admins` | AdminPanel | `/admin` | ☐ |
-| `listUsers` | `GET /admin/users` | UserConsole | `/admin` (buscar + filtrar por rol) | ☐ |
-| `getUserDetail` | `GET /admin/users/{id}` | sin uso | `/admin` (detalle de usuaria) | ☐ |
-| `updateUser` | `PATCH /admin/users/{id}` | UserConsole | `/admin` | ☐ |
-| `setUserActive` | `POST /admin/users/{id}/activate\|deactivate` | UserConsole | `/admin` | ☐ |
-| `resetUserPassword` | `POST /admin/users/{id}/password` | UserConsole | `/admin` | ☐ |
-| `setUserRole` | `POST /admin/users/{id}/role` (pide contraseña admin) | UserConsole | `/admin` | ☐ |
-| `deleteUser` | `DELETE /admin/users/{id}` (pide contraseña admin) | UserConsole | `/admin` | ☐ |
+| `createGym` | `POST /gyms` | AdminPanel | `/gym` | ☑ |
+| `listMyGyms` | `GET /gyms/mine` | AdminPanel | `/gym` | ☑ |
+| `updateGym` | `PATCH /gyms/{id}` | AdminPanel | `/gym` | ☑ |
+| `deleteGym` | `DELETE /gyms/{id}` | AdminPanel | `/gym` | ☑ |
+| `addGymMachine` | `POST /gyms/{id}/machines` | AdminPanel | `/gym` | ☑ |
+| `updateGymMachine` | `PATCH /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☑ |
+| `deleteGymMachine` | `DELETE /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☑ |
+| `fileToDataUrl` | — (compresión de imagen) | AdminPanel | foto de perfil `/app/perfil` ☑ (antes se subía sin comprimir) · `/gym` | ☑ |
+| `fetchGymQr` | `GET /gyms/{id}/qr.png` | AdminPanel | `/gym` | ☑ |
+| `createGymAdmin` | `POST /admin/gym-admins` | AdminPanel | `/admin` | ☑ |
+| `listGymAdmins` | `GET /admin/gym-admins` | AdminPanel | `/admin` | ☑ |
+| `listUsers` | `GET /admin/users` | UserConsole | `/admin` (buscar + filtrar por rol) | ☑ |
+| `getUserDetail` | `GET /admin/users/{id}` | sin uso | `/admin` (detalle de usuaria) | ☑ |
+| `updateUser` | `PATCH /admin/users/{id}` | UserConsole | `/admin` | ☑ |
+| `setUserActive` | `POST /admin/users/{id}/activate\|deactivate` | UserConsole | `/admin` | ☑ |
+| `resetUserPassword` | `POST /admin/users/{id}/password` | UserConsole | `/admin` | ☑ |
+| `setUserRole` | `POST /admin/users/{id}/role` (pide contraseña admin) | UserConsole | `/admin` | ☑ |
+| `deleteUser` | `DELETE /admin/users/{id}` (pide contraseña admin) | UserConsole | `/admin` | ☑ |
+| `listAllGyms` (nueva) | `GET /admin/gyms` | — (no existía) | `/admin` → Gimnasios | ☑ |
 | `getHealth` | `GET /health` | sin uso | aviso "sin conexión con el servidor" (opcional) | ☐ |
 
 Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil` → Cuenta):
@@ -127,15 +128,15 @@ Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil`
 - ☑ Idioma, cambiar contraseña, cerrar sesión, cerrar sesión en todos los dispositivos, borrar cuenta.
 
 ### Admin de gimnasio
-- ☐ Crear / renombrar / borrar gimnasio (con confirmación).
-- ☐ Código del gimnasio y QR.
-- ☐ Máquinas: foto (subir / quitar), nombre, para qué sirve (traducción por IA),
+- ☑ Crear / renombrar / borrar gimnasio (con confirmación) — fase 4.
+- ☑ Código del gimnasio (copiar) y QR (ver y descargar) — fase 4.
+- ☑ Máquinas: foto (subir / quitar), nombre, para qué sirve (traducción por IA),
   equipo, tipo, factor de peso, ejercicios que cubre (buscador del catálogo).
 
 ### Super admin
-- ☐ Crear admin de gimnasio (correo, contraseña, nombre).
-- ☐ Ver todos los gimnasios.
-- ☐ Usuarios: buscar, filtrar por rol, editar, activar / desactivar, contraseña
+- ☑ Crear admin de gimnasio (correo, contraseña, nombre) — fase 4.
+- ☑ Ver todos los gimnasios — fase 4.
+- ☑ Usuarios: buscar (mientras se escribe), filtrar por rol, ver detalle, editar, activar / desactivar, contraseña
   temporal, cambiar rol y borrar (ambos piden la contraseña del admin).
 
 ### Perfil compartido (público)

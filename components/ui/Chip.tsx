@@ -44,7 +44,7 @@ const BADGE_TONES: Record<BadgeTone, string> = {
 /** Static label (role, state, counts). */
 export function Badge({ tone = "nube", icon, className, children }: { tone?: BadgeTone; icon?: ReactNode; className?: string; children: ReactNode }) {
   return (
-    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-extrabold", BADGE_TONES[tone], className)}>
+    <span className={cx("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-caption font-extrabold", BADGE_TONES[tone], className)}>
       {icon}
       {children}
     </span>

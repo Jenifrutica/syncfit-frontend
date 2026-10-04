@@ -97,7 +97,7 @@ REST API; JWT in `localStorage`.
 `components/session/Guard.tsx`; routes `/entrar` (sign in / sign up),
 `/bienvenida` (onboarding), `/app` (athlete), `/gym` and `/admin` (admins),
 `/shared/[token]`; `lib/api.ts` (client + types), `lib/i18n.ts` + `lib/i18n-app.ts`
-(ES default, EN, ZH); the admin panels not yet redesigned live in `components/legacy/`.
+(ES default, EN, ZH).
 
 **Recent features.** Super-admin users console; gym-admin equipment with
 `equipment_key`; routine editor with **Change exercise** list
@@ -114,8 +114,8 @@ badge; per-exercise detail modal.
 **Layout.** `app/page.tsx` sends each person home (`homeFor`: athlete →
 `/app` or `/bienvenida`, gym admin → `/gym`, super admin → `/admin`).
 The athlete app lives under `/app` (Hoy, Rutina, Entreno, Calendario,
-Nutrición, Perfil, Gimnasios); `/gym` and `/admin` render
-`components/admin/AdminShell.tsx` until phase 4.
+Nutrición, Perfil, Gimnasios); `/gym` and `/admin` are the admin panels
+(`components/paneles/`).
 `app/compartido/[token]` is the public read-only shared profile (`/shared/[token]` redirects there).
 
 **Decoupled seams (work without context).**
@@ -134,41 +134,33 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 **Run checks.** `npm run typecheck` and `npm run build`.
 
 
-## Admin UI (temporary) and roles
+## Admin panels and roles
 
 - After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` are
   **admin-only**: the route guards send them to `/admin` or `/gym` and they never
   get the athlete tabs, onboarding, cycle/gestational tracking or profile.
-- **Athletes and gyms:** a **join gym by code** box in My machines. Joined gyms
-  appear with the gym **name tag** on each machine; when there is more than one
-  gym a **selector** filters the view, and each gym can be set **active** or left.
+- **Athletes and gyms:** `/app/gimnasios` joins a gym by code; joined gyms list
+  their machines, a **selector** filters when there is more than one, and each
+  gym can be set **active** or left.
   Machines are read live from the backend (`GET /gyms/joined`), so admin edits
   show up automatically. See the `Map`/`Set` rows under **Data Structures**.
-- `components/admin/AdminPanel.tsx` (single screen for now, i18n EN/ES/ZH): super
-  admin creates gym admins; gym admin creates gyms, sees the code + QR and
-  manages machines (list, add, edit, delete). Machine photos are uploaded files
-  compressed client-side (`fileToDataUrl`) and stored as data URLs.
-- **Temporary:** it is a single screen. README in `components/admin/` lists the
-  improvements (split routes, object storage, audit log).
+- **Gym admin** (`/gym`, `components/paneles/GymAdminScreen.tsx`): create, rename
+  and delete gyms, copy the code, show/download the QR, and add/edit/delete
+  machines (photo compressed client-side with `fileToDataUrl`, name, purpose,
+  equipment type, weight factor and the catalog exercises it covers).
+- **Super admin** (`/admin`, `components/paneles/SuperAdminScreen.tsx`): accounts
+  (search as you type, filter by role, view details, edit, activate/deactivate,
+  temporary password, change role and delete — both ask for the admin password),
+  create/list gym admins, and see every gym.
 - Decoupled seams for later work without context: `lib/session.tsx`,
-  `components/rutina/ExerciseThumb.tsx`, `components/admin/`.
+  `components/rutina/ExerciseThumb.tsx`, `components/paneles/`.
 
-### Next steps for a fresh session (read this, then just do it)
+### Next steps for a fresh session
 
-1. **Split the admin screen into routes** — replace the temp single screen with
-   `app/admin/layout.tsx` + `app/admin/super/page.tsx` (create/list gym admins,
-   audit log) and `app/admin/gym/page.tsx` (own gyms, machines, QR). Keep
-   `AdminShell.tsx` as the shared layout; `app/page.tsx` already early-returns it
-   for `role !== "ATHLETE"`, so only the internals change.
-2. **Object storage for photos** (S3/presigned URLs). Today machine photos are
-   uploaded files compressed client-side and stored as data URLs (see below).
-3. **Reorder machines** + richer per-machine calibration, and pagination
-   (add/edit/delete already done).
-4. **Gym custom machines → routine weights**: machines are embedded in
-   `GET /api/v1/gyms/mine`; wire the gym machine `weight_factor` into the load
-   adjustment used in `components/workout/WorkoutRunner.tsx`.
-5. **Admin tests** (frontend): role-gating (admin never sees athlete tabs) and
-   the create-gym / add-machine flows.
+1. **Object storage for photos** (S3/presigned URLs). Today photos are compressed
+   client-side and stored as data URLs.
+2. **Reorder machines** and pagination for long account lists.
+3. **Frontend tests** for role-gating and the create-gym / add-machine flows.
 
 Backend endpoints used by the admin UI: `/api/v1/admin/gym-admins` (GET/POST),
 `/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),

@@ -206,9 +206,7 @@ export const SAMPLE_FRAME: TelemetryFrame = {
 
 export async function getHealth(): Promise<{ status: string; version: string }> {
   const response = await fetch(`${API_URL}/api/v1/health`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`health check failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("health check", response);
   return response.json();
 }
 
@@ -218,18 +216,14 @@ export async function sendTelemetry(frame: TelemetryFrame): Promise<Decision> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(frame),
   });
-  if (!response.ok) {
-    throw new Error(`telemetry failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("telemetry", response);
   const data = (await response.json()) as { decision: Decision };
   return data.decision;
 }
 
 export async function getMuscleGroups(): Promise<string[]> {
   const response = await fetch(`${API_URL}/api/v1/muscle-groups`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`muscle groups failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("muscle groups", response);
   return response.json();
 }
 
@@ -257,9 +251,7 @@ export async function generateRoutine(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`routine failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("routine", response);
   return response.json();
 }
 
@@ -267,9 +259,7 @@ export async function getCatalog(language: Language): Promise<CatalogItem[]> {
   const response = await fetch(`${API_URL}/api/v1/catalog?language=${language}`, {
     cache: "no-store",
   });
-  if (!response.ok) {
-    throw new Error(`catalog failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("catalog", response);
   return response.json();
 }
 
@@ -297,9 +287,7 @@ export async function getSupplements(
   const response = await fetch(`${API_URL}/api/v1/supplements?${query.toString()}`, {
     cache: "no-store",
   });
-  if (!response.ok) {
-    throw new Error(`supplements failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("supplements", response);
   return response.json();
 }
 
@@ -318,7 +306,7 @@ export async function getMachines(language: Language): Promise<GymMachine[]> {
   const response = await fetch(`${API_URL}/api/v1/machines?language=${language}`, {
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`machines failed: ${response.status}`);
+  if (!response.ok) throw await apiError("machines", response);
   return response.json();
 }
 
@@ -336,7 +324,7 @@ export async function getCalendar(month: string, language: Language): Promise<{ 
     `${API_URL}/api/v1/calendar?month=${month}&language=${language}`,
     { headers: authHeaders() },
   );
-  if (!response.ok) throw new Error(`calendar failed: ${response.status}`);
+  if (!response.ok) throw await apiError("calendar", response);
   return response.json();
 }
 
@@ -358,7 +346,7 @@ export async function getSupplementCatalog(language: Language): Promise<Suppleme
   const response = await fetch(`${API_URL}/api/v1/supplements/catalog?language=${language}`, {
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`supplement catalog failed: ${response.status}`);
+  if (!response.ok) throw await apiError("supplement catalog", response);
   return response.json();
 }
 
@@ -373,7 +361,7 @@ export interface SymptomInfo {
 
 export async function getSymptoms(language: Language): Promise<SymptomInfo[]> {
   const response = await fetch(`${API_URL}/api/v1/symptoms?language=${language}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`symptoms failed: ${response.status}`);
+  if (!response.ok) throw await apiError("symptoms", response);
   return response.json();
 }
 
@@ -387,7 +375,7 @@ export async function getSupplementIntakes(date: string): Promise<IntakeRecord[]
   const response = await fetch(`${API_URL}/api/v1/supplement-intakes?date=${date}`, {
     headers: authHeaders(),
   });
-  if (!response.ok) throw new Error(`intakes failed: ${response.status}`);
+  if (!response.ok) throw await apiError("intakes", response);
   return response.json();
 }
 
@@ -401,7 +389,7 @@ export async function setSupplementIntake(
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ supplement_id: supplementId, date, taken }),
   });
-  if (!response.ok) throw new Error(`intake failed: ${response.status}`);
+  if (!response.ok) throw await apiError("intake", response);
   return response.json();
 }
 
@@ -417,7 +405,7 @@ export interface Stats {
 
 export async function getStats(): Promise<Stats> {
   const response = await fetch(`${API_URL}/api/v1/stats`, { headers: authHeaders() });
-  if (!response.ok) throw new Error(`stats failed: ${response.status}`);
+  if (!response.ok) throw await apiError("stats", response);
   return response.json();
 }
 
@@ -432,9 +420,7 @@ export async function saveProfile(profile: Profile): Promise<Profile> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`profile failed: ${response.status}`);
-  }
+  if (!response.ok) throw await apiError("profile", response);
   return response.json();
 }
 
@@ -582,7 +568,7 @@ export interface MyProfile {
 export async function getMyProfile(): Promise<MyProfile | null> {
   const response = await fetch(`${API_URL}/api/v1/profiles/me`, { headers: authHeaders() });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`profile failed: ${response.status}`);
+  if (!response.ok) throw await apiError("profile", response);
   return response.json();
 }
 
@@ -598,7 +584,7 @@ export async function updateMyProfile(data: Record<string, unknown>): Promise<My
 
 export async function getCycle(): Promise<{ timeline: Timeline | null }> {
   const response = await fetch(`${API_URL}/api/v1/cycle`, { headers: authHeaders() });
-  if (!response.ok) throw new Error(`cycle failed: ${response.status}`);
+  if (!response.ok) throw await apiError("cycle", response);
   return response.json();
 }
 
@@ -641,7 +627,7 @@ export async function capture(
     method: "POST",
     headers: authHeaders(),
   });
-  if (!response.ok) throw new Error(`capture failed: ${response.status}`);
+  if (!response.ok) throw await apiError("capture", response);
   return response.json();
 }
 
@@ -676,13 +662,13 @@ export async function createShare(
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ role, permissions, label }),
   });
-  if (!response.ok) throw new Error(`share failed: ${response.status}`);
+  if (!response.ok) throw await apiError("share", response);
   return response.json();
 }
 
 export async function listShares(): Promise<ShareLinkInfo[]> {
   const response = await fetch(`${API_URL}/api/v1/shares`, { headers: authHeaders() });
-  if (!response.ok) throw new Error(`shares failed: ${response.status}`);
+  if (!response.ok) throw await apiError("shares", response);
   return response.json();
 }
 
@@ -707,7 +693,7 @@ export interface SharedProfile {
 
 export async function getShared(token: string): Promise<SharedProfile> {
   const response = await fetch(`${API_URL}/api/v1/shared/${token}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`shared profile failed: ${response.status}`);
+  if (!response.ok) throw await apiError("shared profile", response);
   return response.json();
 }
 
@@ -720,13 +706,13 @@ export async function createGymAdmin(email: string, password: string, displayNam
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName }),
   });
-  if (!r.ok) throw new Error(`create gym admin failed: ${r.status}`);
+  if (!r.ok) throw await apiError("create gym admin", r);
   return r.json();
 }
 
 export async function listGymAdmins(): Promise<AuthUser[]> {
   const r = await fetch(`${API_URL}/api/v1/admin/gym-admins`, { headers: authHeaders() });
-  if (!r.ok) throw new Error(`gym admins failed: ${r.status}`);
+  if (!r.ok) throw await apiError("gym admins", r);
   return r.json();
 }
 
@@ -740,14 +726,22 @@ export interface GymInfo {
 
 export async function createGym(name: string): Promise<GymInfo> {
   const r = await fetch(`${API_URL}/api/v1/gyms`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ name }) });
-  if (!r.ok) throw new Error(`create gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("create gym", r);
+  return r.json();
+}
+
+/** GET /admin/gyms — every gym (super admin only). */
+export async function listAllGyms(language?: Language): Promise<GymInfo[]> {
+  const query = language ? `?language=${language}` : "";
+  const r = await fetch(`${API_URL}/api/v1/admin/gyms${query}`, { headers: authHeaders() });
+  if (!r.ok) throw await apiError("all gyms", r);
   return r.json();
 }
 
 export async function listMyGyms(language?: Language): Promise<GymInfo[]> {
   const query = language ? `?language=${language}` : "";
   const r = await fetch(`${API_URL}/api/v1/gyms/mine${query}`, { headers: authHeaders() });
-  if (!r.ok) throw new Error(`my gyms failed: ${r.status}`);
+  if (!r.ok) throw await apiError("my gyms", r);
   return r.json();
 }
 
@@ -758,13 +752,13 @@ export async function updateGym(gymId: string, name: string, language?: Language
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ name }),
   });
-  if (!r.ok) throw new Error(`update gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("update gym", r);
   return r.json();
 }
 
 export async function deleteGym(gymId: string): Promise<void> {
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}`, { method: "DELETE", headers: authHeaders() });
-  if (!r.ok) throw new Error(`delete gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("delete gym", r);
 }
 
 export interface ExerciseVariant {
@@ -780,7 +774,7 @@ export interface ExerciseVariant {
 
 export async function getExerciseVariants(exerciseId: string, language: Language): Promise<ExerciseVariant[]> {
   const r = await fetch(`${API_URL}/api/v1/exercises/${exerciseId}/variants?language=${language}`, { cache: "no-store" });
-  if (!r.ok) throw new Error(`variants failed: ${r.status}`);
+  if (!r.ok) throw await apiError("variants", r);
   return r.json();
 }
 
@@ -807,14 +801,15 @@ export async function addGymMachine(
   exerciseIds?: string[],
   equipmentKey?: string,
   equipmentType?: string,
+  weightFactor?: number,
 ): Promise<GymMachineInfo> {
   const query = language ? `?language=${language}` : "";
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/machines${query}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ name, purpose, image_url: imageUrl, exercise_ids: exerciseIds, equipment_key: equipmentKey, equipment_type: equipmentType }),
+    body: JSON.stringify({ name, purpose, image_url: imageUrl, exercise_ids: exerciseIds, equipment_key: equipmentKey, equipment_type: equipmentType, weight_factor: weightFactor }),
   });
-  if (!r.ok) throw new Error(`add machine failed: ${r.status}`);
+  if (!r.ok) throw await apiError("add machine", r);
   return r.json();
 }
 
@@ -830,7 +825,7 @@ export async function updateGymMachine(
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(patch),
   });
-  if (!r.ok) throw new Error(`update machine failed: ${r.status}`);
+  if (!r.ok) throw await apiError("update machine", r);
   return r.json();
 }
 
@@ -839,7 +834,7 @@ export async function deleteGymMachine(gymId: string, machineId: string): Promis
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!r.ok) throw new Error(`delete machine failed: ${r.status}`);
+  if (!r.ok) throw await apiError("delete machine", r);
 }
 
 /**
@@ -875,7 +870,7 @@ export async function fileToDataUrl(file: File, maxSize = 1024): Promise<string>
 
 export async function joinGym(code: string): Promise<JoinedGym> {
   const r = await fetch(`${API_URL}/api/v1/gyms/join`, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ code }) });
-  if (!r.ok) throw new Error(`join gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("join gym", r);
   return r.json();
 }
 
@@ -891,25 +886,25 @@ export interface JoinedGym {
 export async function getJoinedGyms(language?: Language): Promise<JoinedGym[]> {
   const query = language ? `?language=${language}` : "";
   const r = await fetch(`${API_URL}/api/v1/gyms/joined${query}`, { headers: authHeaders() });
-  if (!r.ok) throw new Error(`joined gyms failed: ${r.status}`);
+  if (!r.ok) throw await apiError("joined gyms", r);
   return r.json();
 }
 
 export async function leaveGym(gymId: string): Promise<void> {
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/leave`, { method: "DELETE", headers: authHeaders() });
-  if (!r.ok) throw new Error(`leave gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("leave gym", r);
 }
 
 export async function activateGym(gymId: string, language?: Language): Promise<JoinedGym> {
   const query = language ? `?language=${language}` : "";
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/activate${query}`, { method: "POST", headers: authHeaders() });
-  if (!r.ok) throw new Error(`activate gym failed: ${r.status}`);
+  if (!r.ok) throw await apiError("activate gym", r);
   return r.json();
 }
 
 export async function fetchGymQr(gymId: string): Promise<string> {
   const r = await fetch(`${API_URL}/api/v1/gyms/${gymId}/qr.png`, { headers: authHeaders() });
-  if (!r.ok) throw new Error(`qr failed: ${r.status}`);
+  if (!r.ok) throw await apiError("qr", r);
   return URL.createObjectURL(await r.blob());
 }
 
@@ -930,7 +925,7 @@ export async function getExerciseAlternatives(exerciseId: string, language: Lang
     cache: "no-store",
     headers: authHeaders(),
   });
-  if (!r.ok) throw new Error(`alternatives failed: ${r.status}`);
+  if (!r.ok) throw await apiError("alternatives", r);
   return r.json();
 }
 
@@ -945,13 +940,13 @@ export async function listUsers(search?: string, role?: string): Promise<AdminUs
   if (search) query.set("search", search);
   if (role) query.set("role", role);
   const r = await fetch(`${API_URL}/api/v1/admin/users?${query.toString()}`, { headers: authHeaders(), cache: "no-store" });
-  if (!r.ok) throw new Error(`users failed: ${r.status}`);
+  if (!r.ok) throw await apiError("users", r);
   return r.json();
 }
 
 export async function getUserDetail(id: string): Promise<{ user: AdminUser; profile: Record<string, unknown> | null }> {
   const r = await fetch(`${API_URL}/api/v1/admin/users/${id}`, { headers: authHeaders() });
-  if (!r.ok) throw new Error(`user detail failed: ${r.status}`);
+  if (!r.ok) throw await apiError("user detail", r);
   return r.json();
 }
 
@@ -961,13 +956,13 @@ export async function updateUser(id: string, patch: Record<string, unknown>): Pr
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(patch),
   });
-  if (!r.ok) throw new Error(`update user failed: ${r.status}`);
+  if (!r.ok) throw await apiError("update user", r);
   return r.json();
 }
 
 export async function setUserActive(id: string, active: boolean): Promise<AdminUser> {
   const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/${active ? "activate" : "deactivate"}`, { method: "POST", headers: authHeaders() });
-  if (!r.ok) throw new Error(`active failed: ${r.status}`);
+  if (!r.ok) throw await apiError("active", r);
   return r.json();
 }
 
@@ -977,7 +972,7 @@ export async function resetUserPassword(id: string, password: string): Promise<v
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ password }),
   });
-  if (!r.ok) throw new Error(`reset password failed: ${r.status}`);
+  if (!r.ok) throw await apiError("reset password", r);
 }
 
 export async function setUserRole(id: string, role: string, adminPassword: string): Promise<AdminUser> {
@@ -986,7 +981,7 @@ export async function setUserRole(id: string, role: string, adminPassword: strin
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ role, admin_password: adminPassword }),
   });
-  if (!r.ok) throw new Error(`role failed: ${r.status}`);
+  if (!r.ok) throw await apiError("role", r);
   return r.json();
 }
 
@@ -996,5 +991,5 @@ export async function deleteUser(id: string, adminPassword: string): Promise<voi
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ admin_password: adminPassword }),
   });
-  if (!r.ok) throw new Error(`delete user failed: ${r.status}`);
+  if (!r.ok) throw await apiError("delete user", r);
 }
