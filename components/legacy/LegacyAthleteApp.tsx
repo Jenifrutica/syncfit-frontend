@@ -60,9 +60,12 @@ import { Check, Dumbbell, Flame, Flower, Heart, Leaf, Pill, Search } from "@/com
 import { ExerciseMedia } from "@/components/media/ExerciseMedia";
 import { WorkoutRunner } from "@/components/workout/WorkoutRunner";
 import { useSession } from "@/lib/session";
+import { readEnergy } from "@/lib/energia";
+import { todayISO } from "@/lib/dates";
 import { ExerciseDetailModal } from "@/components/routine/ExerciseDetailModal";
 
-type Tab = "routine" | "supplements" | "machines" | "profile";
+export type LegacyTab = "routine" | "supplements" | "machines" | "profile";
+type Tab = LegacyTab;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -188,7 +191,7 @@ function KindIcon({ kind }: { kind: string }) {
  * rebuilt (see FEATURES.md). Session, language and onboarding now come from
  * SessionProvider and the route guards.
  */
-export function LegacyAthleteApp() {
+export function LegacyAthleteApp({ initialTab = "routine" }: { initialTab?: LegacyTab }) {
   const router = useRouter();
   const session = useSession();
   const { user, language, setLanguage } = session;
@@ -197,7 +200,7 @@ export function LegacyAthleteApp() {
     setProfileState(next);
     session.setProfile(next);
   };
-  const [tab, setTab] = useState<Tab>("routine");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [selected, setSelected] = useState<string[]>([]);
   const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
   const [supplements, setSupplements] = useState<SupplementAdvice | null>(null);
@@ -229,7 +232,8 @@ export function LegacyAthleteApp() {
   const [workout, setWorkout] = useState(false);
   const [exercisesCount, setExercisesCount] = useState(5);
   const [timeBudget, setTimeBudget] = useState<number | "">("");
-  const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
+  // Pre-filled with what the athlete logged on Today (lib/energia.ts).
+  const [energy, setEnergy] = useState<EnergyLevel>(() => readEnergy(todayISO()) ?? "MODERATE");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

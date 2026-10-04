@@ -180,8 +180,15 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `Wordmark`, `SkyShell` | `components/brand/` | logo + cielo con nubes para pantallas de acceso y onboarding |
 | `Guard`, `LoadingScreen` | `components/session/` | guardas por rol; Pulsi respirando mientras carga la sesión |
 
-Nav, footer, barra inferior y barra lateral se construyen en la fase 3 sobre
-estas piezas.
+| `AppShell` | `components/app/AppShell.tsx` | barra inferior (móvil) y lateral (≥1024 px); `data-fase` en la raíz pinta el cielo; `NAV` dice a dónde va cada sección |
+| `FeelingSheet` | `components/hoy/FeelingSheet.tsx` | registro rápido: energía, síntomas con su consejo, dolor general |
+
+**Hoy (`/app`):** banda de cielo `bg-fase-suave` con saludo según la hora,
+tira semanal y anillo del ciclo (Pulsi cambia de cara según energía, dolor y
+síntomas), divisor que gotea y, debajo, la tarjeta del día seleccionado (tipo
+de día + nota de seguridad del backend), la acción principal "Escanear y crear
+rutina", el registro rápido, racha / meta semanal y el consejo de la fase. En
+escritorio son dos columnas (cielo fijo a la izquierda).
 
 **Patrones de flujo (fase 2):**
 - *Acceso* (`/entrar`): cielo + Pulsi con bocadillo, control segmentado
