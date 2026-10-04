@@ -1,0 +1,135 @@
+/*
+ * SyncFit Edge design tokens — single source of truth (see DESIGN_SYSTEM.md).
+ * "Tu cuerpo pone el clima": cotton-candy sky, deep indigo ink, one color per phase.
+ * Every value here was contrast-checked (WCAG AA); do not add colors outside this file.
+ */
+
+@theme {
+  /* --- Palette ------------------------------------------------------------ */
+  --color-rosa: #f1ccde; /* 60% page sky */
+  --color-rosa-claro: #f7e4ee; /* sunken chips, soft buttons */
+  --color-nube: #fffafc; /* cards (tinted white, never #fff) */
+  --color-crema: #f4e1c1; /* warm sections, accents on dark */
+
+  --color-ink: #2a1d65; /* text + primary actions */
+  --color-ink-hondo: #1c1247; /* pressed primary */
+  --color-ink-claro: #3a2c80; /* hover primary */
+  --color-ink-suave: #4a3d85; /* secondary text (6.3:1 on rosa) */
+  --color-linea: #8478b5; /* input outlines, dividers (3:1 UI) */
+
+  --color-lavanda: #5e5290; /* deep sections with light text */
+  --color-lavanda-noche: #3b2e80; /* raised surfaces on ink */
+  --color-lavanda-texto: #e9e2ff; /* body text on lavanda/ink */
+
+  /* Phase colors (cycle + gestation) and their soft tints */
+  --color-menstrual: #f08a7e;
+  --color-menstrual-suave: #fbd1cb;
+  --color-folicular: #8fd3b6;
+  --color-folicular-suave: #d3f1e4;
+  --color-ovulatoria: #f7c75c;
+  --color-ovulatoria-suave: #fce6ae;
+  --color-lutea: #b9aceb;
+  --color-lutea-suave: #e3dcfa;
+  --color-gestacion: #f6b48a;
+  --color-gestacion-suave: #fde1cf;
+
+  /* Status (always paired with an icon or label, never color alone) */
+  --color-peligro: #8a2a25;
+  --color-peligro-suave: #fbe3e1;
+  --color-exito: #2e6e54;
+  --color-exito-suave: #d3f1e4;
+  --color-aviso: #6b4e00;
+  --color-aviso-suave: #fce6ae;
+
+  /* --- Type --------------------------------------------------------------- */
+  --text-display: clamp(2.75rem, 1.6rem + 5vw, 5.75rem);
+  --text-display--line-height: 0.98;
+  --text-display--letter-spacing: -0.02em;
+  --text-h1: clamp(2rem, 1.55rem + 2vw, 3.25rem);
+  --text-h1--line-height: 1.05;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h2: clamp(1.625rem, 1.35rem + 1.2vw, 2.5rem);
+  --text-h2--line-height: 1.1;
+  --text-h3: 1.375rem;
+  --text-h3--line-height: 1.2;
+  --text-body-lg: 1.1875rem;
+  --text-body-lg--line-height: 1.55;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.55;
+  --text-small: 0.9375rem;
+  --text-small--line-height: 1.45;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.35;
+  --text-button: 1.0625rem;
+  --text-button--line-height: 1.2;
+
+  /* --- Shape & depth ------------------------------------------------------ */
+  --radius-campo: 1rem; /* inputs */
+  --radius-ficha: 1.5rem; /* tiles, sheets content */
+  --radius-nube: 2rem; /* cards */
+  --radius-cielo: 3rem; /* big sections */
+
+  --shadow-nube: 0 10px 30px -10px rgb(42 29 101 / 0.22);
+  --shadow-boton: 0 8px 18px -8px rgb(42 29 101 / 0.6);
+  --shadow-flotante: 0 -8px 24px -6px rgb(42 29 101 / 0.14);
+  --shadow-dialogo: 0 24px 60px -12px rgb(28 18 71 / 0.45);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --ease-salida: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-entrada: cubic-bezier(0.64, 0, 0.78, 0);
+
+  /* Keyframes used by the animate-* utilities (transform/opacity only) */
+  --animate-flotar: flotar 4.5s ease-in-out infinite;
+  --animate-parpadeo: parpadeo 5s ease-in-out infinite;
+  --animate-respirar: respirar 8s ease-in-out infinite;
+  --animate-girar: girar 0.9s linear infinite;
+  --animate-aparecer: aparecer 0.3s var(--ease-salida) both;
+  --animate-subir: subir 0.3s var(--ease-salida) both;
+
+  @keyframes flotar {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(-2deg); }
+  }
+  @keyframes parpadeo {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+  }
+  @keyframes respirar {
+    0%, 100% { transform: scale(0.86); }
+    50% { transform: scale(1); }
+  }
+  @keyframes girar {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes subir {
+    from { opacity: 0; transform: translateY(48px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Fonts come from next/font (app/layout.tsx) as CSS variables. */
+@theme inline {
+  --font-display: var(--font-fredoka), "PingFang SC", "Noto Sans SC", ui-rounded, sans-serif;
+  --font-sans: var(--font-nunito), "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+
+  /* The current phase, set on any ancestor with data-fase="…" */
+  --color-fase: var(--fase, var(--color-ovulatoria));
+  --color-fase-suave: var(--fase-suave, var(--color-ovulatoria-suave));
+}
+
+/* Motion durations shared with lib/motion.ts */
+:root {
+  --dur-toque: 120ms;
+  --dur-ui: 200ms;
+  --dur-panel: 300ms;
+}
+
+[data-fase="MENSTRUAL"] { --fase: var(--color-menstrual); --fase-suave: var(--color-menstrual-suave); }
+[data-fase="FOLLICULAR"] { --fase: var(--color-folicular); --fase-suave: var(--color-folicular-suave); }
+[data-fase="OVULATORY"] { --fase: var(--color-ovulatoria); --fase-suave: var(--color-ovulatoria-suave); }
+[data-fase="LUTEAL"] { --fase: var(--color-lutea); --fase-suave: var(--color-lutea-suave); }
+[data-fase^="TRIMESTER"] { --fase: var(--color-gestacion); --fase-suave: var(--color-gestacion-suave); }

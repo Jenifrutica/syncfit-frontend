@@ -48,7 +48,16 @@ syncfit-frontend/
 
 ## Stack
 
-TypeScript, Next.js, React, Tailwind CSS, HTML5 Canvas, D3.js.
+TypeScript, Next.js 16, React 19, Tailwind CSS 4, Motion, Phosphor icons, HTML5 Canvas, D3.js.
+
+## Design system
+
+The UI is being redesigned (Paranice look, Flo usability, Headspace warmth):
+
+- [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — tokens, typography, components and rules.
+- [`PRODUCT.md`](./PRODUCT.md) — users, purpose and product principles.
+- [`FEATURES.md`](./FEATURES.md) — checklist so no existing feature is lost in the redesign.
+- `npm run dev` → **`/ui`** shows every component live.
 
 ## Tasks
 
