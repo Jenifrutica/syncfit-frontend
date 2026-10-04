@@ -22,7 +22,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       options={ORDER.map((lang) => ({
         value: lang,
         label: (
-          <span lang={lang === "ZH" ? "zh-Hans" : lang.toLowerCase()}>
+          <span lang={lang === "ZH" ? "zh-Hans" : lang.toLowerCase()} className="whitespace-nowrap">
             <span aria-hidden="true">{SHORT[lang]}</span>
             <span className="sr-only">{FULL[lang]}</span>
           </span>

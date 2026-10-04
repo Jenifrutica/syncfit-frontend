@@ -178,7 +178,7 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `CycleRing` | `components/cycle/CycleRing.tsx` | arcos por fase + marcador de hoy |
 | `WeekStrip` | `components/cycle/WeekStrip.tsx` | 7 días con punto de fase |
 | `Cloud`, `DripDivider` | `components/decor/` | decoración `aria-hidden` |
-| `Choice` | `components/ui/Choice.tsx` | elección única sobre radios nativos: `tarjetas`, `pildoras` o `segmentado` |
+| `Choice` | `components/ui/Choice.tsx` | elección única sobre radios nativos: `tarjetas`, `pildoras` o `segmentado` (cada opción toma el ancho de su texto y puede pasar a dos líneas; nunca desborda a 375 px) |
 | `PasswordInput` | `components/ui/PasswordInput.tsx` | mostrar/ocultar con etiqueta localizada |
 | `NumberStepper` | `components/ui/NumberStepper.tsx` | número grande con − / + (ciclo, semanas) |
 | `LanguageSwitcher` | `components/ui/LanguageSwitcher.tsx` | ES · EN · 中文, recordado en la sesión |
