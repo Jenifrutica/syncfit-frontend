@@ -139,8 +139,15 @@ por cálculo WCAG (34 pares, 0 fallos).
 - **Espaciado:** escala de 4 px de Tailwind (múltiplos de 8 para bloques);
   secciones de landing 64–96 px; pantallas de app 16–20 px de margen.
 - **Landing (orden):** nav de nubes → hero centrado → divisor que gotea → problema
-  (lavanda) → fases (tarjetas) → cómo funciona: dos IAs y el validador (crema) +
-  ejemplo de adaptación → gimnasios → CTA final + footer (ink).
+  (lavanda) → fases (tarjetas) → cómo funciona: dos IAs y el validador (crema) →
+  demo en vivo "la misma rutina, otra fase" → gimnasios (ink) → CTA final +
+  footer (ink). Código en `components/landing/`.
+- **Demo en vivo:** `DemoFases` llama a `generateRoutine` con el motor
+  determinista y telemetría de ejemplo (`cycleDay` 3/9/14/22, tren inferior);
+  la tarjeta toma el color de la fase elegida y marca lo que cambió frente al
+  día 3. Sin cuenta ni datos personales.
+- **Sesión:** quien ya entró ve "Abrir mi app" (va a su inicio por rol) en lugar
+  de "Crear mi rutina"; `/` ya no redirige.
 - **CTA:** primario único "Crear mi rutina" (hero, mitad, cierre); secundario
   "Ver cómo funciona".
 - **Hero:** editorial centrado; Pulsi con alitas + bocadillo como gesto
@@ -283,7 +290,14 @@ escritorio son dos columnas (cielo fijo a la izquierda).
 
 - **Librerías:** CSS para lo básico, **Motion** para micro-interacciones de la app
   (cascada, cambios de layout), **GSAP + ScrollTrigger** solo en la landing (carga
-  diferida, fase 5).
+  diferida en `useLandingMotion`, con `gsap.matchMedia`).
+- **Coreografía de la landing** (por atributos `data-*`): `data-entra` sube el
+  hero en cascada al cargar; `data-nube` mueve las nubes con el scroll
+  (parallax); `data-revela` sube cada bloque al entrar en pantalla; `data-ruta`
+  llena la línea de las cuatro estaciones y hace viajar a Pulsi (horizontal
+  ≥ 1024 px, vertical en teléfono); las estaciones aún no alcanzadas llevan
+  `data-espera` (70 % de opacidad). Con `prefers-reduced-motion` no se anima
+  nada y todo queda visible.
 - **Tokens:** `--ease-salida` (0.22, 1, 0.36, 1), `--ease-entrada`; duraciones
   `--dur-toque` 120 ms, `--dur-ui` 200 ms, `--dur-panel` 300 ms (espejo en
   `lib/motion.ts`). Solo `transform`/`opacity`.

@@ -27,7 +27,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☑ |
 | `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` usa las mismas listas fijas (`ISOLATED_GROUPS`, `GENERAL_GROUPS`) | — |
 | `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☑ |
-| `generateRoutine` | `POST /routines` | sin uso | modo demo para el jurado (opcional) | ☐ |
+| `generateRoutine` | `POST /routines` | sin uso | landing `/` → demo "La misma rutina, otra fase" (motor determinista, `cycleDay`) | ☑ |
 | `sendTelemetry` | `POST /telemetry` | sin uso | onda de pulso en vivo durante el escaneo (opcional) | ☐ |
 | `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` buscar en catálogo ☑ · `/gym` (ejercicios por máquina) | ☑ |
 | `getExerciseAlternatives` | `GET /exercises/{id}/alternatives` | page (botón Cambiar) | `/app/rutina` (hoja "Cambiar") | ☑ |

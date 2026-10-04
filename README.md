@@ -94,7 +94,7 @@ REST API; JWT in `localStorage`.
 `npm run typecheck` · `npm run build`.
 
 **Entry points.** `lib/session.tsx` (session, role routing, language) and
-`components/session/Guard.tsx`; routes `/entrar` (sign in / sign up),
+`components/session/Guard.tsx`; routes `/` (public landing), `/entrar` (sign in / sign up),
 `/bienvenida` (onboarding), `/app` (athlete), `/gym` and `/admin` (admins),
 `/shared/[token]`; `lib/api.ts` (client + types), `lib/i18n.ts` + `lib/i18n-app.ts`
 (ES default, EN, ZH).
@@ -111,8 +111,10 @@ badge; per-exercise detail modal.
 **Run.** `npm install` then `npm run dev` (http://localhost:3000). API via
 `NEXT_PUBLIC_API_URL` (default http://localhost:8000) and `NEXT_PUBLIC_WS_URL`.
 
-**Layout.** `app/page.tsx` sends each person home (`homeFor`: athlete →
-`/app` or `/bienvenida`, gym admin → `/gym`, super admin → `/admin`).
+**Layout.** `app/page.tsx` is the public landing (`components/landing/`, GSAP
+loaded lazily, live phase demo via `generateRoutine`); signed-in people get an
+"Open my app" button that goes home (`homeFor`: athlete → `/app` or
+`/bienvenida`, gym admin → `/gym`, super admin → `/admin`).
 The athlete app lives under `/app` (Hoy, Rutina, Entreno, Calendario,
 Nutrición, Perfil, Gimnasios); `/gym` and `/admin` are the admin panels
 (`components/paneles/`).

@@ -177,6 +177,8 @@ export interface CatalogItem {
 export interface RoutineOptions {
   engine?: "simulator" | "ai";
   withTelemetry?: boolean;
+  /** Cycle day (or pregnancy week) for the sample telemetry; implies withTelemetry. */
+  cycleDay?: number;
   profileId?: string;
   exercisesCount?: number;
   timeBudgetMinutes?: number;
@@ -240,7 +242,8 @@ export async function generateRoutine(
     exercises_count: options.exercisesCount ?? 5,
     include_warmup: options.includeWarmup ?? true,
   };
-  if (options.withTelemetry) body.telemetry = SAMPLE_FRAME;
+  if (options.cycleDay) body.telemetry = { ...SAMPLE_FRAME, day_or_week: options.cycleDay };
+  else if (options.withTelemetry) body.telemetry = SAMPLE_FRAME;
   if (options.timeBudgetMinutes) body.time_budget_minutes = options.timeBudgetMinutes;
   if (options.energy) body.energy_level = options.energy;
   if (options.objective) body.objective = options.objective;
