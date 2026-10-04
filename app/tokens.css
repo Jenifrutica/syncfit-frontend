@@ -85,6 +85,8 @@
   --animate-girar: girar 0.9s linear infinite;
   --animate-aparecer: aparecer 0.3s var(--ease-salida) both;
   --animate-subir: subir 0.3s var(--ease-salida) both;
+  --animate-onda: onda 2.4s linear infinite;
+  --animate-elevar: elevar 7s linear infinite;
 
   @keyframes flotar {
     0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -104,6 +106,14 @@
   @keyframes aparecer {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes elevar {
+    0% { opacity: 0; transform: translateY(0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-115svh); }
+  }
+  @keyframes onda {
+    to { transform: translateX(-50%); }
   }
   @keyframes subir {
     from { opacity: 0; transform: translateY(48px); }
