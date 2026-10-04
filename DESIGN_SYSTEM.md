@@ -146,7 +146,7 @@ por cálculo WCAG (34 pares, 0 fallos).
 - **Hero:** editorial centrado; Pulsi con alitas + bocadillo como gesto
   memorable; cabe en `100svh` a 700–800 px de alto; titular ≤ 2 líneas.
 - **App (flujos):** barra inferior de 5 ítems en móvil (Hoy, Rutina, Calendario,
-  Suplementos, Perfil); barra lateral ≥ 1024 px. Registros rápidos en hoja
+  Nutrición, Perfil); barra lateral ≥ 1024 px. Registros rápidos en hoja
   inferior (`Dialog variant="sheet"`). Una acción primaria por pantalla.
 - **Breakpoints:** 375 / 768 / 1024 / 1280.
 
@@ -200,6 +200,15 @@ la carga del día en palabras ("Hoy al 82 % de tu carga"), alertas en `aviso`,
 descanso, anillo de cuenta regresiva en `fase`, botón principal `crema` de 96 px
 que cambia según el momento (empezar / terminé la serie / saltar descanso),
 "Después: …" abajo y celebración con nubes que suben (`animate-elevar`).
+
+| `PhaseMonth` | `components/calendario/PhaseMonth.tsx` | mes en cuadrícula; día teñido con `FASE_COLOR.suave`, icono del tipo de día, check verde si entrenó; flechas mueven el foco |
+| `MacrosCard` | `components/nutricion/MacrosCard.tsx` | kcal + barra de proporción (proteína `folicular`, carbos `ovulatoria`, grasa `lutea`) con etiquetas y % (nunca solo color); filas en móvil |
+
+**Calendario (`/app/calendario`):** mes a la izquierda y, al lado (o debajo en
+móvil), la tarjeta del día elegido, racha/meta y la leyenda de fases y tipos.
+**Nutrición (`/app/nutricion`):** objetivo/etapa, macros, "Mis suplementos"
+(botón grande de tomado que pasa a `exito-suave`, macros por porción en un
+`<details>`, quitar) y sugeridos con su insignia de seguridad.
 
 **Hoy (`/app`):** banda de cielo `bg-fase-suave` con saludo según la hora,
 tira semanal y anillo del ciclo (Pulsi cambia de cara según energía, dolor y

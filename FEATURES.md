@@ -6,7 +6,7 @@ nueva. Una casilla se marca solo cuando ya funciona en la pantalla nueva y se
 probó contra el backend local.
 
 Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
-`/app/rutina` · `/app/entreno` · `/app/calendario` · `/app/suplementos` ·
+`/app/rutina` · `/app/entreno` · `/app/calendario` · `/app/nutricion` ·
 `/app/gimnasios` · `/app/perfil` · `/app/explorar` · `/gym` · `/admin` ·
 `/compartido/[token]`.
 
@@ -22,7 +22,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida` ☑ · `/app` hoja "cómo me siento" ☑ · `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
 | `saveProfile` | `POST /profiles` (invitado/legacy) | page | `/app/perfil` (cargas base) | ☐ |
 | `getCycle` | `GET /cycle` | sin uso | no hace falta: el anillo usa `profile.timeline` + calendario | — |
-| `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app` ☑ · `/app/calendario` | ☐ |
+| `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app`, `/app/calendario` | ☑ |
 | `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
 | `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☑ |
 | `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` usa las mismas listas fijas (`ISOLATED_GROUPS`, `GENERAL_GROUPS`) | — |
@@ -37,10 +37,10 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getJoinedGyms` | `GET /gyms/joined` | page (refresco 15 s + foco) | factor de máquina en el detalle de `/app/rutina` ☑ · `/app/gimnasios` | ☐ |
 | `leaveGym` | `DELETE /gyms/{id}/leave` | page | `/app/gimnasios` | ☐ |
 | `activateGym` | `POST /gyms/{id}/activate` | page | `/app/gimnasios` | ☐ |
-| `getSupplements` | `GET /supplements` | page | `/app/suplementos` (sugeridos + macros diarios) | ☐ |
-| `getSupplementCatalog` | `GET /supplements/catalog` | page | `/app/suplementos` (mis suplementos) | ☐ |
-| `getSupplementIntakes` | `GET /supplement-intakes` | page | `/app/suplementos` | ☐ |
-| `setSupplementIntake` | `POST /supplement-intakes` | page | `/app/suplementos` (marcar tomado) | ☐ |
+| `getSupplements` | `GET /supplements` | page | `/app/nutricion` (sugeridos + macros diarios) | ☑ |
+| `getSupplementCatalog` | `GET /supplements/catalog` | page | `/app/nutricion` (mis suplementos, agregar) | ☑ |
+| `getSupplementIntakes` | `GET /supplement-intakes` | page | `/app/nutricion` | ☑ |
+| `setSupplementIntake` | `POST /supplement-intakes` | page | `/app/nutricion` (marcar tomado) | ☑ |
 | `createShare` | `POST /shares` | page | `/app/perfil` (compartir) | ☐ |
 | `listShares` | `GET /shares` | page | `/app/perfil` | ☐ |
 | `deleteShare` | `DELETE /shares/{token}` | page | `/app/perfil` | ☐ |
@@ -106,12 +106,13 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 - ☑ Temporizador de descanso con pausa, "saltar descanso" y +15 s.
 - ☑ Marcar serie hecha (con vibración corta), peso usado, tiempo total, pantalla de rutina completada con racha.
 
-### Suplementos
-- ☐ Macros diarios según objetivo y fase.
-- ☐ Mis suplementos actuales con macros editables (`toggleCurrentSupplement`,
-  `saveSupplementMacro`).
-- ☐ Sugeridos con seguridad SAFE / CAUTION / AVOID, dosis y motivo.
-- ☐ Marcar como tomado hoy (`toggleIntake`).
+### Suplementos → Nutrición (`/app/nutricion`) — fase 3c
+- ☑ Objetivo y etapa editables (recalculan sugeridos y calorías).
+- ☑ Macros diarios según objetivo y fase (barra de proporción con etiquetas).
+- ☑ Mis suplementos actuales con macros por porción editables (`toggleCurrentSupplement`,
+  `saveSupplementMacro`), quitar, aviso si no es apto en el embarazo.
+- ☑ Sugeridos con seguridad SAFE / CAUTION / AVOID, motivo, dosis, marcas y macros; agregar desde la tarjeta.
+- ☑ Marcar como tomado hoy (`toggleIntake`) con progreso "Tomaste n de m hoy" (fecha local).
 
 ### Gimnasios y máquinas
 - ☐ Unirse por código, salir, activar gimnasio.
@@ -122,8 +123,9 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 
 ### Perfil
 - ☐ Datos, foto de perfil (`onPhoto`, comprimida), objetivo.
-- ☐ Calendario del ciclo / gestación por mes.
-- ☐ Racha y días de entreno de la semana (`getStats`).
+- ☑ Calendario del ciclo / gestación por mes → `/app/calendario` (fase 3c): día teñido por fase,
+  icono del tipo de día, marca de entreno, detalle del día con la nota del backend, leyenda.
+- ☑ Racha y días de entreno de la semana (`getStats`) → Hoy y Calendario.
 - ☐ Cargas base por ejercicio (`myLoads`).
 - ☐ Compartir: rol (entrenador, etc.), permisos, crear, copiar enlace, borrar.
 
