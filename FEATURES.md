@@ -19,8 +19,8 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getMe` | `GET /auth/me` | page (sesión) | `SessionProvider` + guardas | ☑ |
 | `getToken` / `setToken` / `logoutLocal` | — (localStorage) | page | `SessionProvider` (`signOut`) | ☑ |
 | `getMyProfile` | `GET /profiles/me` | page | `SessionProvider` (sin perfil → `/bienvenida`) | ☑ |
-| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida` ☑ · `/app` hoja "cómo me siento" ☑ · `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
-| `saveProfile` | `POST /profiles` (invitado/legacy) | page | `/app/perfil` (cargas base) | ☐ |
+| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida`, Hoy, `/app/perfil`, `/app/gimnasios`, `/app/nutricion` | ☑ |
+| `saveProfile` | `POST /profiles` (invitado/legacy) | sin uso real (el front anterior tenía una función local con el mismo nombre que llamaba a `PUT /profiles/me`) | — | — |
 | `getCycle` | `GET /cycle` | sin uso | no hace falta: el anillo usa `profile.timeline` + calendario | — |
 | `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app`, `/app/calendario` | ☑ |
 | `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
@@ -32,19 +32,19 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` buscar en catálogo ☑ · `/gym` (ejercicios por máquina) | ☐ |
 | `getExerciseAlternatives` | `GET /exercises/{id}/alternatives` | page (botón Cambiar) | `/app/rutina` (hoja "Cambiar") | ☑ |
 | `getExerciseVariants` | `GET /exercises/{id}/variants` | ExerciseDetailModal | `/app/rutina` (detalle del ejercicio) | ☑ |
-| `getMachines` | `GET /machines` | page (mis máquinas) | `/app/gimnasios` | ☐ |
-| `joinGym` | `POST /gyms/join` | page | `/app/gimnasios` | ☐ |
-| `getJoinedGyms` | `GET /gyms/joined` | page (refresco 15 s + foco) | factor de máquina en el detalle de `/app/rutina` ☑ · `/app/gimnasios` | ☐ |
-| `leaveGym` | `DELETE /gyms/{id}/leave` | page | `/app/gimnasios` | ☐ |
-| `activateGym` | `POST /gyms/{id}/activate` | page | `/app/gimnasios` | ☐ |
+| `getMachines` | `GET /machines` | page (mis máquinas) | `/app/gimnasios` (mis máquinas), `/compartido` | ☑ |
+| `joinGym` | `POST /gyms/join` | page | `/app/gimnasios` | ☑ |
+| `getJoinedGyms` | `GET /gyms/joined` | page (refresco 15 s + foco) | `/app/gimnasios` (refresco 15 s + foco + visibilidad + botón), factor en el detalle de `/app/rutina` | ☑ |
+| `leaveGym` | `DELETE /gyms/{id}/leave` | page | `/app/gimnasios` (con confirmación) | ☑ |
+| `activateGym` | `POST /gyms/{id}/activate` | page | `/app/gimnasios` | ☑ |
 | `getSupplements` | `GET /supplements` | page | `/app/nutricion` (sugeridos + macros diarios) | ☑ |
 | `getSupplementCatalog` | `GET /supplements/catalog` | page | `/app/nutricion` (mis suplementos, agregar) | ☑ |
 | `getSupplementIntakes` | `GET /supplement-intakes` | page | `/app/nutricion` | ☑ |
 | `setSupplementIntake` | `POST /supplement-intakes` | page | `/app/nutricion` (marcar tomado) | ☑ |
-| `createShare` | `POST /shares` | page | `/app/perfil` (compartir) | ☐ |
-| `listShares` | `GET /shares` | page | `/app/perfil` | ☐ |
-| `deleteShare` | `DELETE /shares/{token}` | page | `/app/perfil` | ☐ |
-| `getShared` | `GET /shared/{token}` | shared/[token] | `/compartido/[token]` (+ redirección desde `/shared/[token]`) | ☐ |
+| `createShare` | `POST /shares` | page | `/app/perfil` (compartir) | ☑ |
+| `listShares` | `GET /shares` | page | `/app/perfil` | ☑ |
+| `deleteShare` | `DELETE /shares/{token}` | page | `/app/perfil` (con confirmación) | ☑ |
+| `getShared` | `GET /shared/{token}` | shared/[token] | `/compartido/[token]` (+ redirección desde `/shared/[token]`) | ☑ |
 | `createGym` | `POST /gyms` | AdminPanel | `/gym` | ☐ |
 | `listMyGyms` | `GET /gyms/mine` | AdminPanel | `/gym` | ☐ |
 | `updateGym` | `PATCH /gyms/{id}` | AdminPanel | `/gym` | ☐ |
@@ -52,7 +52,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `addGymMachine` | `POST /gyms/{id}/machines` | AdminPanel | `/gym` | ☐ |
 | `updateGymMachine` | `PATCH /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☐ |
 | `deleteGymMachine` | `DELETE /gyms/{id}/machines/{mid}` | AdminPanel | `/gym` | ☐ |
-| `fileToDataUrl` | — (compresión de imagen) | AdminPanel, foto de perfil | `/gym`, `/app/perfil` | ☐ |
+| `fileToDataUrl` | — (compresión de imagen) | AdminPanel | foto de perfil `/app/perfil` ☑ (antes se subía sin comprimir) · `/gym` | ☐ |
 | `fetchGymQr` | `GET /gyms/{id}/qr.png` | AdminPanel | `/gym` | ☐ |
 | `createGymAdmin` | `POST /admin/gym-admins` | AdminPanel | `/admin` | ☐ |
 | `listGymAdmins` | `GET /admin/gym-admins` | AdminPanel | `/admin` | ☐ |
@@ -65,9 +65,9 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `deleteUser` | `DELETE /admin/users/{id}` (pide contraseña admin) | UserConsole | `/admin` | ☐ |
 | `getHealth` | `GET /health` | sin uso | aviso "sin conexión con el servidor" (opcional) | ☐ |
 
-Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
-`/app/perfil`: `PUT /auth/password` (cambiar contraseña), `POST /auth/logout`
-(cerrar sesión en todos los dispositivos), `DELETE /auth/me` (borrar cuenta).
+Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil` → Cuenta):
+`changePassword` → `PUT /auth/password` ☑ · `logoutEverywhere` → `POST /auth/logout` ☑ ·
+`deleteAccount` → `DELETE /auth/me` ☑.
 
 ## 2. Comportamientos de la interfaz anterior
 
@@ -85,9 +85,8 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 - ☑ Número de ejercicios principales, tiempo disponible (o sin límite), energía
   (con energía / normal / sin energía, prellenada desde Hoy), incluir calentamiento.
 - ☑ Síntomas y dolor general: hoja "Registrar cómo me siento" en Hoy (fase 3a) y
-  acceso directo desde Rutina. El dolor **por síntoma** (1–10 por cada uno) y la
-  nota libre de síntomas siguen en la versión anterior hasta la fase 3d (Perfil).
-- ☐ Filtro por gimnasio unido (todos / uno) — era solo visual en "Mis máquinas"; pasa a `/app/gimnasios` (3d).
+  acceso directo desde Rutina; dolor **por síntoma** (0–10) y nota libre en `/app/perfil` (3d).
+- ☑ Filtro por gimnasio unido (todos / uno) → `/app/gimnasios` (3d).
 - ☑ Resultado: fase, fatiga, `k_load` ("Hoy al 82 % de tu carga"), RMSSD, alertas,
   minutos totales (recalculados al editar), motor usado, y "¿Por qué esta rutina?"
   (estado autonómico, riesgo articular, patrones evitados).
@@ -114,20 +113,18 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 - ☑ Sugeridos con seguridad SAFE / CAUTION / AVOID, motivo, dosis, marcas y macros; agregar desde la tarjeta.
 - ☑ Marcar como tomado hoy (`toggleIntake`) con progreso "Tomaste n de m hoy" (fecha local).
 
-### Gimnasios y máquinas
-- ☐ Unirse por código, salir, activar gimnasio.
-- ☐ Ver máquinas de los gimnasios unidos agrupadas por gimnasio.
-- ☐ Refresco automático al volver a la ventana, al entrar a la pestaña y cada 15 s,
-  más botón manual.
-- ☐ "Mis máquinas" disponibles (`available_machines`) con buscador.
+### Gimnasios y máquinas → `/app/gimnasios` — fase 3d
+- ☑ Unirse por código (error claro si no existe), salir (con confirmación), activar gimnasio.
+- ☑ Ver máquinas de los gimnasios unidos agrupadas por gimnasio (foto, uso, factor de peso).
+- ☑ Refresco automático al volver a la ventana, al hacerse visible y cada 15 s, más botón manual.
+- ☑ "Mis máquinas" disponibles (`available_machines`) con buscador.
 
-### Perfil
-- ☐ Datos, foto de perfil (`onPhoto`, comprimida), objetivo.
-- ☑ Calendario del ciclo / gestación por mes → `/app/calendario` (fase 3c): día teñido por fase,
-  icono del tipo de día, marca de entreno, detalle del día con la nota del backend, leyenda.
-- ☑ Racha y días de entreno de la semana (`getStats`) → Hoy y Calendario.
-- ☐ Cargas base por ejercicio (`myLoads`).
-- ☐ Compartir: rol (entrenador, etc.), permisos, crear, copiar enlace, borrar.
+### Perfil → `/app/perfil` — fase 3d
+- ☑ Datos, foto de perfil (ahora comprimida), objetivo/metas (meta semanal y descansos se leen de `/stats` porque `GET /profiles/me` no los devuelve).
+- ☑ Registrar inicio del periodo, duración del ciclo o semana de embarazo (nuevo).
+- ☑ Cargas base por ejercicio con unidad kg/lb (ahora convierte de verdad).
+- ☑ Compartir: rol, permisos, nombre, crear, copiar, abrir, borrar.
+- ☑ Idioma, cambiar contraseña, cerrar sesión, cerrar sesión en todos los dispositivos, borrar cuenta.
 
 ### Admin de gimnasio
 - ☐ Crear / renombrar / borrar gimnasio (con confirmación).
@@ -142,4 +139,4 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
   temporal, cambiar rol y borrar (ambos piden la contraseña del admin).
 
 ### Perfil compartido (público)
-- ☐ Vista de solo lectura según los permisos del enlace.
+- ☑ Vista de solo lectura según los permisos del enlace → `/compartido/[token]` (nombres en vez de ids).

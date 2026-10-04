@@ -210,6 +210,17 @@ móvil), la tarjeta del día elegido, racha/meta y la leyenda de fases y tipos.
 (botón grande de tomado que pasa a `exito-suave`, macros por porción en un
 `<details>`, quitar) y sugeridos con su insignia de seguridad.
 
+**Perfil (`/app/perfil`):** tarjetas independientes (`components/perfil/`):
+datos y foto, ciclo (registrar periodo en hoja inferior con `MonthPicker`),
+acceso a gimnasios (tarjeta `lavanda`), síntomas con un deslizador 0–10 por
+síntoma, cargas habituales (kg/lb con conversión), compartir y cuenta. Las
+acciones destructivas (borrar enlace, salir del gym, borrar cuenta) siempre
+piden confirmación en un `Dialog` con botón `peligro`.
+**Gimnasios (`/app/gimnasios`):** código en tarjeta `crema`, gimnasios unidos con
+sus máquinas en vivo, filtro segmentado si hay más de uno, "mis máquinas" con
+chips. **Compartido (`/compartido/[token]`):** cielo de la fase de la atleta,
+tarjetas de solo lectura según los permisos.
+
 **Hoy (`/app`):** banda de cielo `bg-fase-suave` con saludo según la hora,
 tira semanal y anillo del ciclo (Pulsi cambia de cara según energía, dolor y
 síntomas), divisor que gotea y, debajo, la tarjeta del día seleccionado (tipo
