@@ -878,7 +878,10 @@ export interface ExerciseAlternative {
 }
 
 export async function getExerciseAlternatives(exerciseId: string, language: Language): Promise<ExerciseAlternative[]> {
-  const r = await fetch(`${API_URL}/api/v1/exercises/${exerciseId}/alternatives?language=${language}`, { cache: "no-store" });
+  const r = await fetch(`${API_URL}/api/v1/exercises/${exerciseId}/alternatives?language=${language}`, {
+    cache: "no-store",
+    headers: authHeaders(),
+  });
   if (!r.ok) throw new Error(`alternatives failed: ${r.status}`);
   return r.json();
 }
