@@ -13,6 +13,8 @@ export type FieldControlProps = {
 };
 
 export type FieldProps = {
+  /** Optional fixed id for the control (e.g. to focus it after a server error). */
+  id?: string;
   label: ReactNode;
   hint?: ReactNode;
   /** Shown below the control and announced; say what happened and how to fix it. */
@@ -28,8 +30,9 @@ export type FieldProps = {
  * Label above, control, then hint/error below — wired with ids so screen
  * readers announce them. Validate on blur, not on every keystroke.
  */
-export function Field({ label, hint, error, required, requiredText, className, children }: FieldProps) {
-  const id = useId();
+export function Field({ id: fixedId, label, hint, error, required, requiredText, className, children }: FieldProps) {
+  const generatedId = useId();
+  const id = fixedId ?? generatedId;
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;

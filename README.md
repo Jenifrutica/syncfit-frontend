@@ -93,10 +93,11 @@ REST API; JWT in `localStorage`.
 **Run / test.** `npm install` · `npm run dev` (http://localhost:3000) ·
 `npm run typecheck` · `npm run build`.
 
-**Entry points.** `app/page.tsx` (auth → admin-only early return for
-`role !== "ATHLETE"` → onboarding → dashboard), `app/shared/[token]/page.tsx`,
-`lib/api.ts` (client + types), `lib/i18n.ts` (EN/ES/ZH),
-`components/{auth,media,admin,workout,routine}`.
+**Entry points.** `lib/session.tsx` (session, role routing, language) and
+`components/session/Guard.tsx`; routes `/entrar` (sign in / sign up),
+`/bienvenida` (onboarding), `/app` (athlete), `/gym` and `/admin` (admins),
+`/shared/[token]`; `lib/api.ts` (client + types), `lib/i18n.ts` + `lib/i18n-app.ts`
+(ES default, EN, ZH); screens not yet redesigned live in `components/legacy/`.
 
 **Recent features.** Super-admin users console; gym-admin equipment with
 `equipment_key`; routine editor with **Change exercise** list
@@ -110,16 +111,16 @@ badge; per-exercise detail modal.
 **Run.** `npm install` then `npm run dev` (http://localhost:3000). API via
 `NEXT_PUBLIC_API_URL` (default http://localhost:8000) and `NEXT_PUBLIC_WS_URL`.
 
-**Layout.** `app/page.tsx` (main app: auth → if `role !== "ATHLETE"` render
-`components/admin/AdminShell.tsx` only; otherwise onboarding → dashboard with
-tabs Routine / Supplements / My machines / Profile), `app/shared/[token]/page.tsx`
-(public read-only shared profile), `lib/api.ts` (client + token), `lib/i18n.ts`
-(EN/ES/ZH), `components/icons.tsx` (SVG, no emoji),
-`components/auth/AuthPanel.tsx`, `components/media/ExerciseMedia.tsx`,
-`components/workout/WorkoutRunner.tsx`.
+**Layout.** `app/page.tsx` sends each person home (`homeFor`: athlete →
+`/app` or `/bienvenida`, gym admin → `/gym`, super admin → `/admin`).
+`/app` renders `components/legacy/LegacyAthleteApp.tsx` (tabs Routine /
+Supplements / My machines / Profile) until phase 3 rebuilds it; `/gym` and
+`/admin` render `components/admin/AdminShell.tsx` until phase 4.
+`app/shared/[token]/page.tsx` is the public read-only shared profile.
 
 **Decoupled seams (work without context).**
-- **Auth**: `components/auth/` (README there). Swap AuthPanel for OAuth/wizard.
+- **Auth**: `lib/session.tsx` (`signIn`, `signUp`, `signOut`) + `app/entrar/`.
+  Server errors are mapped to friendly copy in `lib/auth-errors.ts`.
 - **Animations**: `components/media/` (README there). Populate `media_url` in the
   contracts catalog; no code change needed.
 
@@ -136,8 +137,8 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 ## Admin UI (temporary) and roles
 
 - After login the app reads `user.role`. Roles `SUPER_ADMIN`/`GYM_ADMIN` are
-  **admin-only**: `app/page.tsx` returns `AdminShell` and they never get the
-  athlete tabs, onboarding, cycle/gestational tracking or profile.
+  **admin-only**: the route guards send them to `/admin` or `/gym` and they never
+  get the athlete tabs, onboarding, cycle/gestational tracking or profile.
 - **Athletes and gyms:** a **join gym by code** box in My machines. Joined gyms
   appear with the gym **name tag** on each machine; when there is more than one
   gym a **selector** filters the view, and each gym can be set **active** or left.
@@ -149,7 +150,7 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
   compressed client-side (`fileToDataUrl`) and stored as data URLs.
 - **Temporary:** it is a single screen. README in `components/admin/` lists the
   improvements (split routes, object storage, audit log).
-- Decoupled seams for later work without context: `components/auth/`,
+- Decoupled seams for later work without context: `lib/session.tsx`,
   `components/media/`, `components/admin/`.
 
 ### Next steps for a fresh session (read this, then just do it)

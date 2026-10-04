@@ -14,12 +14,12 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 
 | Función | Endpoint | Hoy se usa en | Pantalla nueva | ✓ |
 |---|---|---|---|---|
-| `register` | `POST /auth/register` | AuthPanel | `/entrar` | ☐ |
-| `login` | `POST /auth/login` | AuthPanel | `/entrar` | ☐ |
-| `getMe` | `GET /auth/me` | page (sesión) | guardas de ruta | ☐ |
-| `getToken` / `setToken` / `logoutLocal` | — (localStorage) | page | guardas, `/app/perfil` (cerrar sesión) | ☐ |
-| `getMyProfile` | `GET /profiles/me` | page | guardas (`/bienvenida` si no hay perfil), `/app` | ☐ |
-| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida`, `/app` (hoja "cómo me siento"), `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
+| `register` | `POST /auth/register` | AuthPanel (retirado) | `/entrar` | ☑ |
+| `login` | `POST /auth/login` | AuthPanel (retirado) | `/entrar` | ☑ |
+| `getMe` | `GET /auth/me` | page (sesión) | `SessionProvider` + guardas | ☑ |
+| `getToken` / `setToken` / `logoutLocal` | — (localStorage) | page | `SessionProvider` (`signOut`) | ☑ |
+| `getMyProfile` | `GET /profiles/me` | page | `SessionProvider` (sin perfil → `/bienvenida`) | ☑ |
+| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida` ☑ · `/app` (hoja "cómo me siento"), `/app/perfil`, `/app/gimnasios`, `/app/suplementos` | ☐ |
 | `saveProfile` | `POST /profiles` (invitado/legacy) | page | `/app/perfil` (cargas base) | ☐ |
 | `getCycle` | `GET /cycle` | sin uso | `/app` (anillo del ciclo) | ☐ |
 | `getCalendar` | `GET /calendar` | page | `/app/calendario`, tira semanal de `/app` | ☐ |
@@ -72,13 +72,13 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
 ## 2. Comportamientos de la interfaz anterior
 
 ### Sesión y roles
-- ☐ Login / registro con cédula (`document_id`) y errores 401/403/409 explicados.
-- ☐ Idioma EN / ES / ZH seleccionable (nuevo: ES por defecto) y recordado.
-- ☐ `SUPER_ADMIN` y `GYM_ADMIN` no ven el flujo de atleta (hoy `AdminShell`).
-- ☐ Sin perfil → onboarding: modalidad, altura, peso, % grasa, calorías diarias,
+- ☑ Login / registro con cédula (`document_id`) y errores 401/403/409/422/429 explicados (fase 2).
+- ☑ Idioma EN / ES / ZH seleccionable, ES por defecto y recordado (fase 2).
+- ☑ `SUPER_ADMIN` → `/admin`, `GYM_ADMIN` → `/gym`; nunca ven el flujo de atleta (fase 2).
+- ☑ Sin perfil → `/bienvenida`: modalidad, altura, peso, % grasa, calorías diarias,
   objetivo, fase de objetivo, meta semanal de entrenos, días de descanso,
-  fecha de última regla (FUM), duración del ciclo o semana de gestación.
-- ☐ Cerrar sesión.
+  fecha de última regla (FUM), duración del ciclo o semana de gestación (fase 2).
+- ☑ Cerrar sesión (vuelve a `/entrar`) (fase 2).
 
 ### Rutina (`onTakeData` y edición)
 - ☐ Elegir hasta 4 grupos musculares (aislados + generales).
