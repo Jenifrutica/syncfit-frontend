@@ -22,7 +22,7 @@ type NavItem = { key: string; href: string; icon: Icon };
  */
 export const NAV: NavItem[] = [
   { key: "hoy", href: "/app", icon: House },
-  { key: "rutina", href: "/app/anterior?tab=routine", icon: Barbell },
+  { key: "rutina", href: "/app/rutina", icon: Barbell },
   { key: "calendario", href: "/app/anterior?tab=profile", icon: CalendarBlank },
   { key: "suplementos", href: "/app/anterior?tab=supplements", icon: Pill },
   { key: "perfil", href: "/app/anterior?tab=profile", icon: UserCircle },

@@ -25,16 +25,16 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app` ☑ · `/app/calendario` | ☐ |
 | `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
 | `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☑ |
-| `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` (opciones) | ☐ |
-| `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☐ |
+| `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` usa las mismas listas fijas (`ISOLATED_GROUPS`, `GENERAL_GROUPS`) | — |
+| `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☑ |
 | `generateRoutine` | `POST /routines` | sin uso | modo demo para el jurado (opcional) | ☐ |
 | `sendTelemetry` | `POST /telemetry` | sin uso | onda de pulso en vivo durante el escaneo (opcional) | ☐ |
-| `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` (reemplazar ejercicio), `/gym` (ejercicios por máquina) | ☐ |
-| `getExerciseAlternatives` | `GET /exercises/{id}/alternatives` | page (botón Cambiar) | `/app/rutina` (hoja "Cambiar") | ☐ |
-| `getExerciseVariants` | `GET /exercises/{id}/variants` | ExerciseDetailModal | `/app/rutina` (detalle del ejercicio) | ☐ |
+| `getCatalog` | `GET /catalog` | page, AdminPanel | `/app/rutina` buscar en catálogo ☑ · `/gym` (ejercicios por máquina) | ☐ |
+| `getExerciseAlternatives` | `GET /exercises/{id}/alternatives` | page (botón Cambiar) | `/app/rutina` (hoja "Cambiar") | ☑ |
+| `getExerciseVariants` | `GET /exercises/{id}/variants` | ExerciseDetailModal | `/app/rutina` (detalle del ejercicio) | ☑ |
 | `getMachines` | `GET /machines` | page (mis máquinas) | `/app/gimnasios` | ☐ |
 | `joinGym` | `POST /gyms/join` | page | `/app/gimnasios` | ☐ |
-| `getJoinedGyms` | `GET /gyms/joined` | page (refresco 15 s + foco) | `/app/gimnasios`, filtro de gym en `/app/rutina` | ☐ |
+| `getJoinedGyms` | `GET /gyms/joined` | page (refresco 15 s + foco) | factor de máquina en el detalle de `/app/rutina` ☑ · `/app/gimnasios` | ☐ |
 | `leaveGym` | `DELETE /gyms/{id}/leave` | page | `/app/gimnasios` | ☐ |
 | `activateGym` | `POST /gyms/{id}/activate` | page | `/app/gimnasios` | ☐ |
 | `getSupplements` | `GET /supplements` | page | `/app/suplementos` (sugeridos + macros diarios) | ☐ |
@@ -80,28 +80,31 @@ Endpoints del backend que el front anterior **no** usaba y se pueden sumar en
   fecha de última regla (FUM), duración del ciclo o semana de gestación (fase 2).
 - ☑ Cerrar sesión (vuelve a `/entrar`) (fase 2).
 
-### Rutina (`onTakeData` y edición)
-- ☐ Elegir hasta 4 grupos musculares (aislados + generales).
-- ☐ Número de ejercicios principales, tiempo disponible (o sin límite), energía
-  (con energía / moderada / sin energía), incluir calentamiento.
-- ☑ Síntomas y dolor general: hoja "Registrar cómo me siento" en Hoy (fase 3a). El dolor por síntoma sigue en la rutina anterior hasta la fase 3b.
-- ☐ Filtro por gimnasio unido (todos / uno) para la captura.
-- ☐ Resultado: fase, fatiga, `k_load`, RMSSD, pérdida de fuerza, alertas,
-  minutos totales, motor usado ("Razonado por DeepSeek").
-- ☐ Calentamiento separado de la rutina.
-- ☐ Ejercicio bloqueado con motivo y sustituto.
-- ☐ Editar series / reps / peso (`updateEntry`).
-- ☐ Reemplazar desde el catálogo (`replaceEntry`), quitar (`removeEntry`).
-- ☐ Botón Cambiar → alternativas ordenadas (`openChange`, `applyAlternative`).
-- ☐ Variantes de la familia de movimiento (`applyVariant`).
-- ☐ Modal de detalle: animación/foto (`ExerciseMedia`), máquina, peso estimado
+### Rutina (`onTakeData` y edición) — fase 3b
+- ☑ Elegir hasta 4 grupos musculares (aislados + generales); se recuerdan.
+- ☑ Número de ejercicios principales, tiempo disponible (o sin límite), energía
+  (con energía / normal / sin energía, prellenada desde Hoy), incluir calentamiento.
+- ☑ Síntomas y dolor general: hoja "Registrar cómo me siento" en Hoy (fase 3a) y
+  acceso directo desde Rutina. El dolor **por síntoma** (1–10 por cada uno) y la
+  nota libre de síntomas siguen en la versión anterior hasta la fase 3d (Perfil).
+- ☐ Filtro por gimnasio unido (todos / uno) — era solo visual en "Mis máquinas"; pasa a `/app/gimnasios` (3d).
+- ☑ Resultado: fase, fatiga, `k_load` ("Hoy al 82 % de tu carga"), RMSSD, alertas,
+  minutos totales (recalculados al editar), motor usado, y "¿Por qué esta rutina?"
+  (estado autonómico, riesgo articular, patrones evitados).
+- ☑ Calentamiento separado de la rutina.
+- ☑ Ejercicio bloqueado con motivo y sustituto.
+- ☑ Editar series / reps / peso (`updateEntry`) — ahora el entreno usa la edición.
+- ☑ Reemplazar desde el catálogo (`replaceEntry`) con buscador, quitar (`removeEntry`).
+- ☑ Botón Cambiar → alternativas ordenadas, "En tu gym" (`openChange`, `applyAlternative`).
+- ☑ Variantes de la familia de movimiento (`applyVariant`).
+- ☑ Detalle: animación/foto (`ExerciseThumb`), máquina, series por tipo, peso estimado
   (`base × k_load × factor de máquina`), biomarcadores, patrón y `rationale`.
 
-### Entreno (`WorkoutRunner`)
-- ☐ Recorrido por pasos: calentamiento → series (WARMUP, ACTIVATION,
-  APPROXIMATION, EFFECTIVE) con reps, peso, tempo.
-- ☐ Temporizador de descanso con pausa y "saltar descanso".
-- ☐ Marcar serie hecha, tiempo total, pantalla de rutina completada.
+### Entreno (`WorkoutRunner`) — fase 3b
+- ☑ Recorrido por pasos: calentamiento → series (WARMUP, ACTIVATION,
+  APPROXIMATION, EFFECTIVE) con reps y peso; los bloqueados se omiten como antes.
+- ☑ Temporizador de descanso con pausa, "saltar descanso" y +15 s.
+- ☑ Marcar serie hecha (con vibración corta), peso usado, tiempo total, pantalla de rutina completada con racha.
 
 ### Suplementos
 - ☐ Macros diarios según objetivo y fase.

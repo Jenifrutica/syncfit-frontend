@@ -183,6 +183,24 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `AppShell` | `components/app/AppShell.tsx` | barra inferior (móvil) y lateral (≥1024 px); `data-fase` en la raíz pinta el cielo; `NAV` dice a dónde va cada sección |
 | `FeelingSheet` | `components/hoy/FeelingSheet.tsx` | registro rápido: energía, síntomas con su consejo, dolor general |
 
+| `ExerciseThumb` | `components/rutina/ExerciseThumb.tsx` | video/animación > foto real > ficha ilustrada (las imágenes `placehold.co` se tratan como faltantes) |
+| `ScanProgress` | `components/rutina/ScanProgress.tsx` | escaneo: Pulsi respirando, onda de pulso en bucle (`animate-onda`) y las 4 estaciones (sensor → IA local → DeepSeek → validador) |
+| `ExerciseCard`, `ChangeSheet`, `DetailSheet` | `components/rutina/` | tarjeta editable con bloqueo visible; hoja de alternativas + catálogo; hoja de detalle |
+| `WorkoutScreen` | `components/entreno/WorkoutScreen.tsx` | entreno guiado a pantalla completa (ver abajo) |
+
+**Rutina (`/app/rutina`):** configurar (chips de grupos, píldoras de número,
+tiempo y energía, interruptor de calentamiento, síntomas del día) → escaneo
+(mínimo 3,6 s para que se lean las estaciones) → resultado: tarjeta tinta con
+la carga del día en palabras ("Hoy al 82 % de tu carga"), alertas en `aviso`,
+"¿Por qué esta rutina?" en `crema`, tarjetas que caen en cascada
+(`CASCADA` 60 ms) y salen deslizando al quitarlas; botón fijo "Empezar entreno".
+
+**Entreno (`/app/entreno`):** fuera de la barra de navegación, fondo `ink`
+(concentración), círculo de respiración (`animate-respirar`) en calentamiento y
+descanso, anillo de cuenta regresiva en `fase`, botón principal `crema` de 96 px
+que cambia según el momento (empezar / terminé la serie / saltar descanso),
+"Después: …" abajo y celebración con nubes que suben (`animate-elevar`).
+
 **Hoy (`/app`):** banda de cielo `bg-fase-suave` con saludo según la hora,
 tira semanal y anillo del ciclo (Pulsi cambia de cara según energía, dolor y
 síntomas), divisor que gotea y, debajo, la tarjeta del día seleccionado (tipo
