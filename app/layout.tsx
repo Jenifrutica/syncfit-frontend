@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 
 import { ToastProvider } from "@/components/ui/Toast";
+import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -20,7 +21,7 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: { default: "SyncFit Edge", template: "%s · SyncFit Edge" },
-  description: "Adaptive female training prescription and injury prevention.",
+  description: "Entrenamiento que se adapta a tu ciclo menstrual o a tu embarazo.",
 };
 
 export const viewport: Viewport = {
@@ -29,9 +30,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${nunito.variable}`}>
+    <html lang="es" className={`${fredoka.variable} ${nunito.variable}`}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <SessionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

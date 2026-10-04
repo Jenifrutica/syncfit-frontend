@@ -1,4 +1,6 @@
-/** Minimal i18n. English is the default; more languages can be added. */
+/** Minimal i18n. Spanish is the default; new screens keep their copy in lib/i18n-app.ts. */
+
+import { APP_COPY } from "@/lib/i18n-app";
 
 export type Language = "EN" | "ES" | "ZH";
 
@@ -678,7 +680,12 @@ const TRANSLATIONS: Record<Language, Dict> = {
 };
 
 export function t(language: Language, key: string): string {
-  return TRANSLATIONS[language][key] ?? TRANSLATIONS.EN[key] ?? key;
+  return APP_COPY[language][key] ?? TRANSLATIONS[language][key] ?? APP_COPY.ES[key] ?? TRANSLATIONS.EN[key] ?? key;
+}
+
+/** `t()` plus {placeholder} substitution. */
+export function tf(language: Language, key: string, vars: Record<string, string | number>): string {
+  return t(language, key).replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match));
 }
 
 const MUSCLE_LABELS: Record<string, Record<Language, string>> = {

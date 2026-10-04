@@ -171,9 +171,27 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `CycleRing` | `components/cycle/CycleRing.tsx` | arcos por fase + marcador de hoy |
 | `WeekStrip` | `components/cycle/WeekStrip.tsx` | 7 días con punto de fase |
 | `Cloud`, `DripDivider` | `components/decor/` | decoración `aria-hidden` |
+| `Choice` | `components/ui/Choice.tsx` | elección única sobre radios nativos: `tarjetas`, `pildoras` o `segmentado` |
+| `PasswordInput` | `components/ui/PasswordInput.tsx` | mostrar/ocultar con etiqueta localizada |
+| `NumberStepper` | `components/ui/NumberStepper.tsx` | número grande con − / + (ciclo, semanas) |
+| `LanguageSwitcher` | `components/ui/LanguageSwitcher.tsx` | ES · EN · 中文, recordado en la sesión |
+| `MonthPicker` | `components/cycle/MonthPicker.tsx` | calendario mensual; flechas, PageUp/PageDown, tinte de días de regla |
+| `SpeechBubble` | `components/mascot/SpeechBubble.tsx` | bocadillo de Pulsi (tinta o nube) |
+| `Wordmark`, `SkyShell` | `components/brand/` | logo + cielo con nubes para pantallas de acceso y onboarding |
+| `Guard`, `LoadingScreen` | `components/session/` | guardas por rol; Pulsi respirando mientras carga la sesión |
 
 Nav, footer, barra inferior y barra lateral se construyen en la fase 3 sobre
 estas piezas.
+
+**Patrones de flujo (fase 2):**
+- *Acceso* (`/entrar`): cielo + Pulsi con bocadillo, control segmentado
+  Entrar / Crear cuenta, tarjeta con el formulario. Validación al salir del
+  campo; los errores del servidor se traducen (`lib/auth-errors.ts`) y se
+  muestran junto al campo culpable con foco en él.
+- *Onboarding* (`/bienvenida`): una pregunta por pantalla, barra de progreso,
+  Pulsi con un bocadillo que explica para qué sirve el dato, transición
+  lateral de 200 ms (sin desplazamiento con movimiento reducido) y una
+  pantalla final cuyo cielo toma el color de la fase calculada.
 
 ## 7. Card & section style
 

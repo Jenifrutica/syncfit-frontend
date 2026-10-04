@@ -6,6 +6,23 @@ export const WS_URL =
 
 export type Language = "EN" | "ES" | "ZH";
 
+/** Error with the HTTP status and the backend's `detail`, so the UI can explain it. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly detail?: unknown,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function apiError(prefix: string, response: Response): Promise<ApiError> {
+  const body = await response.json().catch(() => null);
+  return new ApiError(`${prefix} failed: ${response.status}`, response.status, body?.detail);
+}
+
 export const ISOLATED_GROUPS = [
   "GLUTES",
   "QUADRICEPS",
@@ -465,7 +482,7 @@ export async function register(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName, document_id: documentId.trim() }),
   });
-  if (!response.ok) throw new Error(`register failed: ${response.status}`);
+  if (!response.ok) throw await apiError("register", response);
   const data = await response.json();
   setToken(data.access_token);
   return data.user as AuthUser;
@@ -477,7 +494,7 @@ export async function login(email: string, password: string): Promise<AuthUser> 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
   });
-  if (!response.ok) throw new Error(`login failed: ${response.status}`);
+  if (!response.ok) throw await apiError("login", response);
   const data = await response.json();
   setToken(data.access_token);
   return data.user as AuthUser;
@@ -544,7 +561,7 @@ export async function updateMyProfile(data: Record<string, unknown>): Promise<My
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error(`onboarding failed: ${response.status}`);
+  if (!response.ok) throw await apiError("onboarding", response);
   return response.json();
 }
 
