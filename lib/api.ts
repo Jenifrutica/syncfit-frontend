@@ -510,6 +510,37 @@ export async function getMe(): Promise<AuthUser | null> {
   return response.json();
 }
 
+/** PUT /auth/password — old tokens are revoked, so the new one is stored. */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
+  const response = await fetch(`${API_URL}/api/v1/auth/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+  if (!response.ok) throw await apiError("password", response);
+  const data = await response.json();
+  setToken(data.access_token);
+  return data.user as AuthUser;
+}
+
+/** POST /auth/logout — revokes every token of the user, on all devices. */
+export async function logoutEverywhere(): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/auth/logout`, { method: "POST", headers: authHeaders() });
+  if (!response.ok && response.status !== 401) throw await apiError("logout", response);
+  setToken(null);
+}
+
+/** DELETE /auth/me — deletes the account and all its data (needs the current password). */
+export async function deleteAccount(password: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) throw await apiError("delete account", response);
+  setToken(null);
+}
+
 export interface Timeline {
   modality: string;
   cycle_day?: number;

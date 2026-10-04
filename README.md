@@ -97,7 +97,7 @@ REST API; JWT in `localStorage`.
 `components/session/Guard.tsx`; routes `/entrar` (sign in / sign up),
 `/bienvenida` (onboarding), `/app` (athlete), `/gym` and `/admin` (admins),
 `/shared/[token]`; `lib/api.ts` (client + types), `lib/i18n.ts` + `lib/i18n-app.ts`
-(ES default, EN, ZH); screens not yet redesigned live in `components/legacy/`.
+(ES default, EN, ZH); the admin panels not yet redesigned live in `components/legacy/`.
 
 **Recent features.** Super-admin users console; gym-admin equipment with
 `equipment_key`; routine editor with **Change exercise** list
@@ -113,16 +113,16 @@ badge; per-exercise detail modal.
 
 **Layout.** `app/page.tsx` sends each person home (`homeFor`: athlete →
 `/app` or `/bienvenida`, gym admin → `/gym`, super admin → `/admin`).
-`/app` renders `components/legacy/LegacyAthleteApp.tsx` (tabs Routine /
-Supplements / My machines / Profile) until phase 3 rebuilds it; `/gym` and
-`/admin` render `components/admin/AdminShell.tsx` until phase 4.
-`app/shared/[token]/page.tsx` is the public read-only shared profile.
+The athlete app lives under `/app` (Hoy, Rutina, Entreno, Calendario,
+Nutrición, Perfil, Gimnasios); `/gym` and `/admin` render
+`components/admin/AdminShell.tsx` until phase 4.
+`app/compartido/[token]` is the public read-only shared profile (`/shared/[token]` redirects there).
 
 **Decoupled seams (work without context).**
 - **Auth**: `lib/session.tsx` (`signIn`, `signUp`, `signOut`) + `app/entrar/`.
   Server errors are mapped to friendly copy in `lib/auth-errors.ts`.
-- **Animations**: `components/media/` (README there). Populate `media_url` in the
-  contracts catalog; no code change needed.
+- **Animations**: `components/rutina/ExerciseThumb.tsx` plays `media_url`
+  (mp4/webm/gif) when the contracts catalog provides it; no code change needed.
 
 **Flows.** Login/signup (JWT in localStorage) → onboarding (modality, body comp,
 goal, last period/cycle, machines, symptoms) → Routine: pick muscle groups,
@@ -151,7 +151,7 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 - **Temporary:** it is a single screen. README in `components/admin/` lists the
   improvements (split routes, object storage, audit log).
 - Decoupled seams for later work without context: `lib/session.tsx`,
-  `components/media/`, `components/admin/`.
+  `components/rutina/ExerciseThumb.tsx`, `components/admin/`.
 
 ### Next steps for a fresh session (read this, then just do it)
 

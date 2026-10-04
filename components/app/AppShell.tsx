@@ -16,21 +16,22 @@ import { useSession } from "@/lib/session";
 type NavItem = { key: string; href: string; icon: Icon };
 
 /**
- * Sections of the athlete app. Items not redesigned yet open the previous
- * version (/app/anterior) on the matching tab; each phase-3 PR points one
- * of them at its new route.
+ * Sections of the athlete app (gyms are reached from Profile).
  */
 export const NAV: NavItem[] = [
   { key: "hoy", href: "/app", icon: House },
   { key: "rutina", href: "/app/rutina", icon: Barbell },
   { key: "calendario", href: "/app/calendario", icon: CalendarBlank },
   { key: "suplementos", href: "/app/nutricion", icon: Pill },
-  { key: "perfil", href: "/app/anterior?tab=profile", icon: UserCircle },
+  { key: "perfil", href: "/app/perfil", icon: UserCircle },
 ];
 
 function isActive(pathname: string, href: string) {
   const path = href.split("?")[0];
-  return path === "/app" ? pathname === "/app" : pathname.startsWith(path);
+  if (path === "/app") return pathname === "/app";
+  // Gyms live under Profile.
+  if (path === "/app/perfil") return pathname.startsWith(path) || pathname.startsWith("/app/gimnasios");
+  return pathname.startsWith(path);
 }
 
 /** Bottom bar on phones, sidebar from 1024 px. The sky takes the phase color. */
