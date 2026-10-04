@@ -221,6 +221,16 @@ sus máquinas en vivo, filtro segmentado si hay más de uno, "mis máquinas" con
 chips. **Compartido (`/compartido/[token]`):** cielo de la fase de la atleta,
 tarjetas de solo lectura según los permisos.
 
+**Paneles (`/gym`, `/admin`, `components/paneles/`):** perfil Dashboard —
+barra superior fija (`PanelShell`) en lugar de barra inferior, más densidad,
+tabla con números tabulares dentro de una caja con desplazamiento horizontal,
+acciones como botones de icono con nombre accesible, filtros con control
+segmentado y búsqueda mientras se escribe. El gimnasio activo va en una
+tarjeta `tinta` con el código destacado; las máquinas en tarjetas con foto o
+ficha ilustrada. Toda acción sensible pide confirmación (y la contraseña del
+super admin cuando el backend la exige); el super admin no puede
+desactivarse, cambiar su rol ni borrarse desde su propia fila.
+
 **Hoy (`/app`):** banda de cielo `bg-fase-suave` con saludo según la hora,
 tira semanal y anillo del ciclo (Pulsi cambia de cara según energía, dolor y
 síntomas), divisor que gotea y, debajo, la tarjeta del día seleccionado (tipo
