@@ -38,7 +38,7 @@ export function Choice<T extends string>({
 
   const layout =
     variant === "segmentado"
-      ? "grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-nube/70 p-1"
+      ? "flex gap-1 rounded-[1.75rem] bg-nube/70 p-1"
       : variant === "pildoras"
         ? cx("grid gap-2", columns === 7 ? "grid-cols-7" : columns === 5 ? "grid-cols-5" : columns === 4 ? "grid-cols-4" : "grid-cols-3")
         : cx("grid gap-3", columns === 2 ? "sm:grid-cols-2" : "");
@@ -57,7 +57,7 @@ export function Choice<T extends string>({
                 "has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-ink",
                 variant === "tarjetas" && "flex items-center gap-4 rounded-ficha p-4 sm:p-5",
                 variant === "pildoras" && "grid min-h-12 place-items-center rounded-full font-display text-body-lg font-semibold",
-                variant === "segmentado" && "grid min-h-11 place-items-center whitespace-nowrap rounded-full px-3 font-display text-button font-semibold",
+                variant === "segmentado" && "grid min-h-11 flex-auto place-items-center rounded-full px-3 py-1 text-center font-display text-button font-semibold leading-tight text-balance",
                 checked
                   ? variant === "segmentado"
                     ? "bg-ink text-nube shadow-boton"
