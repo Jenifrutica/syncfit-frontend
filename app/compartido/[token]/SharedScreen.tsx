@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Barbell, Flame, Pill, Target } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
@@ -18,8 +19,10 @@ import { useSession } from "@/lib/session";
 type Item = { name?: string; series?: number; reps?: number; blocked?: boolean };
 
 /** Read-only view of what the athlete chose to share (no session needed). */
-export function SharedScreen({ token }: { token: string }) {
+export function SharedScreen() {
   const { language } = useSession();
+  // The token is read from the URL because the page is a single static export.
+  const token = decodeURIComponent(usePathname().split("/").filter(Boolean)[1] ?? "");
   const [shared, setShared] = useState<SharedProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [names, setNames] = useState<Record<string, string>>({});
