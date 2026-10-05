@@ -4,7 +4,15 @@ import { SharedScreen } from "./SharedScreen";
 
 export const metadata: Metadata = { title: "Perfil compartido", robots: { index: false, follow: false } };
 
-export default async function CompartidoPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
-  return <SharedScreen token={token} />;
+/**
+ * Static export cannot know share tokens at build time, so a single placeholder
+ * page is generated. The host rewrites /compartido/<token>/ to it and
+ * SharedScreen reads the real token from the URL.
+ */
+export function generateStaticParams() {
+  return [{ token: "_" }];
+}
+
+export default function CompartidoPage() {
+  return <SharedScreen />;
 }
