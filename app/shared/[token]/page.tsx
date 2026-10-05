@@ -1,7 +1,10 @@
-import { redirect } from "next/navigation";
+import { LegacyRedirect } from "./LegacyRedirect";
 
-/** Links created before the redesign keep working. */
-export default async function LegacySharedPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
-  redirect(`/compartido/${encodeURIComponent(token)}`);
+/** Single placeholder page for the static export; the host rewrites /shared/<token>/ to it. */
+export function generateStaticParams() {
+  return [{ token: "_" }];
+}
+
+export default function LegacySharedPage() {
+  return <LegacyRedirect />;
 }
