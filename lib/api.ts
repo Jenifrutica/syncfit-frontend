@@ -1,8 +1,21 @@
 /** API client for the SyncFit Edge backend. */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000/api/v1/ws/telemetry";
+// In production the app is served by CloudFront from the same origin, which
+// proxies `/api/*` to the backend, so a relative base URL works on any domain
+// without a rebuild. In development it falls back to the local backend.
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
+
+function resolveWsUrl(): string {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  if (typeof window !== "undefined" && window.location?.host) {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}/api/v1/ws/telemetry`;
+  }
+  return "ws://localhost:8000/api/v1/ws/telemetry";
+}
+export const WS_URL = resolveWsUrl();
 
 export type Language = "EN" | "ES" | "ZH";
 
