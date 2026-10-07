@@ -168,3 +168,12 @@ Backend endpoints used by the admin UI: `/api/v1/admin/gym-admins` (GET/POST),
 `/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
 `/api/v1/gyms/mine`, `POST/PATCH/DELETE /api/v1/gyms/{gym_id}/machines[/{machine_id}]`,
 `/api/v1/gyms/{id}/qr.png`, `/api/v1/gyms/join`.
+
+## Roadmap · Qué falta (español)
+
+> Estado: **funcional** (rediseño, admin, rutina, máquinas/equipo, compartir).
+
+- **Faltan tests** (no hay runner de tests; solo typecheck y build).
+- Completar traducciones i18n en pantallas nuevas.
+- **PWA / notificaciones** (US-25).
+- (Opcional) Login con proveedores externos (Google).
