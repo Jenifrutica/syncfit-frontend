@@ -68,7 +68,14 @@ export function RoutineResult({ plan, language, onNew }: { plan: RoutinePlan; la
         </div>
         <p className="flex items-center gap-2 text-small font-extrabold text-crema">
           <ShieldCheck size={18} weight="bold" aria-hidden="true" />
-          {t(language, summary.engine_used === "deepseek" ? "rutina.motor.deepseek" : "rutina.motor.deterministic")}
+          {t(
+            language,
+            summary.engine_used === "gpt-6-luna"
+              ? "rutina.motor.gpt6"
+              : summary.engine_used === "deepseek"
+                ? "rutina.motor.deepseek"
+                : "rutina.motor.deterministic",
+          )}
         </p>
       </Card>
 

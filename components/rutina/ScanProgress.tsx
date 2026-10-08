@@ -8,7 +8,7 @@ import { Pulsi } from "@/components/mascot/Pulsi";
 import { Spinner } from "@/components/ui/Spinner";
 import { t, type Language } from "@/lib/i18n";
 
-const STEPS = ["rutina.escaneo.sensor", "rutina.escaneo.local", "rutina.escaneo.deepseek", "rutina.escaneo.validador"];
+const STEPS = ["rutina.escaneo.sensor", "rutina.escaneo.local", "rutina.escaneo.generativa", "rutina.escaneo.validador"];
 
 // A PPG-like beat, 64 units wide and ending at its start height; 16 beats
 // fill 1024 units, so sliding by half (512) loops seamlessly.
@@ -17,7 +17,7 @@ const WAVE = `M0 40 ${Array.from({ length: 16 }, () => BEAT).join(" ")}`;
 
 /**
  * What happens server-side during POST /capture, shown as four stations
- * (sensor → local AI → DeepSeek → validator) while Pulsi breathes and a
+ * (sensor → local AI → generative AI → validator) while Pulsi breathes and a
  * pulse wave runs. The request is a single call, so stations advance on a
  * timer and all complete when the answer arrives.
  */

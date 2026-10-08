@@ -16,7 +16,7 @@ web
 SyncFit Edge adapta la prescripción de entrenamiento al estado fisiológico femenino real (fase menstrual o trimestre de gestación) para entrenar mejor y prevenir lesiones. Éxito = la atleta obtiene en segundos una rutina segura y entendible, la sigue en el gym y vuelve al día siguiente.
 
 ## Positioning
-Los modelos de entrenamiento clásicos se basan en fisiología masculina. SyncFit mide biomarcadores (variabilidad cardiaca RMSSD, temperatura, pérdida de fuerza isométrica) y combina **dos IAs**: un modelo local determinista que calcula la carga (`k_load` 0.70–1.05) y DeepSeek que diseña la rutina con el equipo real del gimnasio; luego un validador determinista bloquea lo contraindicado (p. ej. ejercicios en supino desde la semana 16) y explica el motivo.
+Los modelos de entrenamiento clásicos se basan en fisiología masculina. SyncFit mide biomarcadores (variabilidad cardiaca RMSSD, temperatura, pérdida de fuerza isométrica) y combina **dos IAs**: un modelo local determinista que calcula la carga (`k_load` 0.70–1.05) y una IA generativa (DeepSeek, con GPT-6 Luna ante fallos transitorios) que diseña la rutina con el equipo real del gimnasio; luego un validador determinista bloquea lo contraindicado (p. ej. ejercicios en supino desde la semana 16) y explica el motivo.
 
 ## Operating Context
 - Uso en el gimnasio, de pie, con el celular en la mano entre series: necesita lectura rápida y botones grandes.

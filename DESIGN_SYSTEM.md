@@ -191,7 +191,7 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `FeelingSheet` | `components/hoy/FeelingSheet.tsx` | registro rápido: energía, síntomas con su consejo, dolor general |
 
 | `ExerciseThumb` | `components/rutina/ExerciseThumb.tsx` | video/animación > foto real > ficha ilustrada (las imágenes `placehold.co` se tratan como faltantes) |
-| `ScanProgress` | `components/rutina/ScanProgress.tsx` | escaneo: Pulsi respirando, onda de pulso en bucle (`animate-onda`) y las 4 estaciones (sensor → IA local → DeepSeek → validador) |
+| `ScanProgress` | `components/rutina/ScanProgress.tsx` | escaneo: Pulsi respirando, onda de pulso en bucle (`animate-onda`) y las 4 estaciones (sensor → IA local → IA generativa → validador) |
 | `ExerciseCard`, `ChangeSheet`, `DetailSheet` | `components/rutina/` | tarjeta editable con bloqueo visible; hoja de alternativas + catálogo; hoja de detalle |
 | `WorkoutScreen` | `components/entreno/WorkoutScreen.tsx` | entreno guiado a pantalla completa (ver abajo) |
 
