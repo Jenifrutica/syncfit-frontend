@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { RoutineConfig, type CaptureOptions } from "@/components/rutina/RoutineConfig";
 import { RoutineResult } from "@/components/rutina/RoutineResult";
 import { ScanProgress } from "@/components/rutina/ScanProgress";
-import { capture } from "@/lib/api";
+import { ApiError, capture } from "@/lib/api";
 import { todayISO } from "@/lib/dates";
 import { t } from "@/lib/i18n";
 import { planFromCapture } from "@/lib/routine";
@@ -41,8 +41,15 @@ export function RutinaScreen() {
       setScanDone(true);
       await new Promise((resolve) => window.setTimeout(resolve, 500));
       setPlan(planFromCapture(result, today));
-    } catch {
-      toast({ tone: "error", title: t(language, "rutina.error.captura"), closeLabel: t(language, "comun.cerrar") });
+    } catch (error) {
+      console.error("capture failed", error);
+      const status = error instanceof ApiError ? error.status : undefined;
+      const timedOut = status === 502 || status === 503 || status === 504;
+      toast({
+        tone: "error",
+        title: t(language, timedOut ? "rutina.error.timeout" : "rutina.error.captura"),
+        closeLabel: t(language, "comun.cerrar"),
+      });
     } finally {
       setScanning(false);
     }
