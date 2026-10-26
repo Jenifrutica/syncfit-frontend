@@ -165,7 +165,7 @@ Profile (photo, machines, loads kg/lb, share links, calendar/streak/symptoms).
 3. **Frontend tests** for role-gating and the create-gym / add-machine flows.
 
 Backend endpoints used by the admin UI: `/api/v1/admin/gym-admins` (GET/POST),
-`/api/v1/admin/me`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
+`/api/v1/admin/account`, `/api/v1/admin/gyms`, `/api/v1/gyms` (create),
 `/api/v1/gyms/mine`, `POST/PATCH/DELETE /api/v1/gyms/{gym_id}/machines[/{machine_id}]`,
 `/api/v1/gyms/{id}/qr.png`, `/api/v1/gyms/join`.
 

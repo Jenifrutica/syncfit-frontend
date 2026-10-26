@@ -30,7 +30,7 @@ export function DatosCard() {
   const [values, setValues] = useState<Record<Key, string>>({} as Record<Key, string>);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  // GET /profiles/me does not return the weekly goal / rest days yet; /stats does.
+  // GET /profile does not return the weekly goal / rest days yet; /stats does.
   const [fallback, setFallback] = useState<Partial<Record<Key, number>>>({});
 
   useEffect(() => {
