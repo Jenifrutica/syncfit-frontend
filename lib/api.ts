@@ -36,32 +36,6 @@ async function apiError(prefix: string, response: Response): Promise<ApiError> {
   return new ApiError(`${prefix} failed: ${response.status}`, response.status, body?.detail);
 }
 
-export const ISOLATED_GROUPS = [
-  "GLUTES",
-  "QUADRICEPS",
-  "HAMSTRINGS",
-  "CALVES",
-  "ABS",
-  "OBLIQUES",
-  "BACK",
-  "LATS",
-  "CHEST",
-  "SHOULDERS",
-  "BICEPS",
-  "TRICEPS",
-  "FOREARMS",
-] as const;
-
-export const GENERAL_GROUPS = [
-  "UPPER_BODY",
-  "LOWER_BODY",
-  "FULL_BODY",
-  "CORE",
-  "FULL_LEG",
-] as const;
-
-export type MuscleGroup = (typeof ISOLATED_GROUPS)[number] | (typeof GENERAL_GROUPS)[number];
-
 export type LocalizedText = Record<string, string>;
 
 export interface Decision {
@@ -239,6 +213,23 @@ export async function sendTelemetry(frame: TelemetryFrame): Promise<Decision> {
 export async function getMuscleGroups(): Promise<string[]> {
   const response = await fetch(`${API_URL}/api/v1/muscle-groups`, { cache: "no-store" });
   if (!response.ok) throw await apiError("muscle groups", response);
+  return response.json();
+}
+
+export interface OptionItem {
+  value: string;
+  label: string;
+  /** Label per language code ("en", "es", "zh"). */
+  labels: Record<string, string>;
+}
+
+/** Selectable values by category: muscle_group_isolated, muscle_group_general, objective, goal_phase. */
+export type AppOptions = Record<string, OptionItem[]>;
+
+/** GET /options — values and labels kept in the database. */
+export async function getOptions(): Promise<AppOptions> {
+  const response = await fetch(`${API_URL}/api/v1/options`, { cache: "no-store" });
+  if (!response.ok) throw await apiError("options", response);
   return response.json();
 }
 
