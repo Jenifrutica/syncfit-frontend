@@ -1,5 +1,7 @@
 /** API client for the SyncFit Edge backend. */
 
+import { hashPassword } from "./password";
+
 // In production the app is served by CloudFront from the same origin, which
 // proxies `/api/*` to the backend, so a relative base URL works on any domain
 // without a rebuild. In development it falls back to the local backend.
@@ -452,7 +454,18 @@ export function getToken(): string | null {
 export function setToken(token: string | null): void {
   if (typeof window === "undefined") return;
   if (token) window.localStorage.setItem(TOKEN_KEY, token);
-  else window.localStorage.removeItem(TOKEN_KEY);
+  else {
+    window.localStorage.removeItem(TOKEN_KEY);
+    signedInEmail = null;
+  }
+}
+
+/** Email of the signed-in person: salt of the digest sent when a request confirms their password. */
+let signedInEmail: string | null = null;
+
+function ownEmail(): string {
+  if (!signedInEmail) throw new ApiError("not signed in", 401);
+  return signedInEmail;
 }
 
 export function logoutLocal(): void {
@@ -482,11 +495,12 @@ export async function register(
   const response = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName, document_id: documentId.trim() }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password: await hashPassword(email, password), display_name: displayName, document_id: documentId.trim() }),
   });
   if (!response.ok) throw await apiError("register", response);
   const data = await response.json();
   setToken(data.access_token);
+  signedInEmail = (data.user as AuthUser).email;
   return data.user as AuthUser;
 }
 
@@ -494,11 +508,12 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password: await hashPassword(email, password) }),
   });
   if (!response.ok) throw await apiError("login", response);
   const data = await response.json();
   setToken(data.access_token);
+  signedInEmail = (data.user as AuthUser).email;
   return data.user as AuthUser;
 }
 
@@ -509,7 +524,9 @@ export async function getMe(): Promise<AuthUser | null> {
     if (response.status === 401) setToken(null);
     return null;
   }
-  return response.json();
+  const user = (await response.json()) as AuthUser;
+  signedInEmail = user.email;
+  return user;
 }
 
 /** PUT /auth/password — old tokens are revoked, so the new one is stored. */
@@ -517,7 +534,10 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const response = await fetch(`${API_URL}/api/v1/auth/password`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    body: JSON.stringify({
+      current_password: await hashPassword(ownEmail(), currentPassword),
+      new_password: await hashPassword(ownEmail(), newPassword),
+    }),
   });
   if (!response.ok) throw await apiError("password", response);
   const data = await response.json();
@@ -537,7 +557,7 @@ export async function deleteAccount(password: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/v1/account`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ password: await hashPassword(ownEmail(), password) }),
   });
   if (!response.ok) throw await apiError("delete account", response);
   setToken(null);
@@ -720,7 +740,7 @@ export async function createGymAdmin(email: string, password: string, displayNam
   const r = await fetch(`${API_URL}/api/v1/admin/gym-admins`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), password, display_name: displayName }),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password: await hashPassword(email, password), display_name: displayName }),
   });
   if (!r.ok) throw await apiError("create gym admin", r);
   return r.json();
@@ -982,11 +1002,12 @@ export async function setUserActive(id: string, active: boolean): Promise<AdminU
   return r.json();
 }
 
-export async function resetUserPassword(id: string, password: string): Promise<void> {
+/** The new password is hashed with the target's email, which is the salt they will log in with. */
+export async function resetUserPassword(id: string, email: string, password: string): Promise<void> {
   const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/password`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ password: await hashPassword(email, password) }),
   });
   if (!r.ok) throw await apiError("reset password", r);
 }
@@ -995,7 +1016,7 @@ export async function setUserRole(id: string, role: string, adminPassword: strin
   const r = await fetch(`${API_URL}/api/v1/admin/users/${id}/role`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ role, admin_password: adminPassword }),
+    body: JSON.stringify({ role, admin_password: await hashPassword(ownEmail(), adminPassword) }),
   });
   if (!r.ok) throw await apiError("role", r);
   return r.json();
@@ -1005,7 +1026,7 @@ export async function deleteUser(id: string, adminPassword: string): Promise<voi
   const r = await fetch(`${API_URL}/api/v1/admin/users/${id}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ admin_password: adminPassword }),
+    body: JSON.stringify({ admin_password: await hashPassword(ownEmail(), adminPassword) }),
   });
   if (!r.ok) throw await apiError("delete user", r);
 }

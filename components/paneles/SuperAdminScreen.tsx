@@ -221,7 +221,7 @@ function AccountDialog({ action, onClose, onDone }: { action: Action | null; onC
         onDone(t(language, "super.guardado"));
       } else if (action.kind === "clave") {
         if (!isValidNewPassword(password)) throw new Error("error.clave");
-        await resetUserPassword(u.id, password);
+        await resetUserPassword(u.id, u.email, password);
         onDone(t(language, "super.claveHecha"));
       } else if (action.kind === "rol") {
         await setUserRole(u.id, role, password);
