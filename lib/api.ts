@@ -504,7 +504,7 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 
 export async function getMe(): Promise<AuthUser | null> {
   if (!getToken()) return null;
-  const response = await fetch(`${API_URL}/api/v1/auth/me`, { headers: authHeaders() });
+  const response = await fetch(`${API_URL}/api/v1/account`, { headers: authHeaders() });
   if (!response.ok) {
     if (response.status === 401) setToken(null);
     return null;
@@ -532,9 +532,9 @@ export async function logoutEverywhere(): Promise<void> {
   setToken(null);
 }
 
-/** DELETE /auth/me — deletes the account and all its data (needs the current password). */
+/** DELETE /account — deletes the account and all its data (needs the current password). */
 export async function deleteAccount(password: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+  const response = await fetch(`${API_URL}/api/v1/account`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ password }),
@@ -582,14 +582,14 @@ export interface MyProfile {
 }
 
 export async function getMyProfile(): Promise<MyProfile | null> {
-  const response = await fetch(`${API_URL}/api/v1/profiles/me`, { headers: authHeaders() });
+  const response = await fetch(`${API_URL}/api/v1/profile`, { headers: authHeaders() });
   if (response.status === 404) return null;
   if (!response.ok) throw await apiError("profile", response);
   return response.json();
 }
 
 export async function updateMyProfile(data: Record<string, unknown>): Promise<MyProfile> {
-  const response = await fetch(`${API_URL}/api/v1/profiles/me`, {
+  const response = await fetch(`${API_URL}/api/v1/profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
