@@ -10,9 +10,10 @@ import { Choice } from "@/components/ui/Choice";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { FeelingSheet } from "@/components/hoy/FeelingSheet";
-import { GENERAL_GROUPS, ISOLATED_GROUPS, getSymptoms, type EnergyLevel, type SymptomInfo } from "@/lib/api";
+import { getSymptoms, type EnergyLevel, type SymptomInfo } from "@/lib/api";
 import { readEnergy, saveEnergy } from "@/lib/energia";
-import { muscleLabel, t, tf } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
+import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 
 export type CaptureOptions = {
@@ -38,6 +39,7 @@ function lastConfig(): Partial<CaptureOptions> {
 /** Choose what to train, then scan. Remembers the last choices on this device. */
 export function RoutineConfig({ today, onScan }: { today: string; onScan: (options: CaptureOptions) => void }) {
   const { profile, language } = useSession();
+  const options = useOptions();
   const [groups, setGroups] = useState<string[]>([]);
   const [exercises, setExercises] = useState("5");
   const [minutes, setMinutes] = useState<string>("0");
@@ -106,25 +108,33 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
           </span>
         </div>
         {[
-          { legend: "rutina.config.musculos", list: ISOLATED_GROUPS },
-          { legend: "rutina.config.zonas", list: GENERAL_GROUPS },
-        ].map(({ legend, list }) => (
+          { legend: "rutina.config.musculos", category: "muscle_group_isolated" },
+          { legend: "rutina.config.zonas", category: "muscle_group_general" },
+        ].map(({ legend, category }) => (
           <fieldset key={legend} className="flex flex-col gap-2">
             <legend className="mb-2 text-small font-extrabold">{t(language, legend)}</legend>
             <div className="flex flex-wrap gap-2">
-              {list.map((group) => (
+              {options.list(category).map(({ value: group }) => (
                 <Chip
                   key={group}
                   selected={groups.includes(group)}
                   onToggle={() => toggleGroup(group)}
                   disabled={!groups.includes(group) && groups.length >= MAX_GROUPS}
                 >
-                  {muscleLabel(language, group)}
+                  {options.label(category, group, language)}
                 </Chip>
               ))}
             </div>
           </fieldset>
         ))}
+        {options.failed && (
+          <p role="alert" className="text-small font-bold text-peligro">
+            {t(language, "error.conexion")}{" "}
+            <button type="button" className="underline" onClick={options.retry}>
+              {t(language, "comun.reintentar")}
+            </button>
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-small font-bold text-peligro">
             {error}

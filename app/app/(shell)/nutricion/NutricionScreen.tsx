@@ -22,7 +22,8 @@ import {
   type SupplementCatalogItem,
 } from "@/lib/api";
 import { todayISO } from "@/lib/dates";
-import { GOAL_OPTIONS, OBJECTIVE_OPTIONS, goalLabel, localized, objectiveLabel, t, tf } from "@/lib/i18n";
+import { localized, t, tf } from "@/lib/i18n";
+import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 
 type Safety = "SAFE" | "CAUTION" | "AVOID";
@@ -33,6 +34,7 @@ const MACRO_LABEL: Record<(typeof MACRO_KEYS)[number], string> = { kcal: "kcal",
 
 export function NutricionScreen() {
   const { profile, language, setProfile } = useSession();
+  const options = useOptions();
   const toast = useToast();
   const today = todayISO();
   const pregnant = profile?.modality === "GESTATIONAL";
@@ -131,9 +133,9 @@ export function NutricionScreen() {
             <Field label={t(language, "nutri.objetivo")}>
               {(control) => (
                 <Select {...control} value={profile?.objective ?? ""} onChange={(e) => void save({ objective: e.target.value })}>
-                  {OBJECTIVE_OPTIONS.filter((o) => pregnant || o !== "GESTATIONAL_HEALTH").map((o) => (
-                    <option key={o} value={o}>
-                      {objectiveLabel(language, o)}
+                  {options.list("objective").filter((o) => pregnant || o.value !== "GESTATIONAL_HEALTH").map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {options.label("objective", o.value, language)}
                     </option>
                   ))}
                 </Select>
@@ -142,9 +144,9 @@ export function NutricionScreen() {
             <Field label={t(language, "nutri.etapa")}>
               {(control) => (
                 <Select {...control} value={profile?.goal_phase ?? ""} onChange={(e) => void save({ goal_phase: e.target.value })}>
-                  {GOAL_OPTIONS.map((g) => (
-                    <option key={g} value={g}>
-                      {goalLabel(language, g)}
+                  {options.list("goal_phase").map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {options.label("goal_phase", g.value, language)}
                     </option>
                   ))}
                 </Select>

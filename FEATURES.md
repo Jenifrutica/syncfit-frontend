@@ -25,7 +25,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 | `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app`, `/app/calendario` | ☑ |
 | `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
 | `getSymptoms` | `GET /symptoms` | page | `/app` (hoja "cómo me siento") | ☑ |
-| `getMuscleGroups` | `GET /muscle-groups` | sin uso (lista fija en el front) | `/app/rutina` usa las mismas listas fijas (`ISOLATED_GROUPS`, `GENERAL_GROUPS`) | — |
+| `getMuscleGroups` | `GET /muscle-groups` | reemplazado por `GET /options` | `/app/rutina` lee los grupos de `GET /options` (base de datos) | — |
 | `capture` | `POST /capture` | page ("Tomar datos") | `/app/rutina` (escaneo → rutina) | ☑ |
 | `generateRoutine` | `POST /routines` | sin uso | landing `/` → demo "La misma rutina, otra fase" (motor determinista, `cycleDay`) | ☑ |
 | `sendTelemetry` | `POST /telemetry` | sin uso | onda de pulso en vivo durante el escaneo (opcional) | ☐ |
