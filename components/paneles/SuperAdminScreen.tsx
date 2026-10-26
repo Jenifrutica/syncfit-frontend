@@ -30,7 +30,8 @@ import {
   type AuthUser,
   type GymInfo,
 } from "@/lib/api";
-import { goalLabel, objectiveLabel, t, tf } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
+import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 import { isValidDocumentId, isValidEmail, isValidName, isValidNewPassword } from "@/lib/validation";
 
@@ -179,6 +180,7 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
 
 function AccountDialog({ action, onClose, onDone }: { action: Action | null; onClose: () => void; onDone: (message: string) => void }) {
   const { language } = useSession();
+  const options = useOptions();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [doc, setDoc] = useState("");
@@ -256,8 +258,8 @@ function AccountDialog({ action, onClose, onDone }: { action: Action | null; onC
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-body">
           {[
             ["super.modalidad", p.modality ? t(language, `perfil.modalidad.${p.modality}`) : "—"],
-            ["nutri.objetivo", p.objective ? objectiveLabel(language, String(p.objective)) : "—"],
-            ["nutri.etapa", p.goal_phase ? goalLabel(language, String(p.goal_phase)) : "—"],
+            ["nutri.objetivo", p.objective ? options.label("objective", String(p.objective), language) : "—"],
+            ["nutri.etapa", p.goal_phase ? options.label("goal_phase", String(p.goal_phase), language) : "—"],
             ["onb.altura", p.height_cm ?? "—"],
             ["onb.peso", p.weight_kg ?? "—"],
             ["perfil.ciclo.duracion", p.cycle_length_days ?? "—"],

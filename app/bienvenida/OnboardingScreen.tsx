@@ -20,7 +20,8 @@ import { Guard } from "@/components/session/Guard";
 import { updateMyProfile } from "@/lib/api";
 import { DUR, EASE } from "@/lib/motion";
 import { isFase, type Fase } from "@/lib/fases";
-import { GOAL_OPTIONS, OBJECTIVE_OPTIONS, goalLabel, objectiveLabel, t, tf, type Language } from "@/lib/i18n";
+import { t, tf, type Language } from "@/lib/i18n";
+import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 import { inRange } from "@/lib/validation";
 
@@ -233,6 +234,7 @@ function Ask({ id, title, bubble, color, mood = "feliz", children }: { id: strin
 function StepBody({ step, data, update, language }: { step: Step; data: Data; update: (patch: Partial<Data>) => void; language: Language }) {
   const id = `paso-${step}`;
   const today = toISODate(new Date());
+  const options = useOptions();
 
   switch (step) {
     case "modalidad":
@@ -367,7 +369,7 @@ function StepBody({ step, data, update, language }: { step: Step; data: Data; up
             columns={2}
             value={data.objective}
             onChange={(objective) => update({ objective })}
-            options={OBJECTIVE_OPTIONS.filter((o) => data.modality === "GESTATIONAL" || o !== "GESTATIONAL_HEALTH").map((o) => ({ value: o, label: objectiveLabel(language, o) }))}
+            options={options.list("objective").filter((o) => data.modality === "GESTATIONAL" || o.value !== "GESTATIONAL_HEALTH").map((o) => ({ value: o.value, label: options.label("objective", o.value, language) }))}
           />
         </Ask>
       );
@@ -381,7 +383,7 @@ function StepBody({ step, data, update, language }: { step: Step; data: Data; up
             columns={2}
             value={data.goalPhase}
             onChange={(goalPhase) => update({ goalPhase })}
-            options={GOAL_OPTIONS.map((g) => ({ value: g, label: goalLabel(language, g) }))}
+            options={options.list("goal_phase").map((g) => ({ value: g.value, label: options.label("goal_phase", g.value, language) }))}
           />
         </Ask>
       );
