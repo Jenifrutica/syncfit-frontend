@@ -16,11 +16,11 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 |---|---|---|---|---|
 | `register` | `POST /auth/register` | AuthPanel (retirado) | `/entrar` | ☑ |
 | `login` | `POST /auth/login` | AuthPanel (retirado) | `/entrar` | ☑ |
-| `getMe` | `GET /auth/me` | page (sesión) | `SessionProvider` + guardas | ☑ |
+| `getMe` | `GET /account` | page (sesión) | `SessionProvider` + guardas | ☑ |
 | `getToken` / `setToken` / `logoutLocal` | — (localStorage) | page | `SessionProvider` (`signOut`) | ☑ |
-| `getMyProfile` | `GET /profiles/me` | page | `SessionProvider` (sin perfil → `/bienvenida`) | ☑ |
-| `updateMyProfile` | `PUT /profiles/me` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida`, Hoy, `/app/perfil`, `/app/gimnasios`, `/app/nutricion` | ☑ |
-| `saveProfile` | `POST /profiles` (invitado/legacy) | sin uso real (el front anterior tenía una función local con el mismo nombre que llamaba a `PUT /profiles/me`) | — | — |
+| `getMyProfile` | `GET /profile` | page | `SessionProvider` (sin perfil → `/bienvenida`) | ☑ |
+| `updateMyProfile` | `PUT /profile` | onboarding, perfil, síntomas, máquinas, suplementos | `/bienvenida`, Hoy, `/app/perfil`, `/app/gimnasios`, `/app/nutricion` | ☑ |
+| `saveProfile` | `POST /profiles` (invitado/legacy) | sin uso real (el front anterior tenía una función local con el mismo nombre que llamaba a `PUT /profile`) | — | — |
 | `getCycle` | `GET /cycle` | sin uso | no hace falta: el anillo usa `profile.timeline` + calendario | — |
 | `getCalendar` | `GET /calendar` | page | tira semanal y anillo de `/app`, `/app/calendario` | ☑ |
 | `getStats` | `GET /stats` | page | `/app` (racha, metas semanales) | ☑ |
@@ -68,7 +68,7 @@ Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 
 Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil` → Cuenta):
 `changePassword` → `PUT /auth/password` ☑ · `logoutEverywhere` → `POST /auth/logout` ☑ ·
-`deleteAccount` → `DELETE /auth/me` ☑.
+`deleteAccount` → `DELETE /account` ☑.
 
 ## 2. Comportamientos de la interfaz anterior
 
@@ -121,7 +121,7 @@ Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil`
 - ☑ "Mis máquinas" disponibles (`available_machines`) con buscador.
 
 ### Perfil → `/app/perfil` — fase 3d
-- ☑ Datos, foto de perfil (ahora comprimida), objetivo/metas (meta semanal y descansos se leen de `/stats` porque `GET /profiles/me` no los devuelve).
+- ☑ Datos, foto de perfil (ahora comprimida), objetivo/metas (meta semanal y descansos se leen de `/stats` porque `GET /profile` no los devuelve).
 - ☑ Registrar inicio del periodo, duración del ciclo o semana de embarazo (nuevo).
 - ☑ Cargas base por ejercicio con unidad kg/lb (ahora convierte de verdad).
 - ☑ Compartir: rol, permisos, nombre, crear, copiar, abrir, borrar.
