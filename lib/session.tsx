@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { getMe, getMyProfile, login, logoutLocal, register, type AuthUser, type MyProfile } from "@/lib/api";
+import { getMe, getMyProfile, googleLogin, login, logoutLocal, register, type AuthUser, type MyProfile } from "@/lib/api";
 import { LANGUAGES, type Language } from "@/lib/i18n";
 
 export type SessionStatus = "loading" | "anon" | "ready";
@@ -17,6 +17,7 @@ type SessionValue = {
   setLanguage: (language: Language) => void;
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (data: { email: string; password: string; displayName: string; documentId: string }) => Promise<AuthUser>;
+  signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
   setProfile: (profile: MyProfile | null) => void;
   signOut: () => void;
 };
@@ -98,6 +99,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [afterAuth],
   );
 
+  const signInWithGoogle = useCallback(
+    async (accessToken: string) => afterAuth(await googleLogin({ accessToken })),
+    [afterAuth],
+  );
+
   const signOut = useCallback(() => {
     logoutLocal();
     setUser(null);
@@ -106,7 +112,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ status, user, profile, language, setLanguage, signIn, signUp, setProfile, signOut }),
+    () => ({ status, user, profile, language, setLanguage, signIn, signUp, signInWithGoogle, setProfile, signOut }),
     [status, user, profile, language, setLanguage, signIn, signUp, signOut],
   );
 

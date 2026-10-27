@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { WarningOctagon } from "@phosphor-icons/react";
 
+import { SymptomTextAnalyzer } from "@/components/hoy/SymptomTextAnalyzer";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { Dialog } from "@/components/ui/Dialog";
 import { useToast } from "@/components/ui/Toast";
-import { updateMyProfile, type EnergyLevel, type SymptomInfo } from "@/lib/api";
+import { updateMyProfile, type EnergyLevel, type SymptomAnalysis, type SymptomInfo } from "@/lib/api";
 import { readEnergy, saveEnergy } from "@/lib/energia";
 import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -25,6 +26,8 @@ export function FeelingSheet({ open, onClose, symptoms, today }: { open: boolean
   const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
   const [selected, setSelected] = useState<string[]>([]);
   const [pain, setPain] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [analysis, setAnalysis] = useState<SymptomAnalysis | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Start from what is already saved every time the sheet opens.
@@ -33,6 +36,8 @@ export function FeelingSheet({ open, onClose, symptoms, today }: { open: boolean
     setEnergy(readEnergy(today) ?? "MODERATE");
     setSelected(profile?.symptoms ?? []);
     setPain(profile?.pain_levels?.OVERALL ?? 0);
+    setNotes(profile?.symptom_notes ?? "");
+    setAnalysis(null);
   }, [open, profile, today]);
 
   const modality = profile?.modality ?? "MENSTRUAL_CYCLE";
@@ -42,10 +47,27 @@ export function FeelingSheet({ open, onClose, symptoms, today }: { open: boolean
 
   const toggle = (id: string) => setSelected((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));
 
+  const applyAnalysis = (value: SymptomAnalysis | null) => {
+    setAnalysis(value);
+    if (value) {
+      setSelected((current) => Array.from(new Set([...current, ...value.symptom_ids])));
+    }
+  };
+
   const save = async () => {
     setSaving(true);
     try {
-      const updated = await updateMyProfile({ symptoms: selected, pain_levels: { ...(profile?.pain_levels ?? {}), OVERALL: pain } });
+      const avoidPatterns = analysis
+        ? analysis.avoid_patterns
+        : notes.trim()
+          ? profile?.symptom_avoid_patterns ?? []
+          : [];
+      const updated = await updateMyProfile({
+        symptoms: selected,
+        pain_levels: { ...(profile?.pain_levels ?? {}), OVERALL: pain, ...(analysis?.severity ?? {}) },
+        symptom_notes: notes.trim() || null,
+        symptom_avoid_patterns: avoidPatterns,
+      });
       saveEnergy(today, energy);
       setProfile(updated);
       toast({ tone: "exito", title: t(language, "sentir.guardado"), closeLabel: t(language, "comun.cerrar") });
@@ -110,6 +132,16 @@ export function FeelingSheet({ open, onClose, symptoms, today }: { open: boolean
           {blocking.map((s) => s.advice).join(" ")}
         </p>
       )}
+
+      <SymptomTextAnalyzer
+        language={language}
+        text={notes}
+        onTextChange={setNotes}
+        analysis={analysis}
+        onAnalysisChange={applyAnalysis}
+        painLevel={pain}
+        disabled={saving}
+      />
 
       <div className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between">

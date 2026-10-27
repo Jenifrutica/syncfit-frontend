@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WarningCircle } from "@phosphor-icons/react";
 
+import { GoogleButton } from "@/components/auth/GoogleButton";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Choice } from "@/components/ui/Choice";
@@ -30,7 +31,8 @@ function safeNext(value: string | null): string | null {
 export function EntrarScreen() {
   const router = useRouter();
   const params = useSearchParams();
-  const { status, user, profile, language, signIn, signUp } = useSession();
+  const { status, user, profile, language, signIn, signUp, signInWithGoogle } = useSession();
+  const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
   const [mode, setMode] = useState<Mode>(params.get("modo") === "crear" ? "crear" : "entrar");
   const [nombre, setNombre] = useState("");
@@ -98,6 +100,17 @@ export function EntrarScreen() {
       } else {
         setFormError(t(language, key));
       }
+      setSending(false);
+    }
+  };
+
+  const onGoogle = async (accessToken: string) => {
+    setFormError(null);
+    setSending(true);
+    try {
+      await signInWithGoogle(accessToken);
+    } catch {
+      setFormError(t(language, "entrar.googleError"));
       setSending(false);
     }
   };
@@ -203,6 +216,22 @@ export function EntrarScreen() {
             {t(language, creating ? "entrar.boton.crear" : "entrar.boton.entrar")}
           </Button>
         </form>
+
+        {googleEnabled && (
+          <div className="mt-5 flex flex-col items-center gap-4">
+            <div className="flex w-full items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-ink/15" />
+              <span className="text-small font-bold text-ink-suave">{t(language, "entrar.o")}</span>
+              <span className="h-px flex-1 bg-ink/15" />
+            </div>
+            <GoogleButton
+              onToken={onGoogle}
+              onError={() => setFormError(t(language, "entrar.googleError"))}
+              language={language}
+              disabled={sending}
+            />
+          </div>
+        )}
       </Card>
 
       <p className="mt-6 text-center text-small font-bold text-ink-suave">{t(language, "app.aviso")}</p>

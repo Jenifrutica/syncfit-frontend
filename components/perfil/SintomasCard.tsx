@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+import { SymptomTextAnalyzer } from "@/components/hoy/SymptomTextAnalyzer";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
-import { TextArea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
-import { getSymptoms, updateMyProfile, type SymptomInfo } from "@/lib/api";
+import { getSymptoms, updateMyProfile, type SymptomAnalysis, type SymptomInfo } from "@/lib/api";
 import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
@@ -19,6 +19,7 @@ export function SintomasCard() {
   const [selected, setSelected] = useState<string[]>([]);
   const [pain, setPain] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState("");
+  const [analysis, setAnalysis] = useState<SymptomAnalysis | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -29,15 +30,35 @@ export function SintomasCard() {
     setSelected(profile?.symptoms ?? []);
     setPain(profile?.pain_levels ?? {});
     setNotes(profile?.symptom_notes ?? "");
+    setAnalysis(null);
   }, [profile]);
 
   const modality = profile?.modality ?? "MENSTRUAL_CYCLE";
   const available = catalog.filter((s) => s.modality === "ANY" || s.modality === modality);
 
+  const applyAnalysis = (value: SymptomAnalysis | null) => {
+    setAnalysis(value);
+    if (value) {
+      setSelected((current) => Array.from(new Set([...current, ...value.symptom_ids])));
+    }
+  };
+
   const save = async () => {
     setSaving(true);
     try {
-      setProfile(await updateMyProfile({ symptoms: selected, pain_levels: pain, symptom_notes: notes }));
+      const avoidPatterns = analysis
+        ? analysis.avoid_patterns
+        : notes.trim()
+          ? profile?.symptom_avoid_patterns ?? []
+          : [];
+      setProfile(
+        await updateMyProfile({
+          symptoms: selected,
+          pain_levels: { ...pain, ...(analysis?.severity ?? {}) },
+          symptom_notes: notes.trim() || null,
+          symptom_avoid_patterns: avoidPatterns,
+        }),
+      );
       toast({ tone: "exito", title: t(language, "sentir.guardado"), closeLabel: t(language, "comun.cerrar") });
     } catch {
       toast({ tone: "error", title: t(language, "sentir.error"), closeLabel: t(language, "comun.cerrar") });
@@ -71,10 +92,15 @@ export function SintomasCard() {
       </div>
       {slider("OVERALL", t(language, "sentir.dolor"))}
       {available.filter((s) => selected.includes(s.id)).map((s) => slider(s.id, s.name))}
-      <label className="flex flex-col gap-1.5 text-small font-extrabold">
-        {t(language, "perfil.sintomas.notas")}
-        <TextArea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </label>
+      <SymptomTextAnalyzer
+        language={language}
+        text={notes}
+        onTextChange={setNotes}
+        analysis={analysis}
+        onAnalysisChange={applyAnalysis}
+        painLevel={pain.OVERALL}
+        disabled={saving}
+      />
       <Button onClick={() => void save()} loading={saving} loadingLabel={t(language, "sentir.guardando")} className="self-start">
         {t(language, "perfil.sintomas.guardar")}
       </Button>

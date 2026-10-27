@@ -7,24 +7,27 @@ import { Key, SignOut, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Dialog } from "@/components/ui/Dialog";
-import { Field } from "@/components/ui/Field";
+import { Field, Input } from "@/components/ui/Field";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError, changePassword, deleteAccount, logoutEverywhere } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { isValidNewPassword } from "@/lib/validation";
 
-/** Language, password, sign-out (here or everywhere) and account deletion. */
+const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Language, password, sign-out and a clearly separated danger zone. */
 export function CuentaCard() {
   const router = useRouter();
-  const { language, signOut } = useSession();
+  const { language, signOut, user } = useSession();
   const toast = useToast();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -32,6 +35,7 @@ export function CuentaCard() {
   const reset = () => {
     setCurrent("");
     setNext("");
+    setConfirm("");
     setError(null);
   };
 
@@ -39,6 +43,9 @@ export function CuentaCard() {
     signOut();
     router.replace("/entrar");
   };
+
+  const phrase = `${t(language, "cuenta.eliminarVerbo")} ${user?.display_name ?? ""}`.trim();
+  const matches = normalize(confirm) === normalize(phrase);
 
   const submitPassword = async (event: FormEvent) => {
     event.preventDefault();
@@ -58,12 +65,13 @@ export function CuentaCard() {
 
   const submitDelete = async (event: FormEvent) => {
     event.preventDefault();
+    if (!matches) return;
     setBusy(true);
     try {
-      await deleteAccount(current);
+      await deleteAccount(confirm);
       leave();
     } catch (err) {
-      setError(t(language, err instanceof ApiError && err.status === 401 ? "cuenta.claveIncorrecta" : "error.generico"));
+      setError(t(language, err instanceof ApiError && err.status === 403 ? "cuenta.fraseIncorrecta" : "error.generico"));
       setBusy(false);
     }
   };
@@ -91,9 +99,21 @@ export function CuentaCard() {
           {t(language, "cuenta.salirTodos")}
         </Button>
       </div>
-      <Button variant="peligro" icon={<Trash size={18} weight="bold" />} className="self-start" onClick={() => { reset(); setDeleteOpen(true); }}>
-        {t(language, "cuenta.borrar")}
-      </Button>
+
+      <div className="mt-1 flex flex-col gap-3 rounded-ficha bg-peligro-suave p-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-display text-body-lg font-bold text-peligro">{t(language, "cuenta.peligro.titulo")}</h3>
+          <p className="text-small font-bold text-peligro">{t(language, "cuenta.peligro.desc")}</p>
+        </div>
+        <Button
+          variant="secundario"
+          icon={<Trash size={18} weight="bold" />}
+          className="self-start text-peligro"
+          onClick={() => { reset(); setDeleteOpen(true); }}
+        >
+          {t(language, "cuenta.eliminar")}
+        </Button>
+      </div>
 
       <Dialog open={passwordOpen} onClose={() => setPasswordOpen(false)} title={t(language, "cuenta.clave")} closeLabel={t(language, "comun.cerrar")}>
         <form onSubmit={submitPassword} noValidate className="flex flex-col gap-4">
@@ -107,12 +127,13 @@ export function CuentaCard() {
         </form>
       </Dialog>
 
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={t(language, "cuenta.borrar")} description={t(language, "cuenta.borrarDesc")} closeLabel={t(language, "comun.cerrar")}>
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={t(language, "cuenta.eliminar")} description={t(language, "cuenta.borrarDesc")} closeLabel={t(language, "comun.cerrar")}>
         <form onSubmit={submitDelete} noValidate className="flex flex-col gap-4">
-          <Field label={t(language, "cuenta.borrarConfirma")} error={error}>
-            {(control) => <PasswordInput {...control} {...labels} autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />}
+          <p className="text-small font-bold text-ink-suave">{tf(language, "cuenta.eliminarConfirma", { frase: phrase })}</p>
+          <Field label={t(language, "cuenta.eliminarFrase")} error={error}>
+            {(control) => <Input {...control} autoComplete="off" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
           </Field>
-          <Button type="submit" variant="peligro" loading={busy} disabled={!current} fullWidth>{t(language, "cuenta.borrarBoton")}</Button>
+          <Button type="submit" variant="peligro" loading={busy} disabled={!matches} fullWidth>{t(language, "cuenta.eliminarBoton")}</Button>
           <Button variant="suave" fullWidth onClick={() => setDeleteOpen(false)}>{t(language, "cuenta.cancelar")}</Button>
         </form>
       </Dialog>

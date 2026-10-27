@@ -374,6 +374,35 @@ export async function getSymptoms(language: Language): Promise<SymptomInfo[]> {
   return response.json();
 }
 
+export interface SymptomAnalysis {
+  symptom_ids: string[];
+  severity: Record<string, number>;
+  guidance: string;
+  matched: { id: string; name: string; advice: string }[];
+  avoid_patterns: string[];
+  block_training: boolean;
+  absolute_contraindication: boolean;
+}
+
+/** POST /symptoms/analyze — free-text symptoms interpreted by the AI. */
+export async function analyzeSymptoms(options: {
+  text: string;
+  language: Language;
+  painLevel?: number;
+}): Promise<SymptomAnalysis> {
+  const response = await fetch(`${API_URL}/api/v1/symptoms/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      text: options.text,
+      language: options.language,
+      pain_level: options.painLevel ?? null,
+    }),
+  });
+  if (!response.ok) throw await apiError("symptom analysis", response);
+  return response.json();
+}
+
 export interface IntakeRecord {
   supplement_id: string;
   date: string;
@@ -508,6 +537,26 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return data.user as AuthUser;
 }
 
+/** POST /auth/google — exchanges a Google credential for our own JWT. */
+export async function googleLogin(payload: {
+  credential?: string;
+  accessToken?: string;
+}): Promise<AuthUser> {
+  const body = payload.credential
+    ? { credential: payload.credential }
+    : { access_token: payload.accessToken };
+  const response = await fetch(`${API_URL}/api/v1/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await apiError("google login", response);
+  const data = await response.json();
+  setToken(data.access_token);
+  signedInEmail = (data.user as AuthUser).email;
+  return data.user as AuthUser;
+}
+
 export async function getMe(): Promise<AuthUser | null> {
   if (!getToken()) return null;
   const response = await fetch(`${API_URL}/api/v1/account`, { headers: authHeaders() });
@@ -543,12 +592,12 @@ export async function logoutEverywhere(): Promise<void> {
   setToken(null);
 }
 
-/** DELETE /account — deletes the account and all its data (needs the current password). */
-export async function deleteAccount(password: string): Promise<void> {
+/** DELETE /account — deletes the account and all its data after the typed phrase. */
+export async function deleteAccount(confirm: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/v1/account`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ password: await hashPassword(ownEmail(), password) }),
+    body: JSON.stringify({ confirm }),
   });
   if (!response.ok) throw await apiError("delete account", response);
   setToken(null);
@@ -579,6 +628,7 @@ export interface MyProfile {
   symptoms?: string[];
   pain_levels?: Record<string, number>;
   symptom_notes?: string;
+  symptom_avoid_patterns?: string[];
   supplement_macros?: { supplement_id: string; macros: { protein_g: number; carbs_g: number; fat_g: number; kcal: number } }[];
   weight_unit?: string;
   photo_url?: string;
