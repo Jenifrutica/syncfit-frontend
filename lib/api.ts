@@ -87,6 +87,8 @@ export interface RoutineEntry {
   role?: string;
   description?: LocalizedText;
   how_to?: LocalizedText;
+  setup?: LocalizedText;
+  pregnancy_tip?: LocalizedText | null;
   tips?: LocalizedText[];
   image_url?: string;
   media_url?: string | null;
@@ -161,6 +163,9 @@ export interface CatalogItem {
   impact: string;
   image_url: string;
   media_url: string | null;
+  supine?: boolean;
+  setup?: LocalizedText | null;
+  pregnancy_tip?: LocalizedText | null;
 }
 
 export interface RoutineOptions {
@@ -847,6 +852,9 @@ export interface ExerciseVariant {
   image_url?: string | null;
   media_url?: string | null;
   variant_of?: string | null;
+  setup?: LocalizedText | null;
+  pregnancy_tip?: LocalizedText | null;
+  supine?: boolean;
 }
 
 export async function getExerciseVariants(exerciseId: string, language: Language): Promise<ExerciseVariant[]> {
@@ -995,6 +1003,9 @@ export interface ExerciseAlternative {
   available?: boolean;
   variant_of?: string | null;
   image_url?: string | null;
+  supine?: boolean;
+  setup?: LocalizedText | null;
+  pregnancy_tip?: LocalizedText | null;
 }
 
 export async function getExerciseAlternatives(exerciseId: string, language: Language): Promise<ExerciseAlternative[]> {

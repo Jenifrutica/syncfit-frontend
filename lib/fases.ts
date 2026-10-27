@@ -20,9 +20,9 @@ export const FASE_TOKEN: Record<Fase, string> = {
   FOLLICULAR: "folicular",
   OVULATORY: "ovulatoria",
   LUTEAL: "lutea",
-  TRIMESTER_1: "gestacion",
-  TRIMESTER_2: "gestacion",
-  TRIMESTER_3: "gestacion",
+  TRIMESTER_1: "gestacion-1",
+  TRIMESTER_2: "gestacion-2",
+  TRIMESTER_3: "gestacion-3",
 };
 
 /** Hex values for SVG fills (same values as app/tokens.css). */
@@ -32,8 +32,8 @@ export const FASE_COLOR: Record<Fase, { base: string; suave: string }> = {
   OVULATORY: { base: "#f7c75c", suave: "#fce6ae" },
   LUTEAL: { base: "#b9aceb", suave: "#e3dcfa" },
   TRIMESTER_1: { base: "#f6b48a", suave: "#fde1cf" },
-  TRIMESTER_2: { base: "#f6b48a", suave: "#fde1cf" },
-  TRIMESTER_3: { base: "#f6b48a", suave: "#fde1cf" },
+  TRIMESTER_2: { base: "#e7a9c9", suave: "#f7dbe8" },
+  TRIMESTER_3: { base: "#a9b8e8", suave: "#dbe1f7" },
 };
 
 const LABELS: Record<Language, Record<Fase, string>> = {

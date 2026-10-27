@@ -24,6 +24,8 @@ export type RoutineItem = {
   sets: SetPrescription[];
   description?: LocalizedText;
   howTo?: LocalizedText;
+  setup?: LocalizedText;
+  pregnancyTip?: LocalizedText;
   tips?: LocalizedText[];
   machineId?: string;
   machineName?: LocalizedText;
@@ -75,6 +77,8 @@ export function normalizeItem(raw: Record<string, unknown>, key: string): Routin
     sets,
     description: (raw.description as LocalizedText | undefined) ?? undefined,
     howTo: (raw.how_to as LocalizedText | undefined) ?? undefined,
+    setup: (raw.setup as LocalizedText | undefined) ?? undefined,
+    pregnancyTip: (raw.pregnancy_tip as LocalizedText | null | undefined) ?? undefined,
     tips: Array.isArray(raw.tips) ? (raw.tips as LocalizedText[]) : undefined,
     machineId: str(raw.machine_id) || undefined,
     machineName: (raw.machine_name as LocalizedText | undefined) ?? undefined,
@@ -115,7 +119,17 @@ export function editDose(item: RoutineItem, patch: Partial<Pick<RoutineItem, "se
 }
 
 /** Swaps the exercise (alternative, variant or catalog pick), keeping the dose. */
-export function swapExercise(item: RoutineItem, exercise: { id: string; name: string; image_url?: string | null; description?: LocalizedText }): RoutineItem {
+export function swapExercise(
+  item: RoutineItem,
+  exercise: {
+    id: string;
+    name: string;
+    image_url?: string | null;
+    description?: LocalizedText;
+    setup?: LocalizedText | null;
+    pregnancy_tip?: LocalizedText | null;
+  },
+): RoutineItem {
   return {
     ...item,
     exerciseId: exercise.id,
@@ -124,6 +138,8 @@ export function swapExercise(item: RoutineItem, exercise: { id: string; name: st
     mediaUrl: null,
     description: exercise.description ?? item.description,
     howTo: undefined,
+    setup: exercise.setup ?? undefined,
+    pregnancyTip: exercise.pregnancy_tip ?? undefined,
     tips: undefined,
     machineId: undefined,
     machineName: undefined,

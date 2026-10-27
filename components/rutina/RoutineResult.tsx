@@ -114,7 +114,7 @@ export function RoutineResult({ plan, language, onNew }: { plan: RoutinePlan; la
             <AnimatePresence initial>
               {plan.warmup.map((item, index) => (
                 <motion.li key={item.key} layout={!reduceMotion} {...enter(index)}>
-                  <ExerciseCard item={item} number={index + 1} language={language} onChange={() => setChangeKey(item.key)} onDetails={() => setDetailKey(item.key)} onUpdate={(next) => updateItem(item.key, () => next)} />
+                  <ExerciseCard item={item} number={index + 1} language={language} pregnant={fase?.startsWith("TRIMESTER")} onChange={() => setChangeKey(item.key)} onDetails={() => setDetailKey(item.key)} onUpdate={(next) => updateItem(item.key, () => next)} />
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -138,7 +138,7 @@ export function RoutineResult({ plan, language, onNew }: { plan: RoutinePlan; la
             <AnimatePresence initial>
               {plan.items.map((item, index) => (
                 <motion.li key={item.key} layout={!reduceMotion} {...enter(index + plan.warmup.length)}>
-                  <ExerciseCard item={item} number={index + 1} language={language} onChange={() => setChangeKey(item.key)} onDetails={() => setDetailKey(item.key)} onUpdate={(next) => updateItem(item.key, () => next)} />
+                  <ExerciseCard item={item} number={index + 1} language={language} pregnant={fase?.startsWith("TRIMESTER")} onChange={() => setChangeKey(item.key)} onDetails={() => setDetailKey(item.key)} onUpdate={(next) => updateItem(item.key, () => next)} />
                 </motion.li>
               ))}
             </AnimatePresence>

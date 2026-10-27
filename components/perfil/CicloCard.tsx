@@ -5,6 +5,7 @@ import { Drop } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { NumberStepper } from "@/components/ui/NumberStepper";
 import { useToast } from "@/components/ui/Toast";
@@ -15,6 +16,8 @@ import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
 const LOCALE = { ES: "es", EN: "en", ZH: "zh-CN" } as const;
+
+type Modality = "MENSTRUAL_CYCLE" | "GESTATIONAL";
 
 /** Flo's "log period": new last-period date and cycle length (or pregnancy week). */
 export function CicloCard() {
@@ -45,6 +48,43 @@ export function CicloCard() {
     }
   };
 
+  const changeModality = async (next: Modality) => {
+    if (!profile || profile.modality === next) return;
+    const patch: Record<string, unknown> =
+      next === "GESTATIONAL"
+        ? {
+            modality: next,
+            objective: "GESTATIONAL_HEALTH",
+            gestation_week: profile.gestation_week ?? profile.timeline?.week ?? week,
+          }
+        : {
+            modality: next,
+            objective: profile.objective === "GESTATIONAL_HEALTH" ? "HEALTH" : profile.objective,
+          };
+    setSaving(true);
+    try {
+      setProfile(await updateMyProfile(patch));
+      toast({ tone: "exito", title: t(language, "perfil.modalidad.actualizada"), closeLabel: t(language, "comun.cerrar") });
+    } catch {
+      toast({ tone: "error", title: t(language, "nutri.errorGuardar"), closeLabel: t(language, "comun.cerrar") });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const modalitySwitch = (
+    <Choice
+      legend={t(language, "perfil.modalidad.cambiar")}
+      variant="segmentado"
+      value={(profile?.modality as Modality | undefined) ?? "MENSTRUAL_CYCLE"}
+      onChange={(next) => void changeModality(next)}
+      options={[
+        { value: "MENSTRUAL_CYCLE", label: t(language, "perfil.modalidad.MENSTRUAL_CYCLE") },
+        { value: "GESTATIONAL", label: t(language, "perfil.modalidad.GESTATIONAL") },
+      ]}
+    />
+  );
+
   const last = profile?.last_period_date
     ? new Intl.DateTimeFormat(LOCALE[language], { day: "numeric", month: "long" }).format(fromISODate(profile.last_period_date))
     : null;
@@ -52,6 +92,7 @@ export function CicloCard() {
   if (pregnant) {
     return (
       <Card tone="fase-suave" className="flex flex-col gap-4">
+        {modalitySwitch}
         <h2 className="text-h3 font-bold">{t(language, "perfil.embarazo")}</h2>
         <NumberStepper id="perfil-semana" label={t(language, "perfil.embarazo.semana")} value={week} onChange={setWeek} min={1} max={42} unit={t(language, "onb.semana.unidad")} decreaseLabel={t(language, "comun.menos")} increaseLabel={t(language, "comun.mas")} />
         <Button onClick={() => void save({ gestation_week: week })} loading={saving} disabled={week === (profile?.gestation_week ?? profile?.timeline?.week)} className="self-start">
@@ -63,6 +104,7 @@ export function CicloCard() {
 
   return (
     <Card tone="fase-suave" className="flex flex-col gap-4">
+      {modalitySwitch}
       <h2 className="text-h3 font-bold">{t(language, "perfil.ciclo")}</h2>
       <p className="text-body font-bold">{last ? tf(language, "perfil.ciclo.ultimo", { fecha: last }) : t(language, "perfil.ciclo.sinFecha")}</p>
       <Button icon={<Drop size={18} weight="bold" />} onClick={() => { setDate(null); setOpen(true); }} className="self-start">

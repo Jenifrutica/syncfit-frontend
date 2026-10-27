@@ -12,7 +12,7 @@ import { Cloud } from "@/components/decor/Cloud";
 import { getStats } from "@/lib/api";
 import { currentFase } from "@/lib/cycle";
 import { todayISO } from "@/lib/dates";
-import { t, tf, type Language } from "@/lib/i18n";
+import { localized, t, tf, type Language } from "@/lib/i18n";
 import { useRoutine } from "@/lib/routine-context";
 import { useSession } from "@/lib/session";
 import { mmss, workoutSteps, type WorkoutStep } from "@/lib/workout";
@@ -152,6 +152,12 @@ export function WorkoutScreen() {
             {tf(language, "entreno.serie", { n: current.setNumber, total: current.setCount })} · {tf(language, "entreno.reps", { n: current.reps })}
             {current.weightKg > 0 ? ` · ${tf(language, "rutina.kg", { n: current.weightKg })}` : ""}
           </p>
+          {current.setup && <p className="max-w-sm text-small font-bold text-lavanda-texto">{localized(current.setup, language)}</p>}
+          {profile?.modality === "GESTATIONAL" && current.pregnancyTip && (
+            <p className="max-w-sm rounded-ficha bg-lavanda-noche px-3 py-2 text-small font-bold text-crema">
+              <span className="font-extrabold">{t(language, "detalle.embarazo")}:</span> {localized(current.pregnancyTip, language)}
+            </p>
+          )}
         </div>
 
         {phase === "serie" && (

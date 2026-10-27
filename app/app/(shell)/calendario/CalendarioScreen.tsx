@@ -146,7 +146,7 @@ export function CalendarioScreen() {
               ))}
             </ul>
             <ul className="grid grid-cols-2 gap-2 text-small font-bold">
-              {KINDS.map((kind) => {
+              {(pregnant ? KINDS.filter((kind) => kind !== "CYCLE" && kind !== "OVULATION") : KINDS).map((kind) => {
                 const KindIcon = KIND_ICON[kind];
                 return (
                   <li key={kind} className="flex items-center gap-2">

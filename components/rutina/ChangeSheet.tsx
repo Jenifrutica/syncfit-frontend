@@ -7,17 +7,27 @@ import { Badge } from "@/components/ui/Chip";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Field";
 import { Skeleton, SkeletonGroup } from "@/components/ui/States";
-import { getCatalog, getExerciseAlternatives, type CatalogItem, type ExerciseAlternative } from "@/lib/api";
+import { getCatalog, getExerciseAlternatives, type CatalogItem, type ExerciseAlternative, type LocalizedText } from "@/lib/api";
 import { t, type Language } from "@/lib/i18n";
 import type { RoutineItem } from "@/lib/routine";
+import { useSession } from "@/lib/session";
 
-export type ExercisePick = { id: string; name: string; image_url?: string | null; description?: Record<string, string> };
+export type ExercisePick = {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  description?: Record<string, string>;
+  setup?: LocalizedText | null;
+  pregnancy_tip?: LocalizedText | null;
+};
 
 /**
  * "Cambiar": ordered alternatives for the same movement (what's available at
  * the athlete's gym first), plus a search over the whole catalog.
  */
 export function ChangeSheet({ item, language, onClose, onPick }: { item: RoutineItem | null; language: Language; onClose: () => void; onPick: (pick: ExercisePick) => void }) {
+  const { profile } = useSession();
+  const blockSupine = profile?.modality === "GESTATIONAL" && (profile.timeline?.week ?? profile.gestation_week ?? 0) >= 16;
   const [alternatives, setAlternatives] = useState<ExerciseAlternative[] | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [query, setQuery] = useState("");
@@ -37,8 +47,11 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
   const results = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
     if (!q) return [];
-    return catalog.filter((c) => c.name.toLocaleLowerCase().includes(q) && c.id !== item?.exerciseId).slice(0, 8);
-  }, [catalog, query, item?.exerciseId]);
+    return catalog
+      .filter((c) => c.name.toLocaleLowerCase().includes(q) && c.id !== item?.exerciseId)
+      .filter((c) => !blockSupine || !c.supine)
+      .slice(0, 8);
+  }, [catalog, query, item?.exerciseId, blockSupine]);
 
   const option = (key: string, name: string, extra: React.ReactNode, pick: ExercisePick) => (
     <li key={key}>
@@ -68,11 +81,11 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
           <Skeleton className="h-14" />
           <Skeleton className="h-14" />
         </SkeletonGroup>
-      ) : alternatives.length === 0 ? (
+      ) : alternatives.filter((alt) => !blockSupine || !alt.supine).length === 0 ? (
         <p className="text-body text-ink-suave">{t(language, "cambiar.sinOpciones")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {alternatives.map((alt) =>
+          {alternatives.filter((alt) => !blockSupine || !alt.supine).map((alt) =>
             option(
               alt.id,
               alt.name,
@@ -81,7 +94,7 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
                   {t(language, "cambiar.disponible")}
                 </Badge>
               ) : null,
-              { id: alt.id, name: alt.name, image_url: alt.image_url },
+              { id: alt.id, name: alt.name, image_url: alt.image_url, setup: alt.setup, pregnancy_tip: alt.pregnancy_tip },
             ),
           )}
         </ul>
@@ -100,7 +113,7 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
             {results.length === 0 ? (
               <li className="text-small font-bold text-ink-suave">{t(language, "cambiar.sinResultados")}</li>
             ) : (
-              results.map((c) => option(`cat-${c.id}`, c.name, <span className="text-caption font-extrabold text-ink-suave">{c.equipment}</span>, { id: c.id, name: c.name, image_url: c.image_url, description: { en: c.description } }))
+              results.map((c) => option(`cat-${c.id}`, c.name, <span className="text-caption font-extrabold text-ink-suave">{c.equipment}</span>, { id: c.id, name: c.name, image_url: c.image_url, description: { en: c.description }, setup: c.setup, pregnancy_tip: c.pregnancy_tip }))
             )}
           </ul>
         )}

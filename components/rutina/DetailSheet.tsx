@@ -39,6 +39,7 @@ function DetailBody({
   onRemove,
 }: DetailProps & { item: RoutineItem }) {
   const { profile } = useSession();
+  const blockSupine = profile?.modality === "GESTATIONAL" && (profile.timeline?.week ?? profile.gestation_week ?? 0) >= 16;
   const [variants, setVariants] = useState<ExerciseVariant[]>([]);
   const [machineFactor, setMachineFactor] = useState<number | null>(null);
 
@@ -47,14 +48,14 @@ function DetailBody({
     setMachineFactor(null);
     if (!item?.exerciseId) return;
     getExerciseVariants(item.exerciseId, language)
-      .then((all) => setVariants(all.filter((v) => v.id !== item.exerciseId)))
+      .then((all) => setVariants(all.filter((v) => v.id !== item.exerciseId && (!blockSupine || !v.supine))))
       .catch(() => setVariants([]));
     if (item.machineId) {
       getJoinedGyms(language)
         .then((gyms) => setMachineFactor(gyms.flatMap((g) => g.machines).find((m) => m.id === item.machineId)?.weight_factor ?? null))
         .catch(() => setMachineFactor(null));
     }
-  }, [item, language]);
+  }, [item, language, blockSupine]);
 
   const baseline = profile?.loads.find((l) => l.exercise_id === item.exerciseId)?.weight_kg;
   const factor = machineFactor ?? 1;
@@ -135,6 +136,18 @@ function DetailBody({
             <strong>{t(language, "detalle.porque")}:</strong> {item.rationale}
           </span>
         </p>
+      )}
+      {item.setup && (
+        <section className="flex flex-col gap-1">
+          <h3 className="text-small font-extrabold">{t(language, "detalle.preparacion")}</h3>
+          <p className="text-body">{localized(item.setup, language)}</p>
+        </section>
+      )}
+      {profile?.modality === "GESTATIONAL" && item.pregnancyTip && (
+        <section className="flex flex-col gap-1 rounded-ficha bg-crema p-4">
+          <h3 className="text-small font-extrabold">{t(language, "detalle.embarazo")}</h3>
+          <p className="text-body">{localized(item.pregnancyTip, language)}</p>
+        </section>
       )}
       {item.howTo || item.description ? (
         <section className="flex flex-col gap-1">

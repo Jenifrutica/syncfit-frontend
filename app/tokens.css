@@ -32,6 +32,12 @@
   --color-lutea-suave: #e3dcfa;
   --color-gestacion: #f6b48a;
   --color-gestacion-suave: #fde1cf;
+  --color-gestacion-1: #f6b48a;
+  --color-gestacion-1-suave: #fde1cf;
+  --color-gestacion-2: #e7a9c9;
+  --color-gestacion-2-suave: #f7dbe8;
+  --color-gestacion-3: #a9b8e8;
+  --color-gestacion-3-suave: #dbe1f7;
 
   /* Status (always paired with an icon or label, never color alone) */
   --color-peligro: #8a2a25;
@@ -142,4 +148,6 @@
 [data-fase="FOLLICULAR"] { --fase: var(--color-folicular); --fase-suave: var(--color-folicular-suave); }
 [data-fase="OVULATORY"] { --fase: var(--color-ovulatoria); --fase-suave: var(--color-ovulatoria-suave); }
 [data-fase="LUTEAL"] { --fase: var(--color-lutea); --fase-suave: var(--color-lutea-suave); }
-[data-fase^="TRIMESTER"] { --fase: var(--color-gestacion); --fase-suave: var(--color-gestacion-suave); }
+[data-fase="TRIMESTER_1"] { --fase: var(--color-gestacion-1); --fase-suave: var(--color-gestacion-1-suave); }
+[data-fase="TRIMESTER_2"] { --fase: var(--color-gestacion-2); --fase-suave: var(--color-gestacion-2-suave); }
+[data-fase="TRIMESTER_3"] { --fase: var(--color-gestacion-3); --fase-suave: var(--color-gestacion-3-suave); }

@@ -1,11 +1,13 @@
 /** Flattens today's plan into the sets the guided workout walks through. */
 
-import type { SetPrescription } from "@/lib/api";
+import type { LocalizedText, SetPrescription } from "@/lib/api";
 import type { RoutineItem, RoutinePlan } from "@/lib/routine";
 
 export type WorkoutStep = {
   itemKey: string;
   name: string;
+  setup?: LocalizedText;
+  pregnancyTip?: LocalizedText;
   exerciseIndex: number;
   setType: SetPrescription["type"];
   setNumber: number;
@@ -29,6 +31,8 @@ export function workoutSteps(plan: RoutinePlan): WorkoutStep[] {
     return sets.map((set, i) => ({
       itemKey: item.key,
       name: item.name,
+      setup: item.setup,
+      pregnancyTip: item.pregnancyTip,
       exerciseIndex,
       setType: set.type,
       setNumber: i + 1,

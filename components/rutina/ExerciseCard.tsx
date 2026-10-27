@@ -16,6 +16,7 @@ export function ExerciseCard({
   item,
   number,
   language,
+  pregnant = false,
   onChange,
   onDetails,
   onUpdate,
@@ -23,6 +24,7 @@ export function ExerciseCard({
   item: RoutineItem;
   number: number;
   language: Language;
+  pregnant?: boolean;
   onChange: () => void;
   onDetails: () => void;
   onUpdate: (item: RoutineItem) => void;
@@ -90,6 +92,20 @@ export function ExerciseCard({
             )}
             {item.edited && <Badge tone="fase">{t(language, "rutina.editada")}</Badge>}
           </div>
+        )}
+
+        {item.setup && (
+          <p className="text-small font-bold text-ink-suave">
+            <span className="font-extrabold text-ink">{t(language, "detalle.preparacion")}:</span>{" "}
+            {localized(item.setup, language)}
+          </p>
+        )}
+
+        {pregnant && item.pregnancyTip && (
+          <p className="rounded-ficha bg-crema p-3 text-small font-bold">
+            <span className="font-extrabold">{t(language, "detalle.embarazo")}:</span>{" "}
+            {localized(item.pregnancyTip, language)}
+          </p>
         )}
 
         {editing && (
