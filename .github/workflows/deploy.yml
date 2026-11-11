@@ -1,0 +1,64 @@
+name: Deploy
+
+# Publica el export estático en el bucket S3 y limpia CloudFront.
+# Requiere los secretos del repositorio:
+#   AWS_ROLE_ARN               rol de OIDC con permiso de s3:* y cloudfront:*
+#   AWS_S3_BUCKET              bucket del sitio
+#   CLOUDFRONT_DISTRIBUTION_ID distribución que sirve syncfit.jenilarper.dev
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Upload HTML and assets
+        run: |
+          aws s3 sync out/ "s3://${{ secrets.AWS_S3_BUCKET }}" \
+            --delete \
+            --exclude "_next/static/*" \
+            --cache-control "public,max-age=0,must-revalidate"
+
+      - name: Upload immutable chunks
+        run: |
+          aws s3 sync out/_next/static "s3://${{ secrets.AWS_S3_BUCKET }}/_next/static" \
+            --cache-control "public,max-age=31536000,immutable"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"

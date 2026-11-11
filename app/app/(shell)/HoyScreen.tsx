@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Barbell, Drop, Flame, Heartbeat, Leaf, Moon, Plus, Sun, Target, type Icon } from "@phosphor-icons/react";
+import { Barbell, Drop, Fingerprint, Flame, Heartbeat, Leaf, Moon, Plus, Sun, Target, type Icon } from "@phosphor-icons/react";
 
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -17,6 +17,7 @@ import { NAV } from "@/components/app/AppShell";
 import { getCalendar, getStats, getSymptoms, type CalendarDay, type Stats, type SymptomInfo } from "@/lib/api";
 import { cycleSegments, currentFase, daysUntilPeriod, greetingKey, monthsOf, weekDates } from "@/lib/cycle";
 import { fromISODate, todayISO } from "@/lib/dates";
+import { isCheckinToday, readCheckin } from "@/lib/checkin";
 import { readEnergy } from "@/lib/energia";
 import { faseLabel, isFase } from "@/lib/fases";
 import { localized, t, tf, type Language } from "@/lib/i18n";
@@ -45,6 +46,7 @@ export function HoyScreen() {
   const [selectedDay, setSelectedDay] = useState(today);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [energy, setEnergy] = useState(() => (typeof window === "undefined" ? null : readEnergy(today)));
+  const [checkin, setCheckin] = useState(() => (typeof window === "undefined" ? null : readCheckin()));
 
   const week = useMemo(() => weekDates(today), [today]);
 
@@ -64,6 +66,13 @@ export function HoyScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const refresh = () => setCheckin(readCheckin());
+    refresh();
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
 
   const byDate = useMemo(() => new Map(calendar.map((day) => [day.date, day])), [calendar]);
   const fase = currentFase(timeline, calendar, today);
@@ -168,6 +177,27 @@ export function HoyScreen() {
             </div>
           </Card>
         )}
+
+        <Card className="flex items-center gap-3">
+          <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-fase-suave">
+            <Fingerprint size={22} weight="bold" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="font-display text-body font-bold">{t(language, "hoy.checkin.titulo")}</p>
+            <p className="text-small font-semibold text-ink-suave">
+              {isCheckinToday(checkin)
+                ? tf(language, "hoy.checkin.hecho", {
+                    bpm: checkin.bpm,
+                    kg: checkin.forceKg.toFixed(1),
+                    temp: checkin.tempC.toFixed(1),
+                  })
+                : t(language, "hoy.checkin.pendiente")}
+            </p>
+          </div>
+          <ButtonLink href="/app/checkin" variant="suave" size="sm">
+            {isCheckinToday(checkin) ? t(language, "rutina.checkin.repetir") : t(language, "hoy.checkin.boton")}
+          </ButtonLink>
+        </Card>
 
         <ButtonLink href={routineHref} size="lg" fullWidth icon={<Heartbeat size={22} weight="bold" />}>
           {t(language, "hoy.escanear")}

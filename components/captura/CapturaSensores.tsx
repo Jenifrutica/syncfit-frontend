@@ -1,172 +1,226 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle, HandPointing, Heartbeat, Thermometer, WaveTriangle } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, Barbell, Check, Fingerprint, Heartbeat, Thermometer } from "@phosphor-icons/react";
 
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
+import { saveCheckin } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
+import { t, tf } from "@/lib/i18n";
+import { useSession } from "@/lib/session";
 
 /**
- * Captura guiada de los tres sensores, paso a paso.
+ * Check-in guiado, un sensor por paso.
  *
- * Cada paso muestra a Pulsi con la zona resaltada y un hueco reservado para la
- * animación (ver `HuecoAnimacion`). Los valores llegan de `useSensores`, que hoy
- * simula; cuando el ESP32 esté conectado se cambia solo esa fuente.
+ * Cada paso muestra a Pulsi dentro de un lente circular. Un anillo alrededor
+ * del lente se llena mientras corre la toma, y sobre la zona exacta del sensor
+ * hay un punto con su icono (huella, flecha o termómetro). Al completarse el
+ * anillo aparece el visto y el flujo avanza solo al paso siguiente.
+ *
+ * Los valores vienen de `useSensores`. Hoy simula; cuando el ESP32 esté
+ * conectado se reemplaza el cuerpo de ese hook por la lectura del WebSocket.
+ * Al terminar, el resultado se guarda con `saveCheckin()`.
  */
 
 type Paso = 0 | 1 | 2;
+type Fase = "listo" | "midiendo" | "hecho";
 
-type Lectura = {
-  bpm: number | null;
-  fuerza: number | null;
-  temperatura: number | null;
-};
+const DURACION_MS = 2600;
+const ESPERA_VISTO_MS = 900;
+const LENTE = 240;
+const ANILLO = 264;
+const MASCOTA = 186;
 
-const PASOS: Array<{
-  id: Paso;
-  titulo: string;
-  instruccion: string;
-  detalle: string;
-  animacion: string;
-  icono: typeof Heartbeat;
-}> = [
+/** Punto de la zona en coordenadas del viewBox de Pulsi (160 × 170). */
+type Zona = { x: number; y: number };
+
+const PASOS = [
   {
-    id: 0,
-    titulo: "Pulso",
-    instruccion: "Apoya la yema del dedo en la panza de Pulsi",
-    detalle: "Cubre el aro completo y no muevas la mano 10 segundos.",
-    animacion: "Dedo bajando hasta el aro de la panza + aro que late",
+    id: 0 as Paso,
+    clave: "pulso",
     icono: Heartbeat,
+    sensor: Fingerprint,
+    unidad: "bpm",
+    final: 72,
+    desde: 58,
+    zona: { x: 80, y: 146 } as Zona,
   },
   {
-    id: 1,
-    titulo: "Fuerza",
-    instruccion: "Aprieta las alas de Pulsi",
-    detalle: "Aprieta 3 segundos y suelta despacio.",
-    animacion: "Alas comprimiéndose + barra de fuerza subiendo",
-    icono: WaveTriangle,
+    id: 1 as Paso,
+    clave: "fuerza",
+    icono: Barbell,
+    sensor: ArrowDown,
+    unidad: "kg",
+    final: 8.4,
+    desde: 0,
+    zona: { x: 80, y: 152 } as Zona,
   },
   {
-    id: 2,
-    titulo: "Temperatura",
-    instruccion: "Acerca la carita de Pulsi a tu frente",
-    detalle: "El sensor está en el ojo derecho de Pulsi. Mantenla 2 segundos.",
-    animacion: "Pulsi inclinándose + haz saliendo del ojo derecho",
+    id: 2 as Paso,
+    clave: "temperatura",
     icono: Thermometer,
+    sensor: Thermometer,
+    unidad: "°C",
+    final: 33.5,
+    desde: 31.6,
+    zona: { x: 66, y: 102 } as Zona,
   },
 ];
 
-function HuecoAnimacion({ texto }: { texto: string }) {
-  return (
-    <div className="relative flex min-h-20 items-center justify-center rounded-2xl border-2 border-dashed border-ink/20 bg-nube/40 px-4 py-3 text-center">
-      <span className="absolute left-3 top-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink/45">
-        Hueco de animación
-      </span>
-      <p className="mt-3 text-small font-semibold text-ink/60">{texto}</p>
-    </div>
-  );
+/** Convierte el punto de la zona al espacio del lente. */
+function enLente({ x, y }: Zona) {
+  const s = MASCOTA / 160;
+  const alto = (MASCOTA * 170) / 160;
+  return {
+    x: (LENTE - MASCOTA) / 2 + x * s,
+    y: (LENTE - alto) / 2 + y * s,
+  };
 }
 
-/** Aro punteado sobre la zona que hay que tocar. */
-function Zona({ x, y, rx, ry, activa }: { x: number; y: number; rx: number; ry: number; activa: boolean }) {
+/** Anillo de progreso que rodea el lente. */
+function Anillo({ progreso }: { progreso: number }) {
+  const r = ANILLO / 2 - 10;
+  const c = 2 * Math.PI * r;
   return (
-    <span
+    <svg
+      width={ANILLO}
+      height={ANILLO}
+      viewBox={`0 0 ${ANILLO} ${ANILLO}`}
+      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90"
       aria-hidden
-      className={cx(
-        "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-dashed transition-colors",
-        activa ? "border-ink/70 bg-lutea/25 animate-pulse" : "border-ink/25",
-      )}
-      style={{
-        left: `${(x / 160) * 100}%`,
-        top: `${(y / 170) * 100}%`,
-        width: `${(rx * 2) / 160 * 100}%`,
-        height: `${(ry * 2) / 170 * 100}%`,
-      }}
-    />
+    >
+      <circle cx={ANILLO / 2} cy={ANILLO / 2} r={r} fill="none" strokeWidth={9} className="stroke-ink/10" />
+      <circle
+        cx={ANILLO / 2}
+        cy={ANILLO / 2}
+        r={r}
+        fill="none"
+        strokeWidth={9}
+        strokeLinecap="round"
+        className="stroke-ink"
+        style={{
+          strokeDasharray: c,
+          strokeDashoffset: c * (1 - progreso),
+          opacity: progreso > 0.001 ? 1 : 0,
+        }}
+      />
+    </svg>
   );
 }
 
-function useSensores(simulando: boolean, paso: Paso) {
-  const [lectura, setLectura] = useState<Lectura>({ bpm: null, fuerza: null, temperatura: null });
-
-  useEffect(() => {
-    if (!simulando) return;
-    let tic = 0;
-    const id = window.setInterval(() => {
-      tic += 1;
-      setLectura((prev) => {
-        if (paso === 0) return { ...prev, bpm: 68 + Math.round(Math.sin(tic / 3) * 4) };
-        if (paso === 1) return { ...prev, fuerza: Math.min(9.5, 1.2 + tic * 0.9) };
-        return { ...prev, temperatura: 33.4 + Math.sin(tic / 4) * 0.3 };
-      });
-    }, 220);
-    return () => window.clearInterval(id);
-  }, [simulando, paso]);
-
-  return lectura;
+/** Fuente de datos: hoy simulada, mañana WebSocket del ESP32. */
+function useSensores(fase: Fase, progreso: number, paso: (typeof PASOS)[number]) {
+  return useMemo(() => {
+    if (fase === "listo") return null;
+    const f = fase === "hecho" ? 1 : progreso;
+    const v = paso.desde + (paso.final - paso.desde) * f;
+    return paso.unidad === "bpm" ? Math.round(v) : Number(v.toFixed(1));
+  }, [fase, progreso, paso]);
 }
 
-export function CapturaSensores() {
+export function CapturaSensores({ onDone }: { onDone?: () => void }) {
+  const { language } = useSession();
   const [paso, setPaso] = useState<Paso>(0);
-  const [simulando, setSimulando] = useState(false);
+  const [fase, setFase] = useState<Fase>("listo");
+  const [progreso, setProgreso] = useState(0);
   const [terminado, setTerminado] = useState(false);
-  const lectura = useSensores(simulando && !terminado, paso);
+  const [resultados, setResultados] = useState<number[]>([]);
+  const raf = useRef<number | null>(null);
 
   const actual = PASOS[paso];
   const Icono = actual.icono;
+  const Sensor = actual.sensor;
+  const valor = useSensores(fase, progreso, actual);
+  const centro = enLente(actual.zona);
 
-  const valor = useMemo(() => {
-    if (paso === 0) return lectura.bpm ? `${lectura.bpm} bpm` : "—";
-    if (paso === 1) return lectura.fuerza ? `${lectura.fuerza.toFixed(1)} kg` : "—";
-    return lectura.temperatura ? `${lectura.temperatura.toFixed(1)} °C` : "—";
-  }, [paso, lectura]);
+  const etiqueta = (clave: string) => t(language, `captura.${clave}`);
 
-  const listo = paso === 0 ? lectura.bpm !== null : paso === 1 ? lectura.fuerza !== null : lectura.temperatura !== null;
+  useEffect(() => {
+    if (fase !== "midiendo") return;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / DURACION_MS);
+      setProgreso(p);
+      if (p < 1) raf.current = requestAnimationFrame(tick);
+      else setFase("hecho");
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [fase]);
 
-  const avanzar = useCallback(() => {
-    if (!listo) return;
-    if (paso < 2) {
-      setPaso((p) => (p + 1) as Paso);
-      setSimulando(false);
-    } else {
-      setTerminado(true);
-    }
-  }, [listo, paso]);
+  useEffect(() => {
+    if (fase !== "hecho") return;
+    const id = window.setTimeout(() => {
+      setResultados((r) => [...r, actual.final]);
+      if (paso < 2) {
+        setPaso((p) => (p + 1) as Paso);
+        setProgreso(0);
+        setFase("listo");
+      } else {
+        saveCheckin({ bpm: PASOS[0].final, forceKg: PASOS[1].final, tempC: PASOS[2].final });
+        setTerminado(true);
+      }
+    }, ESPERA_VISTO_MS);
+    return () => window.clearTimeout(id);
+  }, [fase, paso, actual.final]);
+
+  const medir = useCallback(() => {
+    setProgreso(0);
+    setFase("midiendo");
+  }, []);
+
+  const reiniciar = useCallback(() => {
+    setTerminado(false);
+    setResultados([]);
+    setPaso(0);
+    setProgreso(0);
+    setFase("listo");
+  }, []);
 
   if (terminado) {
+    const pulso = resultados[0] ?? PASOS[0].final;
+    const fuerza = resultados[1] ?? PASOS[1].final;
+    const temperatura = resultados[2] ?? PASOS[2].final;
     return (
       <Card tone="fase-suave" padding="lg" className="mx-auto w-full max-w-lg">
         <div className="flex items-center gap-3">
-          <CheckCircle size={32} weight="fill" className="text-ink" />
+          <span className="motion-safe:animate-entrar-visto grid size-12 place-items-center rounded-full bg-ink text-nube">
+            <Check size={26} weight="bold" />
+          </span>
           <div>
-            <h2 className="font-display text-h3 font-bold text-ink">Listo</h2>
-            <p className="text-small text-ink/70">Ya tenemos tus tres lecturas.</p>
+            <h2 className="font-display text-h3 font-bold text-ink">{t(language, "captura.final")}</h2>
+            <p className="text-small text-ink/70">{t(language, "captura.finalTexto")}</p>
           </div>
         </div>
+
         <dl className="mt-6 grid grid-cols-3 gap-3 text-center">
           {[
-            ["Pulso", `${lectura.bpm ?? 72} bpm`],
-            ["Fuerza", `${(lectura.fuerza ?? 8.4).toFixed(1)} kg`],
-            ["Temp.", `${(lectura.temperatura ?? 33.5).toFixed(1)} °C`],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-2xl bg-nube/70 px-2 py-4">
+            [etiqueta("pulso"), `${pulso} bpm`],
+            [etiqueta("fuerza"), `${Number(fuerza).toFixed(1)} kg`],
+            [etiqueta("temperaturaCorta"), `${Number(temperatura).toFixed(1)} °C`],
+          ].map(([k, v], i) => (
+            <div
+              key={k}
+              className="motion-safe:animate-entrar-tarjeta rounded-2xl bg-nube/70 px-2 py-4"
+              style={{ animationDelay: `${i * 70}ms` }}
+            >
               <dt className="text-[11px] font-bold uppercase tracking-wide text-ink/50">{k}</dt>
-              <dd className="mt-1 font-display text-body-lg font-bold text-ink">{v}</dd>
+              <dd className="mt-1 font-display text-body-lg font-bold tabular-nums text-ink">{v}</dd>
             </div>
           ))}
         </dl>
-        <Button
-          className="mt-6"
-          fullWidth
-          onClick={() => {
-            setTerminado(false);
-            setPaso(0);
-            setSimulando(false);
-          }}
-        >
-          Repetir
+
+        {onDone && (
+          <Button className="mt-6" fullWidth size="lg" onClick={onDone}>
+            {t(language, "captura.continuar")}
+          </Button>
+        )}
+        <Button className={cx(onDone ? "mt-2" : "mt-6")} variant="secundario" fullWidth onClick={reiniciar}>
+          {t(language, "captura.repetir")}
         </Button>
       </Card>
     );
@@ -174,13 +228,12 @@ export function CapturaSensores() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
-      {/* progreso */}
-      <div className="flex items-center gap-2" aria-label="Progreso">
+      <div className="flex items-center gap-2" aria-hidden>
         {PASOS.map((p, i) => (
           <span
             key={p.id}
             className={cx(
-              "h-1.5 flex-1 rounded-full transition-colors duration-300",
+              "h-1.5 flex-1 rounded-full transition-colors duration-300 ease-[var(--ease-salida)]",
               i < paso ? "bg-ink" : i === paso ? "bg-ink/70" : "bg-ink/15",
             )}
           />
@@ -190,53 +243,100 @@ export function CapturaSensores() {
       <Card className="overflow-hidden" padding="lg">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-ink/50">
-            Paso {paso + 1} de 3
+            {tf(language, "captura.paso", { n: paso + 1 })}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rosa-claro px-3 py-1 text-small font-bold text-ink">
             <Icono size={15} weight="bold" />
-            {actual.titulo}
+            {etiqueta(actual.clave)}
           </span>
         </div>
 
-        <h2 className="mt-3 font-display text-h3 font-bold leading-tight text-ink">{actual.instruccion}</h2>
-        <p className="mt-1 text-small text-ink/65">{actual.detalle}</p>
+        {/* Lente con Pulsi, punto del sensor y anillo de progreso */}
+        <div className="relative mx-auto mt-4 max-[380px]:scale-90" style={{ width: ANILLO, height: ANILLO }}>
+          <div
+            key={paso}
+            className="motion-safe:animate-entrar-lente absolute left-1/2 top-1/2 overflow-hidden rounded-full bg-fase-suave"
+            style={{ width: LENTE, height: LENTE, marginLeft: -LENTE / 2, marginTop: -LENTE / 2 }}
+          >
+            {paso === 1 && (
+              <span
+                className="absolute rounded-[10px] bg-[#6B4A2F] shadow-[0_4px_0_#523a25]"
+                style={{ left: 34, width: LENTE - 68, top: 206, height: 18 }}
+                aria-hidden
+              />
+            )}
 
-        {/* Pulsi con la zona marcada */}
-        <div className="relative mx-auto mt-5 w-[210px]">
-          <Pulsi mood="feliz" size={210} wings animated />
-          {paso === 0 && <Zona x={80} y={136} rx={24} ry={17} activa={simulando} />}
-          {paso === 1 && (
-            <>
-              <Zona x={24} y={96} rx={24} ry={15} activa={simulando} />
-              <Zona x={136} y={96} rx={24} ry={15} activa={simulando} />
-            </>
+            <div
+              className={cx(
+                "absolute inset-0 grid place-items-center transition-transform duration-300 ease-[var(--ease-salida)]",
+                fase === "midiendo" && paso === 1 && "translate-y-[5px]",
+              )}
+            >
+              <Pulsi mood="feliz" size={MASCOTA} wings />
+            </div>
+
+            {/* Punto del sensor, sobre la zona exacta */}
+            <span
+              className={cx(
+                "absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full",
+                "transition-transform duration-300 ease-[var(--ease-salida)]",
+                paso === 2
+                  ? "size-11 bg-transparent ring-2 ring-ink/30"
+                  : "size-10 bg-nube/70 ring-1 ring-ink/15 shadow-[0_2px_8px_-2px_rgb(42_29_101_/_0.35)]",
+                fase === "listo" && "motion-safe:animate-latir",
+                fase === "midiendo" && "scale-105",
+              )}
+              style={{ left: centro.x, top: centro.y }}
+              aria-hidden
+            >
+              {paso === 2 ? (
+                <span className="absolute -left-2 -top-2 grid size-[26px] place-items-center rounded-full bg-nube text-ink/70 ring-1 ring-ink/10 shadow-[0_2px_8px_-2px_rgb(42_29_101_/_0.35)]">
+                  <Sensor size={13} weight="bold" />
+                </span>
+              ) : (
+                <Sensor size={20} weight="bold" className="text-ink/70" />
+              )}
+            </span>
+          </div>
+
+          {fase === "hecho" && (
+            <span
+              className="motion-safe:animate-entrar-visto absolute z-10 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-4 border-nube bg-ink text-nube shadow-[var(--shadow-boton)]"
+              style={{ left: ANILLO / 2 + 88, top: ANILLO / 2 + 88 }}
+            >
+              <Check size={22} weight="bold" />
+            </span>
           )}
-          {paso === 2 && <Zona x={66} y={102} rx={15} ry={15} activa={simulando} />}
+
+          <Anillo progreso={progreso} />
         </div>
 
-        {/* lectura */}
-        <div className="mt-2 flex items-center justify-between rounded-2xl bg-crema px-4 py-3">
-          <span className="text-small font-semibold text-ink/60">Lectura</span>
-          <span className={cx("font-display text-body-lg font-bold tabular-nums", listo ? "text-ink" : "text-ink/30")}>
-            {valor}
+        <h2 className="mt-5 text-center font-display text-h3 font-bold leading-tight text-ink">
+          {etiqueta(`instruccion.${actual.clave}`)}
+        </h2>
+        <p className="mt-1 text-center text-small text-ink/65">{etiqueta(`detalle.${actual.clave}`)}</p>
+
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-crema px-4 py-3">
+          <span className="text-small font-semibold text-ink/60">{etiqueta(actual.clave)}</span>
+          <span
+            className={cx(
+              "font-display text-body-lg font-bold tabular-nums",
+              valor !== null ? "text-ink" : "text-ink/30",
+            )}
+          >
+            {valor !== null ? `${valor} ${actual.unidad}` : "—"}
           </span>
         </div>
 
-        <HuecoAnimacion texto={actual.animacion} />
-
-        <div className="mt-4 flex gap-2">
-          <Button variant="suave" onClick={() => setSimulando(true)} disabled={simulando}>
-            {simulando ? "Leyendo…" : "Simular lectura"}
-          </Button>
-          <Button fullWidth onClick={avanzar} disabled={!listo}>
-            {paso === 2 ? "Terminar" : "Continuar"}
-          </Button>
-        </div>
+        <Button className="mt-4" fullWidth size="lg" onClick={medir} disabled={fase !== "listo"}>
+          {fase === "listo" ? t(language, "captura.medir") : fase === "midiendo" ? t(language, "captura.midiendo") : t(language, "captura.hecho")}
+        </Button>
+        <p className="sr-only" role="status" aria-live="polite">
+          {fase === "midiendo" ? tf(language, "captura.estadoMidiendo", { sensor: etiqueta(actual.clave) }) : fase === "hecho" ? tf(language, "captura.estadoListo", { sensor: etiqueta(actual.clave) }) : ""}
+        </p>
       </Card>
 
-      <p className="text-center text-[11px] text-ink/45">
-        Cuando el prototipo esté conectado, estos valores llegan del ESP32 por WebSocket. El botón de simular desaparece.
-      </p>
+      <p className="text-center text-[11px] text-ink/45">{t(language, "captura.aviso")}</p>
     </div>
   );
 }
