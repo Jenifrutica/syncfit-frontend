@@ -194,7 +194,7 @@ export function HoyScreen() {
                 : t(language, "hoy.checkin.pendiente")}
             </p>
           </div>
-          <ButtonLink href="/app/checkin" variant="suave" size="sm">
+          <ButtonLink href={routineHref} variant="suave" size="sm">
             {isCheckinToday(checkin) ? t(language, "rutina.checkin.repetir") : t(language, "hoy.checkin.boton")}
           </ButtonLink>
         </Card>

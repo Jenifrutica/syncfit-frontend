@@ -8,10 +8,13 @@
 
 import { todayISO } from "@/lib/dates";
 
-export type Checkin = {
+export type SensorValues = {
   bpm: number;
   forceKg: number;
   tempC: number;
+};
+
+export type Checkin = SensorValues & {
   /** ISO timestamp of the measurement. */
   at: string;
 };
@@ -38,7 +41,7 @@ export function readCheckin(): Checkin | null {
   }
 }
 
-export function saveCheckin(values: Omit<Checkin, "at">): Checkin {
+export function saveCheckin(values: SensorValues): Checkin {
   const record: Checkin = { ...values, at: new Date().toISOString() };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(record));

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Barbell, Check, Fingerprint, Heartbeat, Thermometer } from "@phosphor-icons/react";
+import { ArrowDown, Barbell, Check, Fingerprint, Heartbeat, Play, Thermometer } from "@phosphor-icons/react";
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
-import { saveCheckin } from "@/lib/checkin";
+import { saveCheckin, type Checkin } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
 import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -28,6 +28,9 @@ type Paso = 0 | 1 | 2;
 type Fase = "listo" | "midiendo" | "hecho";
 
 const DURACION_MS = 2600;
+/** Simulated run: fast enough to keep the demo moving, slow enough to see the ring. */
+const SIMULACION_MS = 700;
+const ESPERA_SIMULADA_MS = 350;
 const ESPERA_VISTO_MS = 900;
 const LENTE = 240;
 const ANILLO = 264;
@@ -120,13 +123,23 @@ function useSensores(fase: Fase, progreso: number, paso: (typeof PASOS)[number])
   }, [fase, progreso, paso]);
 }
 
-export function CapturaSensores({ onDone }: { onDone?: () => void }) {
+type CapturaProps = {
+  /** Final CTA on the standalone screen (demo / check-in page). */
+  onDone?: () => void;
+  /** Called when the three readings are done; the routine uses it to start generating. */
+  onComplete?: (values: Checkin) => void;
+  /** Leaves the flow (only shown when provided). */
+  onCancel?: () => void;
+};
+
+export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) {
   const { language } = useSession();
   const [paso, setPaso] = useState<Paso>(0);
   const [fase, setFase] = useState<Fase>("listo");
   const [progreso, setProgreso] = useState(0);
   const [terminado, setTerminado] = useState(false);
   const [resultados, setResultados] = useState<number[]>([]);
+  const [modo, setModo] = useState<"manual" | "simulado">("manual");
   const raf = useRef<number | null>(null);
 
   const actual = PASOS[paso];
@@ -139,9 +152,10 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
 
   useEffect(() => {
     if (fase !== "midiendo") return;
+    const duracion = modo === "simulado" ? SIMULACION_MS : DURACION_MS;
     const t0 = performance.now();
     const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / DURACION_MS);
+      const p = Math.min(1, (now - t0) / duracion);
       setProgreso(p);
       if (p < 1) raf.current = requestAnimationFrame(tick);
       else setFase("hecho");
@@ -150,10 +164,11 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, [fase]);
+  }, [fase, modo]);
 
   useEffect(() => {
     if (fase !== "hecho") return;
+    const espera = modo === "simulado" ? ESPERA_SIMULADA_MS : ESPERA_VISTO_MS;
     const id = window.setTimeout(() => {
       setResultados((r) => [...r, actual.final]);
       if (paso < 2) {
@@ -161,14 +176,31 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
         setProgreso(0);
         setFase("listo");
       } else {
-        saveCheckin({ bpm: PASOS[0].final, forceKg: PASOS[1].final, tempC: PASOS[2].final });
-        setTerminado(true);
+        const record = saveCheckin({ bpm: PASOS[0].final, forceKg: PASOS[1].final, tempC: PASOS[2].final });
+        if (onComplete) onComplete(record);
+        else setTerminado(true);
       }
-    }, ESPERA_VISTO_MS);
+    }, espera);
     return () => window.clearTimeout(id);
-  }, [fase, paso, actual.final]);
+  }, [fase, paso, actual.final, modo, onComplete]);
+
+  // A simulated run advances on its own: each new step starts measuring after a beat.
+  useEffect(() => {
+    if (modo !== "simulado" || terminado || fase !== "listo") return;
+    const id = window.setTimeout(() => {
+      setProgreso(0);
+      setFase("midiendo");
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [modo, fase, terminado]);
 
   const medir = useCallback(() => {
+    setProgreso(0);
+    setFase("midiendo");
+  }, []);
+
+  const simular = useCallback(() => {
+    setModo("simulado");
     setProgreso(0);
     setFase("midiendo");
   }, []);
@@ -176,6 +208,7 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
   const reiniciar = useCallback(() => {
     setTerminado(false);
     setResultados([]);
+    setModo("manual");
     setPaso(0);
     setProgreso(0);
     setFase("listo");
@@ -228,6 +261,16 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="self-start rounded-full px-2 py-1 text-small font-extrabold text-ink-suave hover:bg-rosa-claro"
+        >
+          {t(language, "captura.volver")}
+        </button>
+      )}
+
       <div className="flex items-center gap-2" aria-hidden>
         {PASOS.map((p, i) => (
           <span
@@ -331,6 +374,18 @@ export function CapturaSensores({ onDone }: { onDone?: () => void }) {
         <Button className="mt-4" fullWidth size="lg" onClick={medir} disabled={fase !== "listo"}>
           {fase === "listo" ? t(language, "captura.medir") : fase === "midiendo" ? t(language, "captura.midiendo") : t(language, "captura.hecho")}
         </Button>
+
+        {fase === "listo" && (
+          <Button
+            className="mt-2"
+            variant="fantasma"
+            fullWidth
+            icon={<Play size={16} weight="bold" />}
+            onClick={simular}
+          >
+            {t(language, "captura.simular")}
+          </Button>
+        )}
         <p className="sr-only" role="status" aria-live="polite">
           {fase === "midiendo" ? tf(language, "captura.estadoMidiendo", { sensor: etiqueta(actual.clave) }) : fase === "hecho" ? tf(language, "captura.estadoListo", { sensor: etiqueta(actual.clave) }) : ""}
         </p>

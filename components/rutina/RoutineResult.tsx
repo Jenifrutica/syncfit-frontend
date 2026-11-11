@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowCounterClockwise, Play, ShieldCheck, Warning } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, Fingerprint, Play, ShieldCheck, Warning } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -21,7 +21,24 @@ import { useRoutine } from "@/lib/routine-context";
 
 type AssessmentInfo = { autonomic_status?: string; articular_risk_pct?: number; contraindicated_patterns?: string[] };
 
-export function RoutineResult({ plan, language, onNew }: { plan: RoutinePlan; language: Language; onNew: () => void }) {
+const HORA: Record<Language, Intl.DateTimeFormat> = {
+  ES: new Intl.DateTimeFormat("es", { hour: "2-digit", minute: "2-digit" }),
+  EN: new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit" }),
+  ZH: new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+};
+
+export function RoutineResult({
+  plan,
+  language,
+  onNew,
+  onRecapture,
+}: {
+  plan: RoutinePlan;
+  language: Language;
+  onNew: () => void;
+  /** Reopens the sensor capture (optional: only the routine flow offers it). */
+  onRecapture?: () => void;
+}) {
   const { updateItem, removeItem } = useRoutine();
   const reduceMotion = useReducedMotion();
   const [changeKey, setChangeKey] = useState<string | null>(null);
@@ -45,9 +62,45 @@ export function RoutineResult({ plan, language, onNew }: { plan: RoutinePlan; la
     transition: { duration: DUR.panel, ease: EASE.salida, delay: reduceMotion ? 0 : index * CASCADA },
   });
 
+  const sensores = plan.sensores;
+  const tomado = sensores ? new Date(sensores.at) : null;
+  const hora = tomado && !Number.isNaN(tomado.getTime()) ? HORA[language].format(tomado) : null;
+
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-h1 font-bold">{t(language, "rutina.titulo")}</h1>
+
+      {sensores && (
+        <Card tone="fase-suave" className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-nube/70 text-ink">
+              <Fingerprint size={20} weight="bold" />
+            </span>
+            <p className="min-w-0 flex-1 font-display text-body font-bold">
+              {hora
+                ? tf(language, "rutina.sensores.tituloHora", { hora })
+                : t(language, "rutina.checkin.titulo")}
+            </p>
+            {onRecapture && (
+              <Button variant="secundario" size="sm" onClick={onRecapture}>
+                {t(language, "rutina.checkin.repetir")}
+              </Button>
+            )}
+          </div>
+          <dl className="grid grid-cols-3 gap-2 text-center">
+            {[
+              [t(language, "captura.pulso"), `${sensores.bpm} bpm`],
+              [t(language, "captura.fuerza"), `${sensores.forceKg.toFixed(1)} kg`],
+              [t(language, "captura.temperaturaCorta"), `${sensores.tempC.toFixed(1)} °C`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-nube/70 px-2 py-3">
+                <dt className="text-[11px] font-bold uppercase tracking-wide text-ink/50">{label}</dt>
+                <dd className="mt-0.5 font-display text-body-lg font-bold tabular-nums text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
 
       <Card tone="tinta" className="flex flex-col gap-3">
         <div className="flex items-center gap-4">

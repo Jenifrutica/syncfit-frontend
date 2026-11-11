@@ -6,6 +6,7 @@
  */
 
 import type { CaptureResult, LocalizedText, SetPrescription } from "@/lib/api";
+import type { Checkin } from "@/lib/checkin";
 
 export type RoutineItem = {
   key: string;
@@ -42,6 +43,8 @@ export type RoutineSummary = Omit<CaptureResult, "warmup" | "routine">;
 export type RoutinePlan = {
   /** Local date the routine was captured (YYYY-MM-DD); stale plans are dropped. */
   date: string;
+  /** Sensor check-in taken right before this routine was generated. */
+  sensores?: Checkin;
   summary: RoutineSummary;
   warmup: RoutineItem[];
   items: RoutineItem[];
