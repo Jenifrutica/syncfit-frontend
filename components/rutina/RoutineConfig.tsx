@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Fingerprint, Heartbeat, Info } from "@phosphor-icons/react";
+import { Heartbeat, Info } from "@phosphor-icons/react";
 
-import { Button, ButtonLink } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Choice } from "@/components/ui/Choice";
@@ -11,7 +11,6 @@ import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { FeelingSheet } from "@/components/hoy/FeelingSheet";
 import { getSymptoms, type EnergyLevel, type SymptomInfo } from "@/lib/api";
-import { isCheckinToday, readCheckin } from "@/lib/checkin";
 import { readEnergy, saveEnergy } from "@/lib/energia";
 import { t, tf } from "@/lib/i18n";
 import { useOptions } from "@/lib/options";
@@ -49,7 +48,6 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
   const [symptoms, setSymptoms] = useState<SymptomInfo[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [checkin] = useState(() => (typeof window === "undefined" ? null : readCheckin()));
 
   useEffect(() => {
     const last = lastConfig();
@@ -101,31 +99,6 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
         </SpeechBubble>
       </div>
       <h1 className="text-h1 font-bold">{t(language, "rutina.titulo")}</h1>
-
-      <Card className="flex items-center gap-3">
-        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-fase-suave">
-          <Fingerprint size={22} weight="bold" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <p className="font-display text-body font-bold">{t(language, "rutina.checkin.titulo")}</p>
-          <p className="text-small font-semibold text-ink-suave">
-            {isCheckinToday(checkin)
-              ? tf(language, "rutina.checkin.hecho", {
-                  bpm: checkin.bpm,
-                  kg: checkin.forceKg.toFixed(1),
-                  temp: checkin.tempC.toFixed(1),
-                })
-              : t(language, "rutina.checkin.pendiente")}
-          </p>
-        </div>
-        <ButtonLink
-          href="/app/checkin"
-          variant={isCheckinToday(checkin) ? "secundario" : "suave"}
-          size="sm"
-        >
-          {isCheckinToday(checkin) ? t(language, "rutina.checkin.repetir") : t(language, "rutina.checkin.boton")}
-        </ButtonLink>
-      </Card>
 
       <Card id="grupos" className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between gap-3">
