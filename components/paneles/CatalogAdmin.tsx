@@ -1,0 +1,404 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { MagnifyingGlass, PencilSimple, Plus, Power } from "@phosphor-icons/react";
+
+import { Badge } from "@/components/ui/Chip";
+import { Button, IconButton } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Choice } from "@/components/ui/Choice";
+import { Dialog } from "@/components/ui/Dialog";
+import { Field, Input, Select, TextArea } from "@/components/ui/Field";
+import {
+  ApiError,
+  deactivateAdminOption,
+  listAdminCatalog,
+  listAdminOptions,
+  saveAdminCatalogItem,
+  saveAdminOption,
+  setAdminCatalogActive,
+  updateAdminOption,
+  type AdminCatalogItem,
+  type AdminOption,
+  type CatalogKind,
+  type OptionCategory,
+} from "@/lib/api";
+import { t, type Language } from "@/lib/i18n";
+
+type Section = "options" | CatalogKind;
+
+const SECTIONS: { value: Section; key: string }[] = [
+  { value: "options", key: "super.cat.opciones" },
+  { value: "exercise", key: "super.cat.ejercicios" },
+  { value: "machine", key: "super.cat.maquinas" },
+  { value: "symptom", key: "super.cat.sintomas" },
+  { value: "supplement", key: "super.cat.suplementos" },
+];
+
+const CATEGORIES: OptionCategory[] = ["muscle_group_isolated", "muscle_group_general", "objective", "goal_phase"];
+
+const TEMPLATES: Record<CatalogKind, Record<string, unknown>> = {
+  exercise: {
+    id: "",
+    name: { en: "", es: "", zh: "" },
+    muscle_groups: [],
+    equipment: "machine",
+    impact: "LOW",
+    description: { en: "", es: "", zh: "" },
+    image_url: "https://placehold.co/600x400",
+    role: "MAIN",
+    compound: false,
+    movement_pattern: "",
+    required_equipment: ["machine"],
+  },
+  machine: { id: "", name: { en: "", es: "", zh: "" }, type: "MACHINE", unit: "kg", weight_factor: 1, exercises: [], notes: { en: "" } },
+  symptom: { id: "", name: { en: "", es: "", zh: "" }, block_training: false },
+  supplement: { id: "", name: { en: "", es: "", zh: "" }, category: "", dosage: "", frequency: "", objectives: [], safety_general: "", safety_pregnancy: "", notes: "" },
+};
+
+type OptionDraft = {
+  id: string | null;
+  category: OptionCategory;
+  value: string;
+  en: string;
+  es: string;
+  zh: string;
+  sort: string;
+  active: boolean;
+};
+
+type CatalogDraft = { kind: CatalogKind; id: string | null; text: string };
+
+function detailText(error: unknown): string {
+  if (!(error instanceof ApiError)) return "";
+  const detail = error.detail as unknown;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const entry = item as { loc?: unknown[]; msg?: string };
+        const loc = Array.isArray(entry.loc) ? entry.loc.join(".") : "";
+        return [loc, entry.msg].filter(Boolean).join(": ");
+      })
+      .join(" · ");
+  }
+  return detail ? JSON.stringify(detail) : "";
+}
+
+function itemName(item: AdminCatalogItem, language: Language): string {
+  const name = (item.payload as { name?: unknown }).name;
+  if (typeof name === "string") return name;
+  if (name && typeof name === "object") {
+    const entries = name as Record<string, string>;
+    return entries[language.toLowerCase()] ?? entries.en ?? item.id;
+  }
+  return item.id;
+}
+
+export function CatalogAdmin({ language, say }: { language: Language; say: (title: string, tone?: "exito" | "error") => void }) {
+  const [section, setSection] = useState<Section>("options");
+  const [options, setOptions] = useState<AdminOption[] | null>(null);
+  const [items, setItems] = useState<AdminCatalogItem[] | null>(null);
+  const [query, setQuery] = useState("");
+  const [optionDraft, setOptionDraft] = useState<OptionDraft | null>(null);
+  const [catalogDraft, setCatalogDraft] = useState<CatalogDraft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      if (section === "options") setOptions(await listAdminOptions());
+      else setItems(await listAdminCatalog(section));
+    } catch {
+      say(t(language, "super.error"), "error");
+    }
+  }, [section, language, say]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const search = query.trim().toLowerCase();
+  const filteredOptions = useMemo(() => {
+    const list = options ?? [];
+    if (!search) return list;
+    return list.filter((o) => `${o.category} ${o.value} ${Object.values(o.labels).join(" ")}`.toLowerCase().includes(search));
+  }, [options, search]);
+
+  const filteredItems = useMemo(() => {
+    const list = items ?? [];
+    if (!search) return list;
+    return list.filter((item) => `${item.id} ${itemName(item, language)}`.toLowerCase().includes(search));
+  }, [items, search, language]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, AdminOption[]>();
+    for (const option of filteredOptions) {
+      map.set(option.category, [...(map.get(option.category) ?? []), option]);
+    }
+    return [...map.entries()];
+  }, [filteredOptions]);
+
+  const openNewOption = () => {
+    setError(null);
+    setOptionDraft({ id: null, category: "muscle_group_isolated", value: "", en: "", es: "", zh: "", sort: "", active: true });
+  };
+
+  const openEditOption = (option: AdminOption) => {
+    setError(null);
+    setOptionDraft({
+      id: option.id,
+      category: option.category,
+      value: option.value,
+      en: option.labels.en ?? "",
+      es: option.labels.es ?? "",
+      zh: option.labels.zh ?? "",
+      sort: String(option.sort_order),
+      active: option.active,
+    });
+  };
+
+  const saveOption = async () => {
+    if (!optionDraft) return;
+    const labels: Record<string, string> = {};
+    for (const [key, value] of Object.entries({ en: optionDraft.en, es: optionDraft.es, zh: optionDraft.zh })) {
+      if (value.trim()) labels[key] = value.trim();
+    }
+    if (!labels.en) {
+      setError(t(language, "super.cat.faltaEn"));
+      return;
+    }
+    const sort = optionDraft.sort.trim() ? Number(optionDraft.sort) : undefined;
+    setBusy(true);
+    setError(null);
+    try {
+      if (optionDraft.id) {
+        await updateAdminOption(optionDraft.id, { labels, sort_order: sort, active: optionDraft.active });
+      } else {
+        await saveAdminOption({
+          category: optionDraft.category,
+          value: optionDraft.value.trim().toUpperCase().replace(/\s+/g, "_"),
+          labels,
+          sort_order: sort,
+          active: optionDraft.active,
+        });
+      }
+      setOptionDraft(null);
+      say(t(language, "super.guardado"));
+      await load();
+    } catch (err) {
+      setError(detailText(err) || t(language, "super.error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleOption = async (option: AdminOption) => {
+    try {
+      await updateAdminOption(option.id, { active: !option.active });
+      say(t(language, "super.guardado"));
+      await load();
+    } catch {
+      say(t(language, "super.error"), "error");
+    }
+  };
+
+  const openNewItem = (kind: CatalogKind) => {
+    setError(null);
+    setCatalogDraft({ kind, id: null, text: JSON.stringify(TEMPLATES[kind], null, 2) });
+  };
+
+  const openEditItem = (item: AdminCatalogItem) => {
+    setError(null);
+    setCatalogDraft({ kind: item.kind, id: item.id, text: JSON.stringify(item.payload, null, 2) });
+  };
+
+  const saveCatalog = async () => {
+    if (!catalogDraft) return;
+    let payload: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(catalogDraft.text) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("object");
+      payload = parsed as Record<string, unknown>;
+    } catch {
+      setError(t(language, "super.cat.jsonInvalido"));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await saveAdminCatalogItem(catalogDraft.kind, payload);
+      setCatalogDraft(null);
+      say(t(language, "super.guardado"));
+      await load();
+    } catch (err) {
+      setError(detailText(err) || t(language, "super.error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleItem = async (item: AdminCatalogItem) => {
+    try {
+      await setAdminCatalogActive(item.kind, item.id, !item.active);
+      say(t(language, "super.guardado"));
+      await load();
+    } catch {
+      say(t(language, "super.error"), "error");
+    }
+  };
+
+  const optionDialogTitle = optionDraft?.id ? t(language, "super.cat.editar") : t(language, "super.cat.nuevaOpcion");
+
+  return (
+    <section className="flex flex-col gap-4">
+      <Choice legend={t(language, "super.tab.catalogos")} hideLegend variant="pildoras" value={section} onChange={(value) => setSection(value as Section)} options={SECTIONS.map(({ value, key }) => ({ value, label: t(language, key) }))} />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
+          <Input type="search" aria-label={t(language, "super.cat.buscar")} placeholder={t(language, "super.cat.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
+        </div>
+        <Button
+          icon={<Plus size={18} weight="bold" />}
+          onClick={() => (section === "options" ? openNewOption() : openNewItem(section))}
+        >
+          {section === "options" ? t(language, "super.cat.nuevaOpcion") : t(language, "super.cat.nuevoItem")}
+        </Button>
+      </div>
+
+      {section === "options" ? (
+        <div className="flex flex-col gap-3">
+          {grouped.map(([category, rows]) => (
+            <Card key={category} padding="sm" className="flex flex-col gap-1">
+              <h3 className="px-2 pt-1 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-ink/50">{t(language, `super.cat.cat.${category}`)}</h3>
+              {rows.map((option) => (
+                <div key={option.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-rosa-claro/60">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display text-body font-bold">
+                      {option.labels[language.toLowerCase()] ?? option.labels.en ?? option.value}
+                      <span className="ml-2 font-sans text-small font-bold text-ink-suave">{option.value}</span>
+                    </p>
+                    <p className="text-small font-semibold text-ink-suave">
+                      {Object.entries(option.labels).map(([code, text]) => `${code.toUpperCase()} ${text}`).join(" · ")}
+                    </p>
+                  </div>
+                  <Badge tone={option.active ? "exito" : "aviso"}>{option.active ? t(language, "super.cat.activo") : t(language, "super.cat.inactivo")}</Badge>
+                  <IconButton label={t(language, "super.cat.editar")} variant="fantasma" onClick={() => openEditOption(option)}>
+                    <PencilSimple size={20} weight="bold" />
+                  </IconButton>
+                  <IconButton label={t(language, option.active ? "super.cat.desactivar" : "super.cat.activar")} variant="fantasma" onClick={() => void toggleOption(option)}>
+                    <Power size={20} weight="bold" />
+                  </IconButton>
+                </div>
+              ))}
+            </Card>
+          ))}
+          {options !== null && filteredOptions.length === 0 && <p className="text-body text-ink-suave">{t(language, "super.cat.sinResultados")}</p>}
+        </div>
+      ) : (
+        <Card padding="sm" className="flex flex-col gap-1">
+          {filteredItems.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-rosa-claro/60">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-display text-body font-bold">{itemName(item, language)}</p>
+                <p className="truncate text-small font-semibold text-ink-suave">{item.id}</p>
+              </div>
+              <Badge tone={item.active ? "exito" : "aviso"}>{item.active ? t(language, "super.cat.activo") : t(language, "super.cat.inactivo")}</Badge>
+              <IconButton label={t(language, "super.cat.editar")} variant="fantasma" onClick={() => openEditItem(item)}>
+                <PencilSimple size={20} weight="bold" />
+              </IconButton>
+              <IconButton label={t(language, item.active ? "super.cat.desactivar" : "super.cat.activar")} variant="fantasma" onClick={() => void toggleItem(item)}>
+                <Power size={20} weight="bold" />
+              </IconButton>
+            </div>
+          ))}
+          {items !== null && filteredItems.length === 0 && <p className="px-2 py-3 text-body text-ink-suave">{t(language, "super.cat.sinResultados")}</p>}
+        </Card>
+      )}
+
+      <Dialog open={optionDraft !== null} onClose={() => setOptionDraft(null)} title={optionDialogTitle} closeLabel={t(language, "comun.cerrar")}>
+        {optionDraft && (
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveOption();
+            }}
+          >
+            <Field label={t(language, "super.cat.categoria")}>
+              {(control) => (
+                <Select {...control} value={optionDraft.category} onChange={(e) => setOptionDraft({ ...optionDraft, category: e.target.value as OptionCategory })} disabled={optionDraft.id !== null}>
+                  {CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {t(language, `super.cat.cat.${category}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label={t(language, "super.cat.valor")} hint={t(language, "super.cat.valorAyuda")}>
+              {(control) => (
+                <Input
+                  {...control}
+                  value={optionDraft.value}
+                  onChange={(e) => setOptionDraft({ ...optionDraft, value: e.target.value.toUpperCase() })}
+                  disabled={optionDraft.id !== null}
+                  placeholder="NECK"
+                />
+              )}
+            </Field>
+            {(["en", "es", "zh"] as const).map((code) => (
+              <Field key={code} label={t(language, `super.cat.${code}`)}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={optionDraft[code]}
+                    onChange={(e) => setOptionDraft({ ...optionDraft, [code]: e.target.value })}
+                  />
+                )}
+              </Field>
+            ))}
+            <Field label={t(language, "super.cat.orden")}>
+              {(control) => (
+                <Input {...control} inputMode="numeric" value={optionDraft.sort} onChange={(e) => setOptionDraft({ ...optionDraft, sort: e.target.value.replace(/\D/g, "") })} />
+              )}
+            </Field>
+            {error && <p role="alert" className="text-small font-bold text-peligro">{error}</p>}
+            <Button type="submit" loading={busy} fullWidth>
+              {t(language, "super.cat.guardar")}
+            </Button>
+          </form>
+        )}
+      </Dialog>
+
+      <Dialog open={catalogDraft !== null} onClose={() => setCatalogDraft(null)} title={t(language, "super.cat.editarJson")} description={t(language, "super.cat.jsonAyuda")} closeLabel={t(language, "comun.cerrar")}>
+        {catalogDraft && (
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveCatalog();
+            }}
+          >
+            <Field label={t(language, "super.cat.json")} error={error}>
+              {(control) => (
+                <TextArea
+                  {...control}
+                  rows={16}
+                  spellCheck={false}
+                  className="font-mono text-small"
+                  value={catalogDraft.text}
+                  onChange={(e) => setCatalogDraft({ ...catalogDraft, text: e.target.value })}
+                />
+              )}
+            </Field>
+            <Button type="submit" loading={busy} fullWidth>
+              {t(language, "super.cat.guardar")}
+            </Button>
+          </form>
+        )}
+      </Dialog>
+    </section>
+  );
+}

@@ -13,6 +13,7 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
+import { CatalogAdmin } from "@/components/paneles/CatalogAdmin";
 import { PanelShell } from "@/components/paneles/PanelShell";
 import {
   ApiError,
@@ -35,7 +36,7 @@ import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 import { isValidDocumentId, isValidEmail, isValidName, isValidNewPassword } from "@/lib/validation";
 
-type Tab = "usuarios" | "admins" | "gyms";
+type Tab = "usuarios" | "admins" | "gyms" | "catalogos";
 type RoleFilter = "ALL" | AuthUser["role"];
 const ROLES: AuthUser["role"][] = ["ATHLETE", "GYM_ADMIN", "SUPER_ADMIN"];
 type Action = { kind: "ver" | "editar" | "clave" | "rol" | "borrar"; user: AdminUser };
@@ -61,11 +62,13 @@ export function SuperAdminScreen() {
           { value: "usuarios", label: t(language, "super.tab.usuarios") },
           { value: "admins", label: t(language, "super.tab.admins") },
           { value: "gyms", label: t(language, "super.tab.gyms") },
+          { value: "catalogos", label: t(language, "super.tab.catalogos") },
         ]}
       />
       {tab === "usuarios" && <Accounts me={me} say={say} />}
       {tab === "admins" && <GymAdmins say={say} />}
       {tab === "gyms" && <AllGyms />}
+      {tab === "catalogos" && <CatalogAdmin language={language} say={say} />}
     </PanelShell>
   );
 }

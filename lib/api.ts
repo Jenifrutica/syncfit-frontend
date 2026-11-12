@@ -1099,3 +1099,94 @@ export async function deleteUser(id: string, adminPassword: string): Promise<voi
   });
   if (!r.ok) throw await apiError("delete user", r);
 }
+
+/* --- Super admin: catalogs (database is the source of truth) ---------------- */
+
+export type OptionCategory = "muscle_group_isolated" | "muscle_group_general" | "objective" | "goal_phase";
+export type CatalogKind = "exercise" | "machine" | "symptom" | "supplement";
+
+export interface AdminOption {
+  id: string;
+  category: OptionCategory;
+  value: string;
+  labels: Record<string, string>;
+  sort_order: number;
+  active: boolean;
+}
+
+export interface AdminCatalogItem {
+  id: string;
+  kind: CatalogKind;
+  active: boolean;
+  sort_order: number;
+  payload: Record<string, unknown>;
+}
+
+export async function listAdminOptions(): Promise<AdminOption[]> {
+  const r = await fetch(`${API_URL}/api/v1/admin/options`, { headers: authHeaders(), cache: "no-store" });
+  if (!r.ok) throw await apiError("admin options", r);
+  return r.json();
+}
+
+export async function saveAdminOption(body: {
+  category: OptionCategory;
+  value: string;
+  labels: Record<string, string>;
+  sort_order?: number;
+  active?: boolean;
+}): Promise<AdminOption> {
+  const r = await fetch(`${API_URL}/api/v1/admin/options`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw await apiError("save option", r);
+  return r.json();
+}
+
+export async function updateAdminOption(id: string, patch: Record<string, unknown>): Promise<AdminOption> {
+  const r = await fetch(`${API_URL}/api/v1/admin/options/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(patch),
+  });
+  if (!r.ok) throw await apiError("update option", r);
+  return r.json();
+}
+
+export async function deactivateAdminOption(id: string): Promise<AdminOption> {
+  const r = await fetch(`${API_URL}/api/v1/admin/options/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!r.ok) throw await apiError("deactivate option", r);
+  return r.json();
+}
+
+export async function listAdminCatalog(kind: CatalogKind): Promise<AdminCatalogItem[]> {
+  const r = await fetch(`${API_URL}/api/v1/admin/catalog/${kind}`, { headers: authHeaders(), cache: "no-store" });
+  if (!r.ok) throw await apiError("admin catalog", r);
+  return r.json();
+}
+
+export async function saveAdminCatalogItem(
+  kind: CatalogKind,
+  payload: Record<string, unknown>,
+  sortOrder?: number,
+): Promise<AdminCatalogItem> {
+  const query = sortOrder === undefined ? "" : `?sort_order=${sortOrder}`;
+  const r = await fetch(`${API_URL}/api/v1/admin/catalog/${kind}${query}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw await apiError("save catalog item", r);
+  return r.json();
+}
+
+export async function setAdminCatalogActive(kind: CatalogKind, id: string, active: boolean): Promise<AdminCatalogItem> {
+  const r = await fetch(`${API_URL}/api/v1/admin/catalog/${kind}/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ active }),
+  });
+  if (!r.ok) throw await apiError("catalog active", r);
+  return r.json();
+}
