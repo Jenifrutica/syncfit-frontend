@@ -14,11 +14,12 @@ import { createShare, deleteShare, listShares, type ShareLinkInfo, type SharePer
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
-const ROLES: ShareRole[] = ["TRAINER", "COACH", "PARTNER", "FRIEND", "FAMILY", "OTHER"];
+const ROLES: ShareRole[] = ["TRAINER", "PARTNER", "FRIEND", "FAMILY", "OTHER"];
 const PERMISSIONS: SharePermission[] = ["PROFILE", "ROUTINE", "CALENDAR", "PROGRESS", "SUPPLEMENTS", "MACHINES", "LOADS"];
 
 export function shareUrl(token: string): string {
-  return typeof window === "undefined" ? `/compartido/${token}` : `${window.location.origin}/compartido/${token}`;
+  const path = `/compartido/?token=${encodeURIComponent(token)}`;
+  return typeof window === "undefined" ? path : `${window.location.origin}${path}`;
 }
 
 /** Read-only links for a coach or someone the athlete trusts. */

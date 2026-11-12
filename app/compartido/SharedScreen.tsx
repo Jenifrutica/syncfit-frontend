@@ -13,21 +13,38 @@ import { Pulsi } from "@/components/mascot/Pulsi";
 import { getCatalog, getMachines, getShared, getSupplementCatalog, type SharedProfile } from "@/lib/api";
 import { faseLabel, isFase } from "@/lib/fases";
 import { trimesterOfWeek } from "@/lib/cycle";
-import { t, tf } from "@/lib/i18n";
+import { localized, t, tf } from "@/lib/i18n";
+import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
 
 type Item = { name?: string; series?: number; reps?: number; blocked?: boolean };
+type SharedDay = { date?: string; label?: Record<string, string>; note?: Record<string, string> };
 
 /** Read-only view of what the athlete chose to share (no session needed). */
 export function SharedScreen() {
   const { language } = useSession();
-  // The token is read from the URL because the page is a single static export.
-  const token = decodeURIComponent(usePathname().split("/").filter(Boolean)[1] ?? "");
+  const options = useOptions();
+  const pathname = usePathname();
+  // Static export: the token travels as ?token=... (the old /compartido/<token>
+  // path was a dynamic route and returned 500). The path branch keeps legacy
+  // links working in development.
+  const [token, setToken] = useState("");
   const [shared, setShared] = useState<SharedProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [names, setNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const fromPath = pathname.split("/").filter(Boolean)[1] ?? "";
+    const fromQuery =
+      typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("token") ?? "";
+    const value = decodeURIComponent(fromQuery || fromPath);
+    setToken(value);
+    if (!value) setFailed(true);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!token) return;
+    setFailed(false);
     getShared(token)
       .then(setShared)
       .catch(() => setFailed(true));
@@ -48,6 +65,22 @@ export function SharedScreen() {
   const timeline = (shared?.timeline ?? {}) as { phase?: string; cycle_day?: number; week?: number };
   const progress = ((shared?.profile ?? {}) as { progress?: { streak_days?: number; week_training_days?: number; weekly_goal?: number } }).progress;
   const routine = shared?.routine as { items?: Item[]; total_estimated_minutes?: number } | null | undefined;
+  const calendar = shared?.calendar as { month?: string; days?: SharedDay[] } | null | undefined;
+  const profileData = (shared?.profile ?? {}) as Record<string, unknown>;
+  const profileRows: [string, string][] = [];
+  if (typeof profileData.modality === "string") {
+    profileRows.push([t(language, "perfil.modalidad.label"), t(language, `perfil.modalidad.${profileData.modality}`)]);
+  }
+  if (typeof profileData.objective === "string") {
+    profileRows.push([t(language, "nutri.objetivo"), options.label("objective", profileData.objective, language)]);
+  }
+  if (typeof profileData.goal_phase === "string") {
+    profileRows.push([t(language, "nutri.etapa"), options.label("goal_phase", profileData.goal_phase, language)]);
+  }
+  if (typeof profileData.height_cm === "number") profileRows.push([t(language, "onb.altura"), `${profileData.height_cm} cm`]);
+  if (typeof profileData.weight_kg === "number") profileRows.push([t(language, "onb.peso"), `${profileData.weight_kg} kg`]);
+  if (typeof profileData.body_fat_pct === "number") profileRows.push([t(language, "onb.grasa"), `${profileData.body_fat_pct} %`]);
+  if (typeof profileData.daily_calories === "number") profileRows.push([t(language, "onb.calorias"), `${profileData.daily_calories} kcal`]);
   const fase = useMemo(() => (timeline.week ? trimesterOfWeek(timeline.week) : isFase(timeline.phase) ? timeline.phase : null), [timeline.week, timeline.phase]);
 
   return (
@@ -89,6 +122,34 @@ export function SharedScreen() {
                 </div>
               </Card>
             )}
+
+            {profileRows.length > 0 && (
+              <Card className="flex flex-col gap-3">
+                <h2 className="text-h3 font-bold">{t(language, "permiso.PROFILE")}</h2>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
+                  {profileRows.map(([label, value]) => (
+                    <div key={label} className="flex flex-col">
+                      <dt className="text-small font-extrabold text-ink-suave">{label}</dt>
+                      <dd className="font-display font-semibold">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Card>
+            )}
+
+            {calendar?.days?.length ? (
+              <Card className="flex flex-col gap-3">
+                <h2 className="text-h3 font-bold">{t(language, "permiso.CALENDAR")}</h2>
+                <ul className="flex flex-col gap-2">
+                  {calendar.days.slice(0, 10).map((day, i) => (
+                    <li key={`${day.date}-${i}`} className="flex items-center justify-between gap-3 text-body">
+                      <span className="font-bold tabular-nums">{day.date}</span>
+                      <span className="text-small font-semibold text-ink-suave">{localized(day.label, language)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ) : null}
 
             {progress?.streak_days !== undefined && (
               <Card className="grid grid-cols-2 gap-3">
