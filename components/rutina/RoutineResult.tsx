@@ -65,22 +65,47 @@ export function RoutineResult({
   const sensores = plan.sensores;
   const tomado = sensores ? new Date(sensores.at) : null;
   const hora = tomado && !Number.isNaN(tomado.getTime()) ? HORA[language].format(tomado) : null;
+  const biomarkers = plan.summary.biomarkers;
+  const fromDevice = plan.summary.capture_source === "device" && !!biomarkers;
+  const lecturas: [string, string][] = fromDevice && biomarkers
+    ? [
+        [
+          t(language, "rutina.sensores.tempDelta"),
+          `${biomarkers.delta_temperature_c >= 0 ? "+" : ""}${biomarkers.delta_temperature_c.toFixed(2)} °C`,
+        ],
+        [t(language, "rutina.sensores.rmssd"), `${Math.round(biomarkers.rmssd_hrv_ms)} ms`],
+        [t(language, "rutina.sensores.perdida"), `${Math.round(biomarkers.isometric_force_loss_pct)} %`],
+      ]
+    : sensores
+      ? [
+          [t(language, "captura.pulso"), `${sensores.bpm} bpm`],
+          [t(language, "captura.fuerza"), `${sensores.forceKg.toFixed(1)} kg`],
+          [t(language, "captura.temperaturaCorta"), `${sensores.tempC.toFixed(1)} °C`],
+        ]
+      : [];
 
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-h1 font-bold">{t(language, "rutina.titulo")}</h1>
 
-      {sensores && (
+      {(sensores || fromDevice) && (
         <Card tone="fase-suave" className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-nube/70 text-ink">
               <Fingerprint size={20} weight="bold" />
             </span>
-            <p className="min-w-0 flex-1 font-display text-body font-bold">
-              {hora
-                ? tf(language, "rutina.sensores.tituloHora", { hora })
-                : t(language, "rutina.checkin.titulo")}
-            </p>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="font-display text-body font-bold">
+                {hora
+                  ? tf(language, "rutina.sensores.tituloHora", { hora })
+                  : t(language, "rutina.checkin.titulo")}
+              </p>
+              {fromDevice && (
+                <span className="self-start rounded-full bg-exito-suave px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-exito">
+                  {t(language, "rutina.sensores.dispositivo")}
+                </span>
+              )}
+            </div>
             {onRecapture && (
               <Button variant="secundario" size="sm" onClick={onRecapture}>
                 {t(language, "rutina.checkin.repetir")}
@@ -88,11 +113,7 @@ export function RoutineResult({
             )}
           </div>
           <dl className="grid grid-cols-3 gap-2 text-center">
-            {[
-              [t(language, "captura.pulso"), `${sensores.bpm} bpm`],
-              [t(language, "captura.fuerza"), `${sensores.forceKg.toFixed(1)} kg`],
-              [t(language, "captura.temperaturaCorta"), `${sensores.tempC.toFixed(1)} °C`],
-            ].map(([label, value]) => (
+            {lecturas.map(([label, value]) => (
               <div key={label} className="rounded-2xl bg-nube/70 px-2 py-3">
                 <dt className="text-[11px] font-bold uppercase tracking-wide text-ink/50">{label}</dt>
                 <dd className="mt-0.5 font-display text-body-lg font-bold tabular-nums text-ink">{value}</dd>

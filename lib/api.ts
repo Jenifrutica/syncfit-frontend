@@ -200,6 +200,21 @@ export const SAMPLE_FRAME: TelemetryFrame = {
   },
 };
 
+export interface LiveStatus {
+  connected: boolean;
+  age_seconds: number | null;
+  device_id: string | null;
+  frame: TelemetryFrame | null;
+  decision: Decision | null;
+}
+
+/** GET /live — last frame received from the prototype (5 min window). */
+export async function getLive(): Promise<LiveStatus> {
+  const response = await fetch(`${API_URL}/api/v1/live`, { cache: "no-store" });
+  if (!response.ok) throw await apiError("live", response);
+  return response.json();
+}
+
 export async function getHealth(): Promise<{ status: string; version: string }> {
   const response = await fetch(`${API_URL}/api/v1/health`, { cache: "no-store" });
   if (!response.ok) throw await apiError("health check", response);
@@ -674,6 +689,8 @@ export interface CaptureResult {
   session_id: string;
   routine_id: string;
   scenario: string;
+  /** "device" when the routine used the prototype's last telemetry frame. */
+  capture_source?: "device" | "simulated";
   phase_inferred: string;
   fatigue_level: string;
   k_load: number;

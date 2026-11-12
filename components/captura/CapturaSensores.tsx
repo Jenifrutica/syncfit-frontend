@@ -6,6 +6,7 @@ import { ArrowDown, Barbell, Check, Fingerprint, Heartbeat, Play, Thermometer } 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
+import { getLive, type LiveStatus } from "@/lib/api";
 import { saveCheckin, type Checkin } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
 import { t, tf } from "@/lib/i18n";
@@ -140,6 +141,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const [terminado, setTerminado] = useState(false);
   const [resultados, setResultados] = useState<number[]>([]);
   const [modo, setModo] = useState<"manual" | "simulado">("manual");
+  const [live, setLive] = useState<LiveStatus | null>(null);
   const raf = useRef<number | null>(null);
 
   const actual = PASOS[paso];
@@ -149,6 +151,26 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const centro = enLente(actual.zona);
 
   const etiqueta = (clave: string) => t(language, `captura.${clave}`);
+
+  // Is the prototype streaming? Polled only while this screen is mounted.
+  useEffect(() => {
+    let alive = true;
+    let timer: number | undefined;
+    const tick = async () => {
+      try {
+        const status = await getLive();
+        if (alive) setLive(status);
+      } catch {
+        if (alive) setLive(null);
+      }
+      if (alive) timer = window.setTimeout(tick, 2500);
+    };
+    void tick();
+    return () => {
+      alive = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (fase !== "midiendo") return;
@@ -269,6 +291,13 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
         >
           {t(language, "captura.volver")}
         </button>
+      )}
+
+      {live?.connected && (
+        <span className="inline-flex items-center gap-2 self-start rounded-full bg-exito-suave px-3 py-1 text-small font-bold text-exito">
+          <span aria-hidden="true" className="size-2 rounded-full bg-exito" />
+          {tf(language, "captura.conectado", { s: Math.round(live.age_seconds ?? 0) })}
+        </span>
       )}
 
       <div className="flex items-center gap-2" aria-hidden>
