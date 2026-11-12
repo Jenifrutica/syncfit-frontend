@@ -62,6 +62,8 @@ export function RoutineResult({
     transition: { duration: DUR.panel, ease: EASE.salida, delay: reduceMotion ? 0 : index * CASCADA },
   });
 
+  const emptyReason = plan.summary.empty_reason ?? null;
+  const emptyTitle = emptyReason ? t(language, `rutina.vacia.${emptyReason}`) : t(language, "rutina.vacia");
   const sensores = plan.sensores;
   const tomado = sensores ? new Date(sensores.at) : null;
   const hora = tomado && !Number.isNaN(tomado.getTime()) ? HORA[language].format(tomado) : null;
@@ -205,7 +207,21 @@ export function RoutineResult({
         </div>
         {empty ? (
           <Card>
-            <EmptyState mood="dormida" title={t(language, "rutina.vacia")} action={<Button onClick={onNew}>{t(language, "rutina.nueva")}</Button>} />
+            <EmptyState
+              mood="dormida"
+              title={emptyTitle}
+              description={emptyReason ? t(language, "rutina.vacia.ayuda") : undefined}
+              action={
+                <div className="flex flex-col items-center gap-2">
+                  <Button onClick={onNew}>{t(language, "rutina.nueva")}</Button>
+                  {emptyReason && emptyReason !== "NO_EXERCISES" && (
+                    <ButtonLink href="/app/perfil" variant="secundario" size="sm">
+                      {t(language, "rutina.revisarSintomas")}
+                    </ButtonLink>
+                  )}
+                </div>
+              }
+            />
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">

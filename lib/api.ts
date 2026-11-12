@@ -691,6 +691,8 @@ export interface CaptureResult {
   scenario: string;
   /** "device" when the routine used the prototype's last telemetry frame. */
   capture_source?: "device" | "simulated";
+  /** Why the routine came back empty, when it did. */
+  empty_reason?: "SYMPTOMS_BLOCK_ALL" | "NO_EXERCISES" | "TRAINING_BLOCKED" | null;
   phase_inferred: string;
   fatigue_level: string;
   k_load: number;
