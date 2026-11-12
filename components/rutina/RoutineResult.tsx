@@ -243,9 +243,11 @@ export function RoutineResult({
           </ButtonLink>
         </div>
       )}
-      <Button variant="fantasma" icon={<ArrowCounterClockwise size={18} weight="bold" />} onClick={onNew} className="self-center">
-        {t(language, "rutina.nueva")}
-      </Button>
+      {!empty && (
+        <Button variant="fantasma" icon={<ArrowCounterClockwise size={18} weight="bold" />} onClick={onNew} className="self-center">
+          {t(language, "rutina.nueva")}
+        </Button>
+      )}
 
       <ChangeSheet
         item={changing}
