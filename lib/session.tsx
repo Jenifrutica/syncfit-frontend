@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { getMe, getMyProfile, googleLogin, login, logoutLocal, register, type AuthUser, type MyProfile } from "@/lib/api";
+import { demoLogin, getMe, getMyProfile, googleLogin, login, logoutLocal, register, type AuthUser, type DemoRole, type MyProfile } from "@/lib/api";
 import { LANGUAGES, type Language } from "@/lib/i18n";
 
 export type SessionStatus = "loading" | "anon" | "ready";
@@ -18,6 +18,8 @@ type SessionValue = {
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (data: { email: string; password: string; displayName: string; documentId: string }) => Promise<AuthUser>;
   signInWithGoogle: (accessToken: string) => Promise<AuthUser>;
+  /** One-click evaluation login (superadmin, gym admin or the demo athlete). */
+  signInDemo: (role: DemoRole) => Promise<{ user: AuthUser; profile: MyProfile | null }>;
   setProfile: (profile: MyProfile | null) => void;
   signOut: () => void;
 };
@@ -104,6 +106,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [afterAuth],
   );
 
+  const signInDemo = useCallback(async (role: DemoRole) => {
+    await demoLogin(role);
+    const me = await getMe();
+    if (!me) throw new Error("demo session unavailable");
+    const myProfile = await loadProfile(me);
+    setUser(me);
+    setProfile(myProfile);
+    setStatus("ready");
+    return { user: me, profile: myProfile };
+  }, []);
+
   const signOut = useCallback(() => {
     logoutLocal();
     setUser(null);
@@ -112,7 +125,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<SessionValue>(
-    () => ({ status, user, profile, language, setLanguage, signIn, signUp, signInWithGoogle, setProfile, signOut }),
+    () => ({ status, user, profile, language, setLanguage, signIn, signUp, signInWithGoogle, signInDemo, setProfile, signOut }),
     [status, user, profile, language, setLanguage, signIn, signUp, signOut],
   );
 

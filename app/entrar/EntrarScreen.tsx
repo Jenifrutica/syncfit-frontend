@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { WarningCircle } from "@phosphor-icons/react";
 
@@ -15,6 +16,7 @@ import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { SkyShell } from "@/components/brand/SkyShell";
 import { LoadingScreen } from "@/components/session/LoadingScreen";
+import type { DemoRole } from "@/lib/api";
 import { explainAuthError, type AuthField } from "@/lib/auth-errors";
 import { t } from "@/lib/i18n";
 import { homeFor, useSession } from "@/lib/session";
@@ -31,8 +33,9 @@ function safeNext(value: string | null): string | null {
 export function EntrarScreen() {
   const router = useRouter();
   const params = useSearchParams();
-  const { status, user, profile, language, signIn, signUp, signInWithGoogle } = useSession();
+  const { status, user, profile, language, signIn, signUp, signInWithGoogle, signInDemo } = useSession();
   const googleEnabled = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
+  const demoEnabled = process.env.NEXT_PUBLIC_DEMO_LOGIN === "1";
 
   const [mode, setMode] = useState<Mode>(params.get("modo") === "crear" ? "crear" : "entrar");
   const [nombre, setNombre] = useState("");
@@ -42,6 +45,7 @@ export function EntrarScreen() {
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [demoBusy, setDemoBusy] = useState<DemoRole | null>(null);
 
   // Already signed in (or just signed in): go where this person belongs.
   useEffect(() => {
@@ -101,6 +105,17 @@ export function EntrarScreen() {
         setFormError(t(language, key));
       }
       setSending(false);
+    }
+  };
+
+  const onDemo = async (role: DemoRole) => {
+    setFormError(null);
+    setDemoBusy(role);
+    try {
+      await signInDemo(role);
+    } catch {
+      setFormError(t(language, "entrar.demoError"));
+      setDemoBusy(null);
     }
   };
 
@@ -199,6 +214,14 @@ export function EntrarScreen() {
             )}
           </Field>
 
+          {!creating && (
+            <p className="text-right">
+              <Link href="/recuperar/" className="text-small font-bold underline underline-offset-4">
+                {t(language, "entrar.olvide")}
+              </Link>
+            </p>
+          )}
+
           {formError && (
             <p role="alert" className="flex items-start gap-2 rounded-ficha bg-peligro-suave px-4 py-3 text-small font-bold text-peligro">
               <WarningCircle size={20} weight="bold" aria-hidden="true" className="mt-px shrink-0" />
@@ -233,6 +256,33 @@ export function EntrarScreen() {
           </div>
         )}
       </Card>
+
+      {demoEnabled && (
+        <Card className="mt-4 flex flex-col gap-3" tone="rosa-claro">
+          <div>
+            <h2 className="text-h3 font-bold">{t(language, "entrar.demoTitulo")}</h2>
+            <p className="text-small font-bold text-ink-suave">{t(language, "entrar.demoAviso")}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              ["SUPER_ADMIN", "entrar.demoSuper"],
+              ["GYM_ADMIN", "entrar.demoAdmin"],
+              ["ATHLETE", "entrar.demoAtleta"],
+            ] as const).map(([role, key]) => (
+              <Button
+                key={role}
+                variant="secundario"
+                size="sm"
+                loading={demoBusy === role}
+                disabled={demoBusy !== null && demoBusy !== role}
+                onClick={() => void onDemo(role)}
+              >
+                {t(language, key)}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <p className="mt-6 text-center text-small font-bold text-ink-suave">{t(language, "app.aviso")}</p>
     </SkyShell>

@@ -557,6 +557,35 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return data.user as AuthUser;
 }
 
+/** POST /auth/forgot — always answers 202 so it never reveals if the account exists. */
+export async function forgotPassword(email: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/auth/forgot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+  if (!response.ok) throw await apiError("forgot password", response);
+}
+
+/** GET /auth/reset/{token} — validates the link and returns the account email. */
+export async function checkResetToken(token: string): Promise<{ email: string }> {
+  const response = await fetch(`${API_URL}/api/v1/auth/reset/${encodeURIComponent(token)}`);
+  if (!response.ok) throw await apiError("reset token", response);
+  const data = (await response.json()) as { email?: string };
+  if (!data.email) throw new Error("reset token without email");
+  return { email: data.email };
+}
+
+/** POST /auth/reset — the new password is digested before it leaves the browser. */
+export async function resetPassword(token: string, email: string, password: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/auth/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password: await hashPassword(email, password) }),
+  });
+  if (!response.ok) throw await apiError("reset password", response);
+}
+
 /** POST /auth/google — exchanges a Google credential for our own JWT. */
 export async function googleLogin(payload: {
   credential?: string;
@@ -575,6 +604,21 @@ export async function googleLogin(payload: {
   setToken(data.access_token);
   signedInEmail = (data.user as AuthUser).email;
   return data.user as AuthUser;
+}
+
+export type DemoRole = "SUPER_ADMIN" | "GYM_ADMIN" | "ATHLETE";
+
+/** POST /auth/demo — one-click evaluation accounts (disabled unless the backend enables it). */
+export async function demoLogin(role: DemoRole): Promise<AuthUser> {
+  const response = await fetch(`${API_URL}/api/v1/auth/demo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!response.ok) throw await apiError("demo login", response);
+  const data = (await response.json()) as { access_token: string; user: AuthUser };
+  setToken(data.access_token);
+  return data.user;
 }
 
 export async function getMe(): Promise<AuthUser | null> {
@@ -1184,11 +1228,12 @@ export async function saveAdminCatalogItem(
 }
 
 export async function setAdminCatalogActive(kind: CatalogKind, id: string, active: boolean): Promise<AdminCatalogItem> {
-  const r = await fetch(`${API_URL}/api/v1/admin/catalog/${kind}/${encodeURIComponent(id)}`, {
-    method: "PATCH",
+  // Deactivating is a soft delete: it goes as DELETE. Reactivating is a PATCH.
+  const response = await fetch(`${API_URL}/api/v1/admin/catalog/${kind}/${encodeURIComponent(id)}`, {
+    method: active ? "PATCH" : "DELETE",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ active }),
+    body: active ? JSON.stringify({ active: true }) : undefined,
   });
-  if (!r.ok) throw await apiError("catalog active", r);
-  return r.json();
+  if (!response.ok) throw await apiError("catalog active", response);
+  return response.json();
 }

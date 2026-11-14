@@ -195,7 +195,8 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
 
   const toggleOption = async (option: AdminOption) => {
     try {
-      await updateAdminOption(option.id, { active: !option.active });
+      if (option.active) await deactivateAdminOption(option.id);
+      else await updateAdminOption(option.id, { active: true });
       say(t(language, "super.guardado"));
       await load();
     } catch {
