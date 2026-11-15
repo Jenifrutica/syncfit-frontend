@@ -314,12 +314,18 @@ const athleteToken = await demoToken("ATHLETE");
     check(`atleta: ${path} carga`, pageStatus === 200 && (await page.getByText(marker).count()) > 0);
   }
 
+  await go(page, "/app/checkin/", 1500);
+  check("checkin: muestra fuente de datos", (await page.getByText(/prototipo conectado|sin prototipo/i).count()) > 0);
+  check("checkin: guía de conexión visible", (await page.getByText(/cómo conectar el prototipo/i).count()) > 0);
+  await page.getByText(/cómo conectar el prototipo/i).click();
+  check("checkin: guía explica Wi-Fi y WebSocket", (await page.getByText(/SET WIFI/i).count()) > 0 && (await page.getByText(/SET WS/i).count()) > 0);
+
   await go(page, "/app/rutina/", 1200);
   await page.getByText("Cuádriceps", { exact: true }).first().click();
   await page.waitForTimeout(300);
   await page.getByRole("button", { name: /escanear y crear rutina/i }).click();
   await page.waitForTimeout(800);
-  check("rutina: aparece la captura", (await page.getByText(/pon tu dedo sobre esta zona/i).count()) > 0);
+  check("rutina: aparece la captura", (await page.getByText(/pon la yema en el sensor óptico/i).count()) > 0);
   await page.getByRole("button", { name: /^simular$/i }).click();
   await page.waitForTimeout(12_000);
   check("rutina: resultado visible", (await page.getByText(/tu rutina de hoy/i).count()) > 0);

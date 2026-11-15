@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Barbell, Check, Fingerprint, Heartbeat, Play, Thermometer } from "@phosphor-icons/react";
 
+import { HardwareGuide } from "@/components/captura/HardwareGuide";
+
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
@@ -467,6 +469,12 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
           {fase === "midiendo" ? tf(language, "captura.estadoMidiendo", { sensor: etiqueta(actual.clave) }) : fase === "hecho" ? tf(language, "captura.estadoListo", { sensor: etiqueta(actual.clave) }) : ""}
         </p>
       </Card>
+
+      <HardwareGuide
+        connected={Boolean(live?.connected)}
+        ageSeconds={live?.age_seconds}
+        deviceId={live?.device_id}
+      />
 
       <p className="text-center text-[11px] text-ink/45">{t(language, "captura.aviso")}</p>
     </div>
