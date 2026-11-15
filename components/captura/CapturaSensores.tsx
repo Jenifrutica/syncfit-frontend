@@ -8,7 +8,7 @@ import { HardwareGuide } from "@/components/captura/HardwareGuide";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
-import { getLive, type LiveStatus } from "@/lib/api";
+import { getLive, tareDevice, type LiveStatus } from "@/lib/api";
 import { saveCheckin, type Checkin } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
 import { t, tf } from "@/lib/i18n";
@@ -175,6 +175,8 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const [resultados, setResultados] = useState<number[]>([]);
   const [modo, setModo] = useState<"manual" | "simulado">("manual");
   const [live, setLive] = useState<LiveStatus | null>(null);
+  const [taring, setTaring] = useState(false);
+  const [tareMessage, setTareMessage] = useState<string | null>(null);
   const raf = useRef<number | null>(null);
   const resultadosRef = useRef<number[]>([]);
   const liveValues = useMemo(() => liveValuesFrom(live), [live]);
@@ -183,6 +185,10 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   useEffect(() => {
     liveValuesRef.current = liveValues;
   }, [liveValues]);
+
+  useEffect(() => {
+    setTareMessage(null);
+  }, [paso]);
 
   const actual = PASOS[paso];
   const Icono = actual.icono;
@@ -264,6 +270,19 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     setProgreso(0);
     setFase("midiendo");
   }, []);
+
+  const onTare = async () => {
+    setTaring(true);
+    setTareMessage(null);
+    try {
+      await tareDevice();
+      setTareMessage(t(language, "captura.tareEnviado"));
+    } catch {
+      setTareMessage(t(language, "captura.tareError"));
+    } finally {
+      setTaring(false);
+    }
+  };
 
   const simular = useCallback(() => {
     setModo("simulado");
@@ -449,6 +468,17 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
             {valor !== null ? `${valor} ${actual.unidad}` : "—"}
           </span>
         </div>
+
+        {paso === 1 && live?.connected && (
+          <div className="mt-3">
+            <Button variant="suave" size="sm" fullWidth loading={taring} onClick={() => void onTare()}>
+              {t(language, "captura.tare")}
+            </Button>
+            {tareMessage && (
+              <p className="mt-2 text-center text-small font-semibold text-ink-suave">{tareMessage}</p>
+            )}
+          </div>
+        )}
 
         <Button className="mt-4" fullWidth size="lg" onClick={medir} disabled={fase !== "listo"}>
           {fase === "listo" ? t(language, "captura.medir") : fase === "midiendo" ? t(language, "captura.midiendo") : t(language, "captura.hecho")}

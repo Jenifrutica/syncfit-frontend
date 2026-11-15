@@ -217,6 +217,15 @@ export interface LiveStatus {
   decision: Decision | null;
 }
 
+/** POST /live/tare — ask the connected prototype to re-zero its load cell. */
+export async function tareDevice(): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/live/tare`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw await apiError("tare", response);
+}
+
 /** GET /live — last frame received from the prototype (5 min window). */
 export async function getLive(): Promise<LiveStatus> {
   const response = await fetch(`${API_URL}/api/v1/live`, { cache: "no-store" });
