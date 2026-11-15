@@ -58,6 +58,11 @@ export interface TelemetryFrame {
     delta_temperature_c: number;
     rmssd_hrv_ms: number;
     isometric_force_loss_pct: number;
+    /** Raw readings from the prototype (0 when absent). */
+    heart_rate_bpm?: number;
+    force_kg?: number;
+    object_temperature_c?: number;
+    finger_present?: boolean;
   };
   ppg_window: { sample_rate_hz: number; window_size: number; samples: number[] };
 }
@@ -192,6 +197,10 @@ export const SAMPLE_FRAME: TelemetryFrame = {
     delta_temperature_c: 0.42,
     rmssd_hrv_ms: 28.5,
     isometric_force_loss_pct: 12.8,
+    heart_rate_bpm: 72,
+    force_kg: 8.4,
+    object_temperature_c: 33.5,
+    finger_present: true,
   },
   ppg_window: {
     sample_rate_hz: 100,

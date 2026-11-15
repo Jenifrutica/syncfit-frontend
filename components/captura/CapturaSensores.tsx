@@ -114,14 +114,45 @@ function Anillo({ progreso }: { progreso: number }) {
   );
 }
 
-/** Fuente de datos: hoy simulada, mañana WebSocket del ESP32. */
-function useSensores(fase: Fase, progreso: number, paso: (typeof PASOS)[number]) {
+type LiveValues = { bpm: number; forceKg: number; tempC: number };
+
+/** Latest real readings from the prototype, or null when it is not connected. */
+function liveValuesFrom(status: LiveStatus | null): LiveValues | null {
+  if (!status?.connected || !status.frame) return null;
+  const b = status.frame.biomarkers;
+  return {
+    bpm: Math.max(0, Math.round(b.heart_rate_bpm ?? 0)),
+    forceKg: Math.max(0, Number((b.force_kg ?? 0).toFixed(1))),
+    tempC: Number((b.object_temperature_c ?? 0).toFixed(1)),
+  };
+}
+
+function valueForStep(step: number, liveValues: LiveValues | null): number {
+  if (!liveValues) return PASOS[step].final;
+  if (step === 0) return liveValues.bpm;
+  if (step === 1) return liveValues.forceKg;
+  return liveValues.tempC;
+}
+
+/** Real prototype values when connected; simulated animation otherwise. */
+function useSensores(
+  fase: Fase,
+  progreso: number,
+  paso: (typeof PASOS)[number],
+  liveValues: LiveValues | null,
+  modo: "manual" | "simulado",
+) {
   return useMemo(() => {
+    if (modo === "manual" && liveValues) {
+      const value = valueForStep(paso.id, liveValues);
+      // Without a finger the optical sensor reports 0 bpm: show "—", not 0.
+      return paso.id === 0 && value === 0 ? null : value;
+    }
     if (fase === "listo") return null;
     const f = fase === "hecho" ? 1 : progreso;
     const v = paso.desde + (paso.final - paso.desde) * f;
     return paso.unidad === "bpm" ? Math.round(v) : Number(v.toFixed(1));
-  }, [fase, progreso, paso]);
+  }, [fase, progreso, paso, liveValues, modo]);
 }
 
 type CapturaProps = {
@@ -143,11 +174,18 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const [modo, setModo] = useState<"manual" | "simulado">("manual");
   const [live, setLive] = useState<LiveStatus | null>(null);
   const raf = useRef<number | null>(null);
+  const resultadosRef = useRef<number[]>([]);
+  const liveValues = useMemo(() => liveValuesFrom(live), [live]);
+  const liveValuesRef = useRef<LiveValues | null>(null);
+
+  useEffect(() => {
+    liveValuesRef.current = liveValues;
+  }, [liveValues]);
 
   const actual = PASOS[paso];
   const Icono = actual.icono;
   const Sensor = actual.sensor;
-  const valor = useSensores(fase, progreso, actual);
+  const valor = useSensores(fase, progreso, actual, liveValues, modo);
   const centro = enLente(actual.zona);
 
   const etiqueta = (clave: string) => t(language, `captura.${clave}`);
@@ -163,7 +201,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
       } catch {
         if (alive) setLive(null);
       }
-      if (alive) timer = window.setTimeout(tick, 2500);
+      if (alive) timer = window.setTimeout(tick, 1000);
     };
     void tick();
     return () => {
@@ -192,19 +230,22 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     if (fase !== "hecho") return;
     const espera = modo === "simulado" ? ESPERA_SIMULADA_MS : ESPERA_VISTO_MS;
     const id = window.setTimeout(() => {
-      setResultados((r) => [...r, actual.final]);
+      const captured = valueForStep(paso, modo === "manual" ? liveValuesRef.current : null);
+      resultadosRef.current = [...resultadosRef.current, captured];
+      setResultados(resultadosRef.current);
       if (paso < 2) {
         setPaso((p) => (p + 1) as Paso);
         setProgreso(0);
         setFase("listo");
       } else {
-        const record = saveCheckin({ bpm: PASOS[0].final, forceKg: PASOS[1].final, tempC: PASOS[2].final });
+        const [bpm, forceKg, tempC] = resultadosRef.current;
+        const record = saveCheckin({ bpm, forceKg, tempC });
         if (onComplete) onComplete(record);
         else setTerminado(true);
       }
     }, espera);
     return () => window.clearTimeout(id);
-  }, [fase, paso, actual.final, modo, onComplete]);
+  }, [fase, paso, modo, onComplete]);
 
   // A simulated run advances on its own: each new step starts measuring after a beat.
   useEffect(() => {
@@ -217,6 +258,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   }, [modo, fase, terminado]);
 
   const medir = useCallback(() => {
+    setModo("manual");
     setProgreso(0);
     setFase("midiendo");
   }, []);
@@ -229,6 +271,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
 
   const reiniciar = useCallback(() => {
     setTerminado(false);
+    resultadosRef.current = [];
     setResultados([]);
     setModo("manual");
     setPaso(0);
@@ -293,10 +336,15 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
         </button>
       )}
 
-      {live?.connected && (
+      {live?.connected ? (
         <span className="inline-flex items-center gap-2 self-start rounded-full bg-exito-suave px-3 py-1 text-small font-bold text-exito">
           <span aria-hidden="true" className="size-2 rounded-full bg-exito" />
           {tf(language, "captura.conectado", { s: Math.round(live.age_seconds ?? 0) })}
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-2 self-start rounded-full bg-rosa-claro px-3 py-1 text-small font-bold text-ink-suave">
+          <span aria-hidden="true" className="size-2 rounded-full bg-ink/30" />
+          {t(language, "captura.sinPrototipo")}
         </span>
       )}
 
