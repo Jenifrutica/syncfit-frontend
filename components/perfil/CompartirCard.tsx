@@ -10,9 +10,11 @@ import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
-import { createShare, deleteShare, listShares, type ShareLinkInfo, type SharePermission, type ShareRole } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
+import { createShare, deleteShare, deleteShares, listShares, type ShareLinkInfo, type SharePermission, type ShareRole } from "@/lib/api";
+import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { useSelection } from "@/lib/useSelection";
 
 const ROLES: ShareRole[] = ["TRAINER", "PARTNER", "FRIEND", "FAMILY", "OTHER"];
 const PERMISSIONS: SharePermission[] = ["PROFILE", "ROUTINE", "CALENDAR", "PROGRESS", "SUPPLEMENTS", "MACHINES", "LOADS"];
@@ -64,9 +66,24 @@ export function CompartirCard() {
 
   const remove = async () => {
     if (!deleting) return;
-    await deleteShare(deleting.token).catch(() => null);
-    setLinks((l) => l.filter((x) => x.token !== deleting.token));
+    try {
+      await deleteShare(deleting.token);
+      setLinks((l) => l.filter((x) => x.token !== deleting.token));
+    } catch {
+      say(t(language, "sel.error"), "error");
+    }
     setDeleting(null);
+  };
+
+  const selection = useSelection(links.map((l) => l.token));
+  const removeMany = async (tokens: string[]) => {
+    try {
+      const result = await deleteShares(tokens);
+      setLinks((l) => l.filter((x) => !result.deleted.includes(x.token)));
+      say(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch {
+      say(t(language, "sel.error"), "error");
+    }
   };
 
   return (
@@ -96,10 +113,13 @@ export function CompartirCard() {
       {links.length === 0 ? (
         <p className="text-small font-bold text-ink-suave">{t(language, "compartir.ninguno")}</p>
       ) : (
+        <>
+        <SelectionBar selection={selection} total={links.length} language={language} onDelete={removeMany} />
         <ul className="flex flex-col gap-2">
           {links.map((link) => (
             <li key={link.token} className="flex flex-wrap items-center justify-between gap-2 rounded-ficha bg-rosa-claro px-4 py-3">
-              <div className="min-w-0">
+              <RowCheck selection={selection} id={link.token} label={tf(language, "sel.fila", { nombre: link.label || t(language, `rol.${link.role}`) })} />
+              <div className="min-w-0 flex-1">
                 <p className="font-display text-body font-semibold">{link.label || t(language, `rol.${link.role}`)}</p>
                 <p className="text-caption font-extrabold text-ink-suave">{link.permissions.map((p) => t(language, `permiso.${p}`)).join(" · ")}</p>
               </div>
@@ -117,6 +137,7 @@ export function CompartirCard() {
             </li>
           ))}
         </ul>
+        </>
       )}
 
       <Dialog

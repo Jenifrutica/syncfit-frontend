@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Barbell, Copy, PencilSimple, Plus, QrCode, Trash } from "@phosphor-icons/react";
+import { Barbell, Copy, MagnifyingGlass, PencilSimple, Plus, QrCode, Trash } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input } from "@/components/ui/Field";
 import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
+import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import { PanelShell } from "@/components/paneles/PanelShell";
 import { MachineSheet, draftFrom, type MachineDraft } from "@/components/paneles/MachineSheet";
 import {
@@ -18,6 +19,7 @@ import {
   createGym,
   deleteGym,
   deleteGymMachine,
+  deleteGymMachines,
   fetchGymQr,
   getCatalog,
   listMyGyms,
@@ -28,6 +30,8 @@ import {
   type GymMachineInfo,
 } from "@/lib/api";
 import { realImage } from "@/lib/routine";
+import { equipmentLabel, useOptions } from "@/lib/options";
+import { useSelection } from "@/lib/useSelection";
 import { localized, t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { isValidName } from "@/lib/validation";
@@ -48,6 +52,8 @@ export function GymAdminScreen() {
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [sheet, setSheet] = useState<{ machine: GymMachineInfo | null } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [machineQuery, setMachineQuery] = useState("");
+  const options = useOptions();
 
   const say = (title: string, tone: "exito" | "error" = "exito") => toast({ tone, title, closeLabel: t(language, "comun.cerrar") });
 
@@ -71,6 +77,21 @@ export function GymAdminScreen() {
   const gym = gyms?.find((g) => g.id === selected) ?? null;
   const names = useMemo(() => new Map(catalog.map((c) => [c.id, c.name])), [catalog]);
   const initialDraft = useMemo(() => draftFrom(sheet?.machine ?? null, language), [sheet, language]);
+  const machineName = (m: GymMachineInfo) => localized(m.name, language) || m.name_text || "";
+  const mq = machineQuery.trim().toLocaleLowerCase();
+  const shownMachines = (gym?.machines ?? []).filter((m) => !mq || machineName(m).toLocaleLowerCase().includes(mq));
+  const machineSelection = useSelection(shownMachines.map((m) => m.id));
+
+  const deleteMachines = async (ids: string[]) => {
+    if (!gym) return;
+    try {
+      const result = await deleteGymMachines(gym.id, ids);
+      say(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch {
+      say(t(language, "gymadmin.error"), "error");
+    }
+    await load();
+  };
 
   const create = async (event: FormEvent) => {
     event.preventDefault();
@@ -231,10 +252,16 @@ export function GymAdminScreen() {
                   <EmptyState mood="dormida" title={t(language, "gymadmin.sinMaquinas")} action={<Button onClick={() => setSheet({ machine: null })}>{t(language, "gymadmin.agregar")}</Button>} />
                 </Card>
               ) : (
+                <>
+                <div className="relative">
+                  <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
+                  <Input type="search" aria-label={t(language, "maquina.buscarMaquina")} placeholder={t(language, "maquina.buscarMaquina")} value={machineQuery} onChange={(e) => setMachineQuery(e.target.value)} className="pl-12" />
+                </div>
+                <SelectionBar selection={machineSelection} total={shownMachines.length} language={language} onDelete={deleteMachines} />
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {gym.machines.map((m) => {
+                  {shownMachines.map((m) => {
                     const image = realImage(m.image_url);
-                    const name = localized(m.name, language) || m.name_text || "";
+                    const name = machineName(m);
                     return (
                       <li key={m.id}>
                         <Card padding="sm" className="flex h-full flex-col gap-3">
@@ -245,9 +272,12 @@ export function GymAdminScreen() {
                             <div aria-hidden="true" className="grid aspect-[16/9] w-full place-items-center rounded-ficha bg-fase-suave"><Barbell size={48} weight="bold" /></div>
                           )}
                           <div className="flex flex-col gap-1">
-                            <h3 className="text-h3 font-bold">{name}</h3>
+                            <div className="flex items-start gap-2">
+                              <span className="pt-1"><RowCheck selection={machineSelection} id={m.id} label={tf(language, "sel.fila", { nombre: name })} /></span>
+                              <h3 className="text-h3 font-bold">{name}</h3>
+                            </div>
                             <p className="text-small font-bold text-ink-suave">
-                              {[localized(m.purpose ?? undefined, language), t(language, `equipo.${m.equipment_key ?? "machine"}`), tf(language, "gym.factor", { n: m.weight_factor })].filter(Boolean).join(" · ")}
+                              {[localized(m.purpose ?? undefined, language), equipmentLabel(options, m.equipment_key ?? "machine", language), tf(language, "gym.factor", { n: m.weight_factor })].filter(Boolean).join(" · ")}
                             </p>
                           </div>
                           {(m.exercise_ids ?? []).length > 0 && (
@@ -266,6 +296,7 @@ export function GymAdminScreen() {
                     );
                   })}
                 </ul>
+                </>
               )}
             </section>
           )}

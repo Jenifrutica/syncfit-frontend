@@ -9,13 +9,18 @@ import { Card } from "@/components/ui/Card";
 import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select, TextArea } from "@/components/ui/Field";
+import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import {
   ApiError,
   deactivateAdminOption,
+  deleteAdminCatalogItems,
+  deleteAdminOptions,
   listAdminCatalog,
   listAdminOptions,
   saveAdminCatalogItem,
   saveAdminOption,
+  reactivateAdminCatalogItems,
+  reactivateAdminOptions,
   setAdminCatalogActive,
   updateAdminOption,
   type AdminCatalogItem,
@@ -23,7 +28,8 @@ import {
   type CatalogKind,
   type OptionCategory,
 } from "@/lib/api";
-import { t, type Language } from "@/lib/i18n";
+import { t, tf, type Language } from "@/lib/i18n";
+import { useSelection } from "@/lib/useSelection";
 
 type Section = "options" | CatalogKind;
 
@@ -35,7 +41,7 @@ const SECTIONS: { value: Section; key: string }[] = [
   { value: "supplement", key: "super.cat.suplementos" },
 ];
 
-const CATEGORIES: OptionCategory[] = ["muscle_group_isolated", "muscle_group_general", "objective", "goal_phase"];
+const CATEGORIES: OptionCategory[] = ["muscle_group_isolated", "muscle_group_general", "objective", "goal_phase", "equipment"];
 
 const TEMPLATES: Record<CatalogKind, Record<string, unknown>> = {
   exercise: {
@@ -65,6 +71,8 @@ type OptionDraft = {
   zh: string;
   sort: string;
   active: boolean;
+  /** Engine parameters as JSON text (objective scheme, calorie factor...). */
+  meta: string;
 };
 
 type CatalogDraft = { kind: CatalogKind; id: string | null; text: string };
@@ -139,9 +147,33 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
     return [...map.entries()];
   }, [filteredOptions]);
 
+  const visibleIds = section === "options" ? filteredOptions.map((o) => o.id) : filteredItems.map((i) => i.id);
+  const selection = useSelection(visibleIds);
+
+  const bulkDelete = async (ids: string[]) => {
+    try {
+      const result = section === "options" ? await deleteAdminOptions(ids) : await deleteAdminCatalogItems(section, ids);
+      say(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch {
+      say(t(language, "sel.error"), "error");
+    }
+    await load();
+  };
+
+  const bulkReactivate = async (ids: string[]) => {
+    try {
+      if (section === "options") await reactivateAdminOptions(ids);
+      else await reactivateAdminCatalogItems(section, ids);
+      say(tf(language, "sel.reactivados", { n: ids.length }));
+    } catch {
+      say(t(language, "sel.error"), "error");
+    }
+    await load();
+  };
+
   const openNewOption = () => {
     setError(null);
-    setOptionDraft({ id: null, category: "muscle_group_isolated", value: "", en: "", es: "", zh: "", sort: "", active: true });
+    setOptionDraft({ id: null, category: "muscle_group_isolated", value: "", en: "", es: "", zh: "", sort: "", active: true, meta: "" });
   };
 
   const openEditOption = (option: AdminOption) => {
@@ -155,6 +187,7 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
       zh: option.labels.zh ?? "",
       sort: String(option.sort_order),
       active: option.active,
+      meta: option.meta && Object.keys(option.meta).length ? JSON.stringify(option.meta) : "",
     });
   };
 
@@ -169,11 +202,22 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
       return;
     }
     const sort = optionDraft.sort.trim() ? Number(optionDraft.sort) : undefined;
+    let meta: Record<string, number> | null = null;
+    if (optionDraft.meta.trim()) {
+      try {
+        const parsed = JSON.parse(optionDraft.meta) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("object");
+        meta = parsed as Record<string, number>;
+      } catch {
+        setError(t(language, "catalogo.metaInvalido"));
+        return;
+      }
+    }
     setBusy(true);
     setError(null);
     try {
       if (optionDraft.id) {
-        await updateAdminOption(optionDraft.id, { labels, sort_order: sort, active: optionDraft.active });
+        await updateAdminOption(optionDraft.id, { labels, sort_order: sort, active: optionDraft.active, meta });
       } else {
         await saveAdminOption({
           category: optionDraft.category,
@@ -181,6 +225,7 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
           labels,
           sort_order: sort,
           active: optionDraft.active,
+          meta,
         });
       }
       setOptionDraft(null);
@@ -268,6 +313,8 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
         </Button>
       </div>
 
+      <SelectionBar selection={selection} total={visibleIds.length} language={language} onDelete={bulkDelete} onReactivate={bulkReactivate} />
+
       {section === "options" ? (
         <div className="flex flex-col gap-3">
           {grouped.map(([category, rows]) => (
@@ -275,6 +322,7 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
               <h3 className="px-2 pt-1 pb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-ink/50">{t(language, `super.cat.cat.${category}`)}</h3>
               {rows.map((option) => (
                 <div key={option.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-rosa-claro/60">
+                  <RowCheck selection={selection} id={option.id} label={tf(language, "sel.fila", { nombre: option.value })} />
                   <div className="min-w-0 flex-1">
                     <p className="font-display text-body font-bold">
                       {option.labels[language.toLowerCase()] ?? option.labels.en ?? option.value}
@@ -301,6 +349,7 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
         <Card padding="sm" className="flex flex-col gap-1">
           {filteredItems.map((item) => (
             <div key={item.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-rosa-claro/60">
+              <RowCheck selection={selection} id={item.id} label={tf(language, "sel.fila", { nombre: itemName(item, language) })} />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-body font-bold">{itemName(item, language)}</p>
                 <p className="truncate text-small font-semibold text-ink-suave">{item.id}</p>
@@ -365,6 +414,20 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
                 <Input {...control} inputMode="numeric" value={optionDraft.sort} onChange={(e) => setOptionDraft({ ...optionDraft, sort: e.target.value.replace(/\D/g, "") })} />
               )}
             </Field>
+            {(optionDraft.category === "objective" || optionDraft.category === "goal_phase" || optionDraft.meta) && (
+              <Field label={t(language, "catalogo.meta")} hint={t(language, "catalogo.metaAyuda")}>
+                {(control) => (
+                  <Input
+                    {...control}
+                    spellCheck={false}
+                    className="font-mono text-small"
+                    value={optionDraft.meta}
+                    placeholder={optionDraft.category === "goal_phase" ? '{"calorie_factor": 1.0}' : '{"sets": 3, "reps": 10, "rest_compound": 120, "rest_iso": 75}'}
+                    onChange={(e) => setOptionDraft({ ...optionDraft, meta: e.target.value })}
+                  />
+                )}
+              </Field>
+            )}
             {error && <p role="alert" className="text-small font-bold text-peligro">{error}</p>}
             <Button type="submit" loading={busy} fullWidth>
               {t(language, "super.cat.guardar")}

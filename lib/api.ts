@@ -209,7 +209,15 @@ export const SAMPLE_FRAME: TelemetryFrame = {
   },
 };
 
+/** Fast force channel (~100 ms) sent by the prototype next to the 2.56 s frame. */
+export interface LiveForce {
+  force_kg: number;
+  loss_pct: number | null;
+  age_seconds: number;
+}
+
 export interface LiveStatus {
+  force?: LiveForce | null;
   connected: boolean;
   age_seconds: number | null;
   device_id: string | null;
@@ -836,8 +844,79 @@ export async function listShares(): Promise<ShareLinkInfo[]> {
 }
 
 export async function deleteShare(token: string): Promise<void> {
-  await fetch(`${API_URL}/api/v1/shares/${token}`, { method: "DELETE", headers: authHeaders() });
+  const r = await fetch(`${API_URL}/api/v1/shares/${token}`, { method: "DELETE", headers: authHeaders() });
+  if (!r.ok) throw await apiError("delete share", r);
 }
+
+/* --- Bulk deletes: always DELETE with {"ids": [...]} ------------------------ */
+
+export interface BulkResult {
+  deleted: string[];
+  missing: string[];
+}
+
+async function bulkDelete(path: string, ids: string[], extra: Record<string, unknown> = {}): Promise<BulkResult> {
+  const r = await fetch(`${API_URL}/api/v1${path}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ ids, ...extra }),
+  });
+  if (!r.ok) throw await apiError("bulk delete", r);
+  return r.json();
+}
+
+async function bulkReactivate(path: string, ids: string[]): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ ids, active: true }),
+  });
+  if (!r.ok) throw await apiError("bulk reactivate", r);
+}
+
+export const deleteShares = (tokens: string[]) => bulkDelete("/shares", tokens);
+export const leaveGyms = (gymIds: string[]) => bulkDelete("/gyms/memberships", gymIds);
+export const deleteGymMachines = (gymId: string, ids: string[]) => bulkDelete(`/gyms/${gymId}/machines`, ids);
+export const deleteAdminOptions = (ids: string[]) => bulkDelete("/admin/options", ids);
+export const reactivateAdminOptions = (ids: string[]) => bulkReactivate("/admin/options", ids);
+export const deleteAdminCatalogItems = (kind: CatalogKind, ids: string[]) => bulkDelete(`/admin/catalog/${kind}`, ids);
+export const reactivateAdminCatalogItems = (kind: CatalogKind, ids: string[]) => bulkReactivate(`/admin/catalog/${kind}`, ids);
+
+export async function deleteUsers(ids: string[], adminPassword: string): Promise<BulkResult> {
+  return bulkDelete("/admin/users", ids, { admin_password: await hashPassword(ownEmail(), adminPassword) });
+}
+
+/* --- Athlete's own machines (catalog + typed by name) ----------------------- */
+
+export interface MyMachine {
+  id: string;
+  name: string;
+  type: string | null;
+  custom: boolean;
+}
+
+export async function getMyMachines(language: Language): Promise<MyMachine[]> {
+  const r = await fetch(`${API_URL}/api/v1/profile/machines?language=${language}`, { headers: authHeaders(), cache: "no-store" });
+  if (!r.ok) throw await apiError("my machines", r);
+  return r.json();
+}
+
+export async function addMyMachines(body: { ids: string[] } | { name: string }, language: Language): Promise<MyMachine[]> {
+  const r = await fetch(`${API_URL}/api/v1/profile/machines?language=${language}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw await apiError("add machines", r);
+  return r.json();
+}
+
+export async function removeMyMachine(id: string): Promise<void> {
+  const r = await fetch(`${API_URL}/api/v1/profile/machines/${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeaders() });
+  if (!r.ok) throw await apiError("remove machine", r);
+}
+
+export const removeMyMachines = (ids: string[]) => bulkDelete("/profile/machines", ids);
 
 export interface SharedProfile {
   owner_display_name: string;
@@ -1166,7 +1245,7 @@ export async function deleteUser(id: string, adminPassword: string): Promise<voi
 
 /* --- Super admin: catalogs (database is the source of truth) ---------------- */
 
-export type OptionCategory = "muscle_group_isolated" | "muscle_group_general" | "objective" | "goal_phase";
+export type OptionCategory = "muscle_group_isolated" | "muscle_group_general" | "objective" | "goal_phase" | "equipment";
 export type CatalogKind = "exercise" | "machine" | "symptom" | "supplement";
 
 export interface AdminOption {
@@ -1176,6 +1255,8 @@ export interface AdminOption {
   labels: Record<string, string>;
   sort_order: number;
   active: boolean;
+  /** Engine parameters (objective: sets/reps/rest; goal phase: calorie_factor). */
+  meta?: Record<string, number>;
 }
 
 export interface AdminCatalogItem {
@@ -1198,6 +1279,7 @@ export async function saveAdminOption(body: {
   labels: Record<string, string>;
   sort_order?: number;
   active?: boolean;
+  meta?: Record<string, number> | null;
 }): Promise<AdminOption> {
   const r = await fetch(`${API_URL}/api/v1/admin/options`, {
     method: "POST",

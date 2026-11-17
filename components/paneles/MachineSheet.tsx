@@ -8,9 +8,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { fileToDataUrl, type CatalogItem, type GymMachineInfo } from "@/lib/api";
-import { localized, t, type Language } from "@/lib/i18n";
-
-export const EQUIPMENT_KEYS = ["machine", "smith", "barbell", "dumbbell", "bench", "cable", "pullup-bar", "dip-bar", "ghd", "box", "band", "none"] as const;
+import { localized, t, tf, type Language } from "@/lib/i18n";
+import { equipmentKeys, equipmentLabel, useOptions } from "@/lib/options";
 
 export type MachineDraft = {
   name: string;
@@ -56,6 +55,8 @@ export function MachineSheet({
   const [draft, setDraft] = useState(initial);
   const [query, setQuery] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const options = useOptions();
+  const keys = equipmentKeys(options);
 
   useEffect(() => {
     if (open) {
@@ -68,7 +69,7 @@ export function MachineSheet({
   const names = useMemo(() => new Map(catalog.map((c) => [c.id, c.name])), [catalog]);
   const results = useMemo(() => {
     const q = query.trim().toLocaleLowerCase();
-    return (q ? catalog.filter((c) => c.name.toLocaleLowerCase().includes(q)) : catalog).filter((c) => !draft.exerciseIds.includes(c.id)).slice(0, 24);
+    return (q ? catalog.filter((c) => c.name.toLocaleLowerCase().includes(q)) : catalog).filter((c) => !draft.exerciseIds.includes(c.id));
   }, [catalog, query, draft.exerciseIds]);
 
   const submit = (event: FormEvent) => {
@@ -80,6 +81,9 @@ export function MachineSheet({
     }
     onSave({ ...draft, name: draft.name.trim(), purpose: draft.purpose.trim() });
   };
+
+  const addAll = () => setDraft((d) => ({ ...d, exerciseIds: [...d.exerciseIds, ...results.map((c) => c.id).filter((id) => !d.exerciseIds.includes(id))] }));
+  const clearAll = () => setDraft((d) => ({ ...d, exerciseIds: [] }));
 
   const toggle = (id: string) => setDraft((d) => ({ ...d, exerciseIds: d.exerciseIds.includes(id) ? d.exerciseIds.filter((x) => x !== id) : [...d.exerciseIds, id] }));
 
@@ -122,8 +126,8 @@ export function MachineSheet({
           <Field label={t(language, "maquina.tipo")}>
             {(control) => (
               <Select {...control} value={draft.equipmentKey} onChange={(e) => setDraft({ ...draft, equipmentKey: e.target.value })}>
-                {EQUIPMENT_KEYS.map((k) => (
-                  <option key={k} value={k}>{t(language, `equipo.${k}`)}</option>
+                {(keys.includes(draft.equipmentKey) ? keys : [...keys, draft.equipmentKey]).map((k) => (
+                  <option key={k} value={k}>{equipmentLabel(options, k, language)}</option>
                 ))}
               </Select>
             )}
@@ -135,6 +139,12 @@ export function MachineSheet({
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-small font-extrabold">{t(language, "maquina.ejercicios")}</legend>
           {draft.exerciseIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-small font-bold text-ink-suave">{tf(language, "sel.contador", { n: draft.exerciseIds.length })}</span>
+              <Button variant="fantasma" size="sm" onClick={clearAll} data-clear-exercises>{t(language, "sel.ninguno")}</Button>
+            </div>
+          )}
+          {draft.exerciseIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {draft.exerciseIds.map((id) => (
                 <Chip key={id} selected onToggle={() => toggle(id)}>{names.get(id) ?? id}</Chip>
@@ -145,6 +155,11 @@ export function MachineSheet({
             <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
             <Input type="search" aria-label={t(language, "maquina.buscar")} placeholder={t(language, "maquina.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
           </div>
+          {results.length > 0 && (
+            <Button variant="suave" size="sm" className="self-start" onClick={addAll} data-select-all-exercises>
+              {t(language, "sel.todos")} · {results.length}
+            </Button>
+          )}
           <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
             {results.map((c) => (
               <Chip key={c.id} selected={false} onToggle={() => toggle(c.id)}>{c.name}</Chip>

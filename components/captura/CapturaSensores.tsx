@@ -118,13 +118,18 @@ function Anillo({ progreso }: { progreso: number }) {
 
 type LiveValues = { bpm: number; forceKg: number; tempC: number };
 
+const LIVE_POLL_MS = 1000;
+const FORCE_POLL_MS = 250;
+
 /** Latest real readings from the prototype, or null when it is not connected. */
 function liveValuesFrom(status: LiveStatus | null): LiveValues | null {
   if (!status?.connected || !status.frame) return null;
   const b = status.frame.biomarkers;
+  // The fast force channel (~100 ms) beats the 2.56 s frame when it is fresh.
+  const fast = status.force && status.force.age_seconds < 1 ? status.force.force_kg : null;
   return {
     bpm: Math.max(0, Math.round(b.heart_rate_bpm ?? 0)),
-    forceKg: Math.max(0, Number((b.force_kg ?? 0).toFixed(1))),
+    forceKg: Math.max(0, Number((fast ?? b.force_kg ?? 0).toFixed(1))),
     tempC: Number((b.object_temperature_c ?? 0).toFixed(1)),
   };
 }
@@ -190,6 +195,12 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     setTareMessage(null);
   }, [paso]);
 
+  // Poll faster on the force step so the reading follows the push.
+  const pasoRef = useRef(paso);
+  useEffect(() => {
+    pasoRef.current = paso;
+  }, [paso]);
+
   const actual = PASOS[paso];
   const Icono = actual.icono;
   const Sensor = actual.sensor;
@@ -209,7 +220,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
       } catch {
         if (alive) setLive(null);
       }
-      if (alive) timer = window.setTimeout(tick, 1000);
+      if (alive) timer = window.setTimeout(tick, pasoRef.current === 1 ? FORCE_POLL_MS : LIVE_POLL_MS);
     };
     void tick();
     return () => {

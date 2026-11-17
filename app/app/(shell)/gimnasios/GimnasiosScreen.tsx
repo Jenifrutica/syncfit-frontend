@@ -11,10 +11,27 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input } from "@/components/ui/Field";
 import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
-import { activateGym, getJoinedGyms, getMachines, getMyProfile, joinGym, leaveGym, updateMyProfile, type GymMachine, type JoinedGym } from "@/lib/api";
+import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
+import {
+  activateGym,
+  addMyMachines,
+  getJoinedGyms,
+  getMachines,
+  getMyMachines,
+  getMyProfile,
+  joinGym,
+  leaveGym,
+  leaveGyms,
+  removeMyMachine,
+  removeMyMachines,
+  type GymMachine,
+  type JoinedGym,
+  type MyMachine,
+} from "@/lib/api";
 import { realImage } from "@/lib/routine";
 import { localized, t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
+import { useSelection } from "@/lib/useSelection";
 
 const REFRESH_MS = 15_000;
 
@@ -31,6 +48,9 @@ export function GimnasiosScreen() {
   const [catalog, setCatalog] = useState<GymMachine[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [myMachines, setMyMachines] = useState<MyMachine[]>([]);
+  const [typed, setTyped] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -58,6 +78,14 @@ export function GimnasiosScreen() {
   useEffect(() => {
     getMachines(language).then(setCatalog).catch(() => setCatalog([]));
   }, [language]);
+
+  const loadMine = useCallback(async () => {
+    setMyMachines(await getMyMachines(language).catch(() => []));
+  }, [language]);
+
+  useEffect(() => {
+    void loadMine();
+  }, [loadMine]);
 
   const syncProfile = async () => setProfile(await getMyProfile().catch(() => profile));
   const notify = (title: string, tone: "exito" | "error" = "exito") => toast({ tone, title, closeLabel: t(language, "comun.cerrar") });
@@ -104,24 +132,83 @@ export function GimnasiosScreen() {
     }
   };
 
-  const mine = new Set(profile?.available_machines ?? []);
-  const toggleMachine = async (id: string) => {
-    const next = new Set(mine);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+  // Machines are a resource: adding is POST, removing is DELETE, and a removed
+  // machine goes back to the "available" list so it can be chosen again.
+  const afterMachines = async (next: MyMachine[] | null) => {
+    if (next) setMyMachines(next);
+    else await loadMine();
+    await syncProfile();
+  };
+
+  const removeOne = async (id: string) => {
     try {
-      setProfile(await updateMyProfile({ available_machines: [...next] }));
+      await removeMyMachine(id);
+      await afterMachines(null);
     } catch {
       notify(t(language, "nutri.errorGuardar"), "error");
     }
   };
 
+  const removeMany = async (ids: string[]) => {
+    try {
+      const result = await removeMyMachines(ids);
+      notify(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch {
+      notify(t(language, "sel.error"), "error");
+    }
+    await afterMachines(null);
+  };
+
+  const addMany = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    try {
+      await afterMachines(await addMyMachines({ ids }, language));
+    } catch {
+      notify(t(language, "nutri.errorGuardar"), "error");
+    }
+  };
+
+  const addTyped = async (event: FormEvent) => {
+    event.preventDefault();
+    const name = typed.trim();
+    if (!name) return;
+    setAdding(true);
+    try {
+      await afterMachines(await addMyMachines({ name }, language));
+      setTyped("");
+      notify(t(language, "gym.misMaquinas.anadida"));
+    } catch {
+      notify(t(language, "nutri.errorGuardar"), "error");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const leaveMany = async (ids: string[]) => {
+    try {
+      const result = await leaveGyms(ids);
+      notify(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch {
+      notify(t(language, "sel.error"), "error");
+    }
+    await Promise.all([refresh(), syncProfile()]);
+  };
+
   const visible = filter === "ALL" ? (gyms ?? []) : (gyms ?? []).filter((g) => g.gym_id === filter);
-  const myMachines = catalog.filter((m) => mine.has(m.id));
-  const results = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
-    return q ? catalog.filter((m) => m.name.toLocaleLowerCase().includes(q)) : catalog;
-  }, [catalog, query]);
+  const selectedIds = useMemo(() => new Set(myMachines.map((m) => m.id)), [myMachines]);
+  const q = query.trim().toLocaleLowerCase();
+  const available = useMemo(
+    () => catalog.filter((m) => !selectedIds.has(m.id) && (!q || m.name.toLocaleLowerCase().includes(q))),
+    [catalog, selectedIds, q],
+  );
+  const selectedFiltered = useMemo(
+    () => (q ? myMachines.filter((m) => m.name.toLocaleLowerCase().includes(q)) : myMachines),
+    [myMachines, q],
+  );
+  const gymSelection = useSelection(visible.map((g) => g.gym_id));
+  const mineSelection = useSelection(myMachines.map((m) => m.id));
+  const pickedSelection = useSelection(selectedFiltered.map((m) => m.id));
+  const availableSelection = useSelection(available.map((m) => m.id));
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 pt-6 sm:px-8 lg:pt-10">
@@ -178,14 +265,19 @@ export function GimnasiosScreen() {
             <EmptyState mood="feliz" title={t(language, "gym.ninguno")} />
           </Card>
         ) : (
+          <>
+          <SelectionBar selection={gymSelection} total={visible.length} language={language} onDelete={leaveMany} deleteLabel={t(language, "gym.salir")} />
           <ul className="flex flex-col gap-4">
             {visible.map((gym) => (
               <li key={gym.gym_id}>
                 <Card className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1">
+                    <div className="flex items-start gap-3">
+                      <span className="pt-1.5"><RowCheck selection={gymSelection} id={gym.gym_id} label={tf(language, "sel.fila", { nombre: gym.name })} /></span>
+                      <div className="flex flex-col gap-1">
                       <h3 className="text-h3 font-bold">{gym.name}</h3>
                       <p className="font-display text-small font-semibold tracking-widest text-ink-suave">#{gym.code}</p>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {gym.active ? (
@@ -227,6 +319,7 @@ export function GimnasiosScreen() {
               </li>
             ))}
           </ul>
+          </>
         )}
       </section>
 
@@ -241,16 +334,10 @@ export function GimnasiosScreen() {
         {myMachines.length === 0 ? (
           <p className="text-small font-bold text-ink-suave">{t(language, "gym.misMaquinas.ninguna")}</p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
-            {myMachines.map((m) => (
-              <li key={m.id} className="flex items-center gap-1 rounded-full bg-nube py-1 pr-1 pl-4 font-display font-semibold">
-                {m.name}
-                <IconButton label={tf(language, "gym.quitar", { nombre: m.name })} variant="fantasma" className="size-9" onClick={() => void toggleMachine(m.id)}>
-                  <Trash size={16} weight="bold" />
-                </IconButton>
-              </li>
-            ))}
-          </ul>
+          <>
+            <SelectionBar selection={mineSelection} total={myMachines.length} language={language} onDelete={removeMany} />
+            <MachineChips machines={myMachines} selection={mineSelection} language={language} onRemove={removeOne} />
+          </>
         )}
       </section>
 
@@ -259,13 +346,60 @@ export function GimnasiosScreen() {
           <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
           <Input type="search" aria-label={t(language, "gym.misMaquinas.buscar")} placeholder={t(language, "gym.misMaquinas.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {results.map((m) => (
-            <Chip key={m.id} selected={mine.has(m.id)} onToggle={() => void toggleMachine(m.id)}>
-              {m.name}
-            </Chip>
-          ))}
-        </div>
+
+        <section aria-labelledby="maq-seleccionadas" className="flex flex-col gap-2">
+          <h3 id="maq-seleccionadas" className="text-small font-extrabold uppercase tracking-[0.14em] text-ink/60">
+            {t(language, "gym.misMaquinas.seleccionadas")} · {myMachines.length}
+          </h3>
+          {selectedFiltered.length === 0 ? (
+            <p className="text-small font-bold text-ink-suave">{q ? t(language, "gym.misMaquinas.sinResultados") : t(language, "gym.misMaquinas.ninguna")}</p>
+          ) : (
+            <>
+              <SelectionBar selection={pickedSelection} total={selectedFiltered.length} language={language} onDelete={removeMany} />
+              <MachineChips machines={selectedFiltered} selection={pickedSelection} language={language} onRemove={removeOne} />
+            </>
+          )}
+        </section>
+
+        <section aria-labelledby="maq-disponibles" className="flex flex-col gap-2">
+          <h3 id="maq-disponibles" className="text-small font-extrabold uppercase tracking-[0.14em] text-ink/60">
+            {t(language, "gym.misMaquinas.disponibles")} · {available.length}
+          </h3>
+          {available.length === 0 ? (
+            <p className="text-small font-bold text-ink-suave">{t(language, "gym.misMaquinas.sinResultados")}</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-nube px-3 py-2">
+                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-small font-extrabold">
+                  <input type="checkbox" checked={availableSelection.allSelected} onChange={availableSelection.toggleAll} className="size-5 accent-ink" data-select-all-available />
+                  {availableSelection.allSelected ? t(language, "sel.ninguno") : t(language, "sel.todos")}
+                </label>
+                <span className="text-small font-bold text-ink-suave">{tf(language, "sel.contador", { n: availableSelection.count })}</span>
+                <Button size="sm" className="ml-auto" icon={<Plus size={16} weight="bold" />} disabled={availableSelection.count === 0} onClick={() => void addMany(availableSelection.ids)} data-add-selected>
+                  {t(language, "gym.misMaquinas.anadirSel")}
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {available.map((m) => (
+                  <Chip key={m.id} selected={availableSelection.has(m.id)} onToggle={() => availableSelection.toggle(m.id)}>
+                    {m.name}
+                  </Chip>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+
+        <form onSubmit={addTyped} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <Field id="maquina-escrita" label={t(language, "gym.misMaquinas.escrita")} className="flex-1">
+            {(control) => (
+              <Input {...control} value={typed} maxLength={80} placeholder={t(language, "gym.misMaquinas.escritaPlaceholder")} onChange={(e) => setTyped(e.target.value)} />
+            )}
+          </Field>
+          <Button type="submit" loading={adding} disabled={!typed.trim()} icon={<Plus size={16} weight="bold" />} className="sm:mb-1">
+            {t(language, "gym.misMaquinas.anadir")}
+          </Button>
+        </form>
       </Dialog>
 
       <Dialog
@@ -284,5 +418,32 @@ export function GimnasiosScreen() {
         {null}
       </Dialog>
     </div>
+  );
+}
+
+function MachineChips({
+  machines,
+  selection,
+  language,
+  onRemove,
+}: {
+  machines: MyMachine[];
+  selection: ReturnType<typeof useSelection>;
+  language: Parameters<typeof t>[0];
+  onRemove: (id: string) => Promise<void>;
+}) {
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {machines.map((m) => (
+        <li key={m.id} className="flex items-center gap-2 rounded-full bg-nube py-1 pr-1 pl-3 font-display font-semibold">
+          <RowCheck selection={selection} id={m.id} label={tf(language, "sel.fila", { nombre: m.name })} />
+          {m.name}
+          {m.custom && <Badge tone="aviso">{t(language, "gym.misMaquinas.personalizada")}</Badge>}
+          <IconButton label={tf(language, "gym.quitar", { nombre: m.name })} variant="fantasma" className="size-9" onClick={() => void onRemove(m.id)}>
+            <Trash size={16} weight="bold" />
+          </IconButton>
+        </li>
+      ))}
+    </ul>
   );
 }

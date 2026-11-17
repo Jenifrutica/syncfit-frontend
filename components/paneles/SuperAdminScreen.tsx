@@ -13,12 +13,14 @@ import { Field, Input, Select } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
+import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import { CatalogAdmin } from "@/components/paneles/CatalogAdmin";
 import { PanelShell } from "@/components/paneles/PanelShell";
 import {
   ApiError,
   createGymAdmin,
   deleteUser,
+  deleteUsers,
   getUserDetail,
   listAllGyms,
   listGymAdmins,
@@ -34,6 +36,7 @@ import {
 import { t, tf } from "@/lib/i18n";
 import { useOptions } from "@/lib/options";
 import { useSession } from "@/lib/session";
+import { useSelection } from "@/lib/useSelection";
 import { isValidDocumentId, isValidEmail, isValidName, isValidNewPassword } from "@/lib/validation";
 
 type Tab = "usuarios" | "admins" | "gyms" | "catalogos";
@@ -114,6 +117,19 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
     }
   };
 
+  // Never offer to select yourself for deletion.
+  const selectable = (users ?? []).filter((u) => u.id !== me?.id);
+  const selection = useSelection(selectable.map((u) => u.id));
+  const deleteMany = async (ids: string[], password?: string) => {
+    try {
+      const result = await deleteUsers(ids, password ?? "");
+      say(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch (error) {
+      say(t(language, errorKey(error)), "error");
+    }
+    await load();
+  };
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -131,6 +147,14 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
         />
       </div>
 
+      <SelectionBar
+        selection={selection}
+        total={selectable.length}
+        language={language}
+        onDelete={deleteMany}
+        requirePassword={{ label: t(language, "super.tuClave"), hint: t(language, "super.tuClaveAyuda") }}
+      />
+
       <div className="overflow-x-auto overflow-y-hidden rounded-nube bg-nube shadow-nube">
         {!users ? (
           <SkeletonGroup label={t(language, "super.cargando")} className="p-4">
@@ -142,6 +166,7 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
           <table className="w-full min-w-[56rem] border-collapse text-left text-body">
             <thead>
               <tr className="text-caption font-extrabold text-ink-suave">
+                <th scope="col" className="w-10 px-4 py-3"><span className="sr-only">{t(language, "sel.todos")}</span></th>
                 {["super.nombre", "super.correo", "super.cedula", "super.rol", "super.estado"].map((k) => (
                   <th key={k} scope="col" className="px-4 py-3">{t(language, k)}</th>
                 ))}
@@ -153,6 +178,7 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
                 const self = u.id === me?.id;
                 return (
                   <tr key={u.id} className={cx("border-t border-rosa-claro", !u.active && "bg-rosa-claro/60")}>
+                    <td className="px-4 py-3">{self ? null : <RowCheck selection={selection} id={u.id} label={tf(language, "sel.fila", { nombre: u.display_name })} />}</td>
                     <td className="px-4 py-3 font-display font-semibold">{u.display_name}</td>
                     <td className="px-4 py-3 text-small font-bold text-ink-suave">{u.email}</td>
                     <td className="px-4 py-3 text-small font-bold tabular-nums">{u.document_id ?? "—"}</td>
@@ -339,6 +365,20 @@ function GymAdmins({ say }: { say: (title: string, tone?: "exito" | "error") => 
     void load();
   }, [load]);
 
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLocaleLowerCase();
+  const shown = (admins ?? []).filter((a) => !q || `${a.display_name} ${a.email}`.toLocaleLowerCase().includes(q));
+  const selection = useSelection(shown.map((a) => a.id));
+  const deleteMany = async (ids: string[], adminPassword?: string) => {
+    try {
+      const result = await deleteUsers(ids, adminPassword ?? "");
+      say(tf(language, "sel.hecho", { n: result.deleted.length }));
+    } catch (err) {
+      say(t(language, errorKey(err)), "error");
+    }
+    await load();
+  };
+
   const create = async (event: FormEvent) => {
     event.preventDefault();
     if (!isValidName(name)) return setError(t(language, "error.nombre"));
@@ -383,14 +423,28 @@ function GymAdmins({ say }: { say: (title: string, tone?: "exito" | "error") => 
         ) : admins.length === 0 ? (
           <p className="text-body text-ink-suave">{t(language, "super.admins.ninguno")}</p>
         ) : (
+          <>
+          <div className="relative">
+            <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
+            <Input type="search" aria-label={t(language, "super.buscar")} placeholder={t(language, "super.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
+          </div>
+          <SelectionBar
+            selection={selection}
+            total={shown.length}
+            language={language}
+            onDelete={deleteMany}
+            requirePassword={{ label: t(language, "super.tuClave"), hint: t(language, "super.tuClaveAyuda") }}
+          />
           <ul className="flex flex-col gap-2">
-            {admins.map((a) => (
+            {shown.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-ficha bg-rosa-claro px-4 py-3">
-                <span className="font-display font-semibold">{a.display_name}</span>
+                <RowCheck selection={selection} id={a.id} label={tf(language, "sel.fila", { nombre: a.display_name })} />
+                <span className="flex-1 font-display font-semibold">{a.display_name}</span>
                 <span className="text-small font-bold text-ink-suave">{a.email}</span>
               </li>
             ))}
           </ul>
+          </>
         )}
       </Card>
     </div>

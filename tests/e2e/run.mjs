@@ -252,7 +252,7 @@ const gymToken = await demoToken("GYM_ADMIN");
 
   await go(page, "/gym/", 1500);
   check("gym: entra a /gym", new URL(page.url()).pathname.startsWith("/gym"));
-  check("gym: ve su gimnasio", (await page.getByText(/valhalla/i).count()) > 0);
+  check("gym: ve su gimnasio", (await page.getByText(/asgard/i).count()) > 0);
 
   const machineName = `E2E Machine ${stamp}`;
   await page.getByRole("button", { name: /agregar máquina/i }).first().click();
@@ -371,6 +371,142 @@ const athleteToken = await demoToken("ATHLETE");
   );
 
   check("atleta: sin 4xx/5xx inesperados", net.bad.length === 0, net.bad.join(" | "));
+  await context.close();
+}
+
+/* --- Bulk selection, DELETE everywhere, options from the database --------- */
+
+async function api(token, method, path, body) {
+  const response = await fetch(`${API}/api/v1${path}`, {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  return { status: response.status, ok: response.ok, body: text ? JSON.parse(text) : null };
+}
+
+function methodLog(page) {
+  const log = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1")) log.push(`${request.method()} ${new URL(request.url()).pathname}`);
+  });
+  return log;
+}
+
+{
+  // Gym admin: search + select all + bulk DELETE.
+  const gyms = (await api(gymToken, "GET", "/gyms/mine?language=ES")).body;
+  const gymId = gyms[0].id;
+  const prefix = `Bulk ${stamp}`;
+  for (const n of [1, 2]) await api(gymToken, "POST", `/gyms/${gymId}/machines?language=ES`, { name: `${prefix} ${n}` });
+
+  const context = await contextFor(gymToken);
+  const page = await context.newPage();
+  const net = watch(page);
+  const log = methodLog(page);
+  await go(page, "/gym/", 1500);
+  await page.getByRole("searchbox", { name: /buscar máquina por nombre/i }).fill(prefix);
+  await page.waitForTimeout(400);
+  check("bulk gym: el buscador filtra por nombre", (await page.locator("li").filter({ hasText: prefix }).count()) === 2);
+  await page.locator("[data-select-all]").first().check();
+  await page.locator("[data-bulk-delete]").first().click();
+  await page.locator("dialog[open] [data-bulk-confirm]").click();
+  await page.waitForTimeout(1500);
+  check("bulk gym: seleccionar todo + eliminar", (await page.getByText(prefix).count()) === 0);
+  check("bulk gym: usa DELETE masivo", log.some((l) => l === `DELETE /api/v1/gyms/${gymId}/machines`), log.filter((l) => l.startsWith("DELETE")).join(" | "));
+  check("bulk gym: sin 4xx/5xx", net.bad.length === 0, net.bad.join(" | "));
+  await context.close();
+}
+
+{
+  // Athlete: My machines = POST to add, DELETE to remove, removed ones come back.
+  const token = await demoToken("ATHLETE");
+  const existing = (await api(token, "GET", "/profile/machines?language=ES")).body ?? [];
+  if (existing.length) await api(token, "DELETE", "/profile/machines", { ids: existing.map((m) => m.id) });
+
+  const context = await contextFor(token);
+  const page = await context.newPage();
+  const net = watch(page);
+  const log = methodLog(page);
+  await go(page, "/app/gimnasios/", 1500);
+  await page.getByRole("button", { name: /elegir máquinas/i }).click();
+  await page.waitForTimeout(500);
+  const dialog = page.locator("dialog[open]");
+  const chips = dialog.locator("section").nth(1).locator("button[aria-pressed]");
+  const firstName = (await chips.nth(0).innerText()).trim();
+  await chips.nth(0).click();
+  await chips.nth(1).click();
+  await dialog.locator("[data-add-selected]").click();
+  await page.waitForTimeout(1200);
+  let mine = (await api(token, "GET", "/profile/machines?language=ES")).body;
+  check("mis máquinas: añadir seleccionadas (POST)", mine.length === 2 && log.some((l) => l === "POST /api/v1/profile/machines"), log.join(" | "));
+
+  await dialog.getByRole("searchbox").fill(firstName);
+  await page.waitForTimeout(300);
+  check("mis máquinas: buscador encuentra la seleccionada", (await dialog.locator("section").nth(0).getByText(firstName, { exact: true }).count()) > 0);
+  await dialog.locator("section").nth(0).getByRole("button", { name: new RegExp(`quitar ${firstName}`, "i") }).click();
+  await page.waitForTimeout(1200);
+  mine = (await api(token, "GET", "/profile/machines?language=ES")).body;
+  check("mis máquinas: quitar usa DELETE", log.some((l) => l.startsWith("DELETE /api/v1/profile/machines/")), log.filter((l) => !l.startsWith("GET")).join(" | "));
+  check("mis máquinas: quitar no usa PUT", !log.some((l) => l.startsWith("PUT ")));
+  check("mis máquinas: vuelve a estar disponible", (await dialog.locator("section").nth(1).getByRole("button", { name: firstName, exact: true }).count()) > 0 && mine.length === 1);
+
+  await dialog.getByRole("searchbox").fill("");
+  await dialog.locator("#maquina-escrita").fill(`Prensa vieja ${stamp}`);
+  await dialog.getByRole("button", { name: /^añadir$/i }).click();
+  await page.waitForTimeout(2500);
+  mine = (await api(token, "GET", "/profile/machines?language=ES")).body;
+  check("mis máquinas: máquina escrita añadida", mine.some((m) => m.custom), JSON.stringify(mine.map((m) => m.name)));
+
+  await dialog.getByRole("button", { name: /^cerrar$/i }).first().click();
+  await page.waitForTimeout(600);
+  const mineSection = page.locator('section[aria-labelledby="mis-maquinas"]');
+  await mineSection.locator("[data-select-all]").check();
+  await mineSection.locator("[data-bulk-delete]").click();
+  await page.locator("dialog[open] [data-bulk-confirm]").click();
+  await page.waitForTimeout(1500);
+  mine = (await api(token, "GET", "/profile/machines?language=ES")).body;
+  check("mis máquinas: seleccionar todo + eliminar (DELETE)", mine.length === 0 && log.some((l) => l === "DELETE /api/v1/profile/machines"), log.filter((l) => l.startsWith("DELETE")).join(" | "));
+  check("mis máquinas: sin errores de consola", net.errors.length === 0, net.errors[0]);
+  check("mis máquinas: sin 4xx/5xx", net.bad.length === 0, net.bad.join(" | "));
+  await context.close();
+}
+
+{
+  // Super admin: a new objective added to the database works at once.
+  const root = await demoToken("SUPER_ADMIN");
+  const value = `E2E_GOAL_${stamp}`;
+  const created = await api(root, "POST", "/admin/options", {
+    category: "objective", value, labels: { en: "E2E goal", es: "Objetivo E2E" },
+    meta: { sets: 2, reps: 15, rest_compound: 45, rest_iso: 30 },
+  });
+  check("opciones: crear objetivo con parámetros", created.ok && created.body.meta.reps === 15, String(created.status));
+  const pub = (await (await fetch(`${API}/api/v1/options?language=ES`)).json()).objective.map((o) => o.value);
+  check("opciones: aparece en /options", pub.includes(value));
+  const routine = await api(root, "POST", "/routines", { muscle_groups: ["GLUTES"], objective: value });
+  check("opciones: /routines acepta el objetivo nuevo", routine.ok, String(routine.status));
+  const unknown = await api(root, "POST", "/routines", { muscle_groups: ["GLUTES"], objective: "NO_EXISTE" });
+  check("opciones: /routines rechaza uno desconocido", unknown.status === 422, String(unknown.status));
+  check("opciones: equipo viene de la BD", (await (await fetch(`${API}/api/v1/options`)).json()).equipment?.length >= 12);
+
+  const context = await contextFor(root);
+  const page = await context.newPage();
+  const net = watch(page);
+  const log = methodLog(page);
+  await go(page, "/admin/", 1500);
+  await page.getByRole("radio", { name: /catálogos/i }).click({ force: true });
+  await page.waitForTimeout(1200);
+  await page.getByRole("searchbox").first().fill(value);
+  await page.waitForTimeout(400);
+  await page.locator("[data-select-all]").first().check();
+  await page.locator("[data-bulk-delete]").first().click();
+  await page.locator("dialog[open] [data-bulk-confirm]").click();
+  await page.waitForTimeout(1200);
+  check("catálogos: eliminar seleccionados usa DELETE", log.some((l) => l === "DELETE /api/v1/admin/options"), log.filter((l) => !l.startsWith("GET")).join(" | "));
+  const after = (await (await fetch(`${API}/api/v1/options`)).json()).objective.map((o) => o.value);
+  check("catálogos: el objetivo deja de ofrecerse", !after.includes(value));
+  check("catálogos: sin 4xx/5xx", net.bad.length === 0, net.bad.join(" | "));
   await context.close();
 }
 
