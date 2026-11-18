@@ -1,118 +1,79 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { CapturaSensores } from "@/components/captura/CapturaSensores";
-import { useToast } from "@/components/ui/Toast";
 import { RoutineConfig, type CaptureOptions } from "@/components/rutina/RoutineConfig";
 import { RoutineResult } from "@/components/rutina/RoutineResult";
 import { ScanProgress } from "@/components/rutina/ScanProgress";
-import { ApiError, capture } from "@/lib/api";
 import type { Checkin } from "@/lib/checkin";
 import { todayISO } from "@/lib/dates";
 import { t } from "@/lib/i18n";
-import { planFromCapture } from "@/lib/routine";
 import { useRoutine } from "@/lib/routine-context";
 import { useSession } from "@/lib/session";
 
-/** Long enough to see the four stations; the request itself is usually faster. */
-const MIN_SCAN_MS = 3600;
-
-type Etapa = "config" | "sensores" | "generando";
+type Etapa = "config" | "sensores";
 
 /**
  * Rutina: choose → take the three sensor readings → scan (two AIs + validator)
- * → editable result → workout. The readings travel with the plan and are shown
- * at the top of the result.
+ * → editable result → workout. The generation itself runs in the /app layout
+ * (see lib/routine-context.tsx), so leaving this screen or reloading the page
+ * does not lose it: coming back shows the progress or the finished routine.
  */
 export function RutinaScreen() {
   const { language } = useSession();
-  const { plan, setPlan } = useRoutine();
-  const toast = useToast();
+  const { plan, setPlan, generation, generate, clearError } = useRoutine();
   const [etapa, setEtapa] = useState<Etapa>("config");
   const [options, setOptions] = useState<CaptureOptions | null>(null);
-  const [sensores, setSensores] = useState<Checkin | null>(null);
-  const [scanDone, setScanDone] = useState(false);
-  const started = useRef(false);
   const today = todayISO();
 
   const startCapture = useCallback((next: CaptureOptions) => {
+    clearError();
     setOptions(next);
-    setSensores(null);
-    setScanDone(false);
-    started.current = false;
     setEtapa("sensores");
-  }, []);
+  }, [clearError]);
 
-  const onSensors = useCallback((values: Checkin) => {
-    setSensores(values);
-    setEtapa("generando");
-  }, []);
+  const onSensors = useCallback(
+    (values: Checkin) => {
+      if (options) generate(options, values, language);
+      setEtapa("config");
+    },
+    [options, generate, language],
+  );
 
+  // A failed generation goes back to the form (the toast explains why).
   useEffect(() => {
-    if (etapa !== "generando" || !options || started.current) return;
-    started.current = true;
-    let cancelled = false;
-
-    (async () => {
-      const begin = Date.now();
-      try {
-        const result = await capture(options.groups.join(","), {
-          exercisesCount: options.exercises,
-          timeBudgetMinutes: options.minutes ?? undefined,
-          energy: options.energy,
-          includeWarmup: options.warmup,
-          language,
-        });
-        await new Promise((resolve) => window.setTimeout(resolve, Math.max(0, MIN_SCAN_MS - (Date.now() - begin))));
-        if (cancelled) return;
-        setScanDone(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 500));
-        if (cancelled) return;
-
-        const next = planFromCapture(result, today);
-        setPlan(sensores ? { ...next, sensores } : next);
-        setEtapa("config");
-      } catch (error) {
-        console.error("capture failed", error);
-        started.current = false;
-        const status = error instanceof ApiError ? error.status : undefined;
-        const timedOut = status === 502 || status === 503 || status === 504;
-        toast({
-          tone: "error",
-          title: t(language, timedOut ? "rutina.error.timeout" : "rutina.error.captura"),
-          closeLabel: t(language, "comun.cerrar"),
-        });
-        setEtapa("config");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // `toast` is stable enough; re-running would restart the request.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etapa, options, sensores, language, today, setPlan]);
+    if (generation.state === "error") setEtapa("config");
+  }, [generation.state]);
 
   const newRoutine = useCallback(() => {
     setPlan(null);
-    setScanDone(false);
-    started.current = false;
     setEtapa("config");
   }, [setPlan]);
 
+  // Re-take the readings with the same choices (kept by RoutineConfig even
+  // after leaving the screen); without them, go back to the form.
   const recapture = useCallback(() => {
-    setScanDone(false);
-    started.current = false;
-    setEtapa("sensores");
-  }, []);
+    let saved: CaptureOptions | null = options;
+    if (!saved) {
+      try {
+        const raw = JSON.parse(window.localStorage.getItem("syncfit-rutina-config") ?? "null") as CaptureOptions | null;
+        saved = raw?.groups?.length ? raw : null;
+      } catch {
+        saved = null;
+      }
+    }
+    setOptions(saved);
+    setEtapa(saved ? "sensores" : "config");
+  }, [options]);
 
-  const view = etapa === "sensores" ? "sensores" : etapa === "generando" ? "generando" : plan ? "resultado" : "config";
+  const running = generation.state === "running";
+  const view = running ? "generando" : etapa === "sensores" ? "sensores" : plan ? "resultado" : "config";
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-6 sm:px-8 lg:pt-10">
       {view === "generando" ? (
-        <ScanProgress done={scanDone} language={language} />
+        <ScanProgress done={running && generation.finishing} language={language} />
       ) : view === "resultado" && plan ? (
         <RoutineResult plan={plan} language={language} onNew={newRoutine} onRecapture={recapture} />
       ) : view === "sensores" ? (

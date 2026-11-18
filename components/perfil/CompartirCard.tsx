@@ -79,7 +79,9 @@ export function CompartirCard() {
   const removeMany = async (tokens: string[]) => {
     try {
       const result = await deleteShares(tokens);
-      setLinks((l) => l.filter((x) => !result.deleted.includes(x.token)));
+      // "missing" ones were already deleted elsewhere (another tab): drop them too.
+      const gone = new Set([...result.deleted, ...result.missing]);
+      setLinks((l) => l.filter((x) => !gone.has(x.token)));
       say(tf(language, "sel.hecho", { n: result.deleted.length }));
     } catch {
       say(t(language, "sel.error"), "error");

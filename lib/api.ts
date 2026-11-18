@@ -785,9 +785,12 @@ export async function capture(
     energy?: EnergyLevel;
     includeWarmup?: boolean;
     language?: Language;
+    /** Same id on retries: the backend never generates (or saves) twice. */
+    requestId?: string;
   } = {},
 ): Promise<CaptureResult> {
   const query = new URLSearchParams();
+  if (options.requestId) query.set("request_id", options.requestId);
   if (options.language) query.set("language", options.language);
   if (path) query.set("muscle_groups", path);
   if (options.exercisesCount) query.set("exercises_count", String(options.exercisesCount));
@@ -803,6 +806,18 @@ export async function capture(
 }
 
 
+
+export type CaptureJobStatus =
+  | { request_id: string; status: "PENDING" | "STALE" }
+  | { request_id: string; status: "DONE"; result: CaptureResult }
+  | { request_id: string; status: "ERROR"; error?: string };
+
+/** GET /capture/{id} — state of a generation started with that request id (404 if unknown). */
+export async function getCaptureStatus(requestId: string): Promise<CaptureJobStatus> {
+  const response = await fetch(`${API_URL}/api/v1/capture/${encodeURIComponent(requestId)}`, { headers: authHeaders(), cache: "no-store" });
+  if (!response.ok) throw await apiError("capture status", response);
+  return response.json();
+}
 
 export type ShareRole = "TRAINER" | "COACH" | "PARTNER" | "FRIEND" | "FAMILY" | "OTHER";
 

@@ -87,7 +87,7 @@ export function RoutineResult({
       : [];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5" data-routine-result>
       <h1 className="text-h1 font-bold">{t(language, "rutina.titulo")}</h1>
 
       {(sensores || fromDevice) && (
