@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle, EnvelopeSimple, Info, WarningCircle } from "@phosphor-icons/react";
 
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,7 +13,7 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { SkyShell } from "@/components/brand/SkyShell";
-import { checkResetToken, forgotPassword, resetPassword } from "@/lib/api";
+import { checkResetToken, forgotPassword, resetPassword, forgotPasswordSimulated, type SimulatedReset } from "@/lib/api";
 import { t, tf } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { isValidEmail, isValidNewPassword } from "@/lib/validation";
@@ -32,6 +32,8 @@ export function RecuperarScreen() {
   const [repetida, setRepetida] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // Demo account with a made-up address: the "email" is shown on screen.
+  const [simulated, setSimulated] = useState<SimulatedReset | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -59,6 +61,13 @@ export function RecuperarScreen() {
     }
     setSending(true);
     try {
+      const simulation = await forgotPasswordSimulated(email);
+      if (simulation) {
+        setSimulated(simulation);
+        setEmail(simulation.to);
+        setView("reset");
+        return;
+      }
       await forgotPassword(email);
       setView("sent");
     } catch {
@@ -81,7 +90,7 @@ export function RecuperarScreen() {
     }
     setSending(true);
     try {
-      await resetPassword(token ?? "", email, clave);
+      await resetPassword(token ?? simulated?.token ?? "", email, clave);
       setView("done");
     } catch {
       setError(t(language, "recuperar.error"));
@@ -133,6 +142,10 @@ export function RecuperarScreen() {
 
         {view === "request" && (
           <form noValidate onSubmit={requestLink} className="flex flex-col gap-4">
+            <p className="flex items-start gap-2 rounded-ficha bg-lutea/25 px-4 py-3 text-left text-small font-bold" data-aviso-temporal>
+              <Info size={20} weight="bold" aria-hidden="true" className="mt-px shrink-0" />
+              {t(language, "recuperar.avisoTemporal")}
+            </p>
             <Field id="recuperar-correo" label={t(language, "recuperar.correo")}>
               {(control) => (
                 <Input
@@ -167,6 +180,18 @@ export function RecuperarScreen() {
               {t(language, "recuperar.volver")}
             </ButtonLink>
           </div>
+        )}
+
+        {view === "reset" && simulated && (
+          <section aria-labelledby="correo-simulado" className="mb-4 flex flex-col gap-1 rounded-ficha border-2 border-dashed border-lutea bg-crema px-4 py-3 text-left" data-correo-simulado>
+            <h2 id="correo-simulado" className="flex items-center gap-2 text-small font-extrabold uppercase tracking-[0.12em]">
+              <EnvelopeSimple size={18} weight="bold" aria-hidden="true" />
+              {t(language, "recuperar.simulado.titulo")}
+            </h2>
+            <p className="text-small font-bold">{tf(language, "recuperar.simulado.para", { to: simulated.to })}</p>
+            <p className="text-small font-bold">{t(language, "recuperar.simulado.asunto")}</p>
+            <p className="text-small text-ink-suave">{tf(language, "recuperar.simulado.cuerpo", { n: simulated.expires_minutes })}</p>
+          </section>
         )}
 
         {view === "reset" && (

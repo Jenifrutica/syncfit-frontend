@@ -7,6 +7,7 @@ import { Barbell, CalendarBlank, House, Pill, SignOut, UserCircle, type Icon } f
 
 import { cx } from "@/lib/cx";
 import { Wordmark } from "@/components/brand/Wordmark";
+import { Button } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { currentFase } from "@/lib/cycle";
 import { todayISO } from "@/lib/dates";
@@ -73,16 +74,25 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto flex flex-col gap-3 px-1">
           <LanguageSwitcher />
-          <button
-            type="button"
-            onClick={logout}
-            className="flex min-h-11 items-center gap-2 rounded-full px-4 text-small font-extrabold text-peligro hover:bg-peligro-suave"
-          >
-            <SignOut size={18} weight="bold" aria-hidden="true" />
-            {t(language, "nav.salir")}
-          </button>
         </div>
       </aside>
+
+      {/* Same top bar as the admin panels: sign out always in the top-right corner. */}
+      <header className="sticky top-0 z-30 bg-nube/95 shadow-flotante backdrop-blur lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
+          <div className="flex items-center gap-3 lg:invisible">
+            <Wordmark href="/app" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="lg:hidden">
+              <LanguageSwitcher />
+            </div>
+            <Button variant="fantasma" size="sm" icon={<SignOut size={18} weight="bold" />} onClick={logout} data-logout>
+              <span className="max-sm:sr-only">{t(language, "nav.salir")}</span>
+            </Button>
+          </div>
+        </div>
+      </header>
 
       <div className="pb-28 lg:pb-10">{children}</div>
 

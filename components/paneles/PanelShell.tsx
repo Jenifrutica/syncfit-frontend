@@ -27,8 +27,13 @@ export function PanelShell({ title, subtitle, actions, children }: { title: stri
             <Wordmark href={user?.role === "SUPER_ADMIN" ? "/admin" : "/gym"} />
             {user && <Badge tone="lavanda">{t(language, `admin.rol.${user.role}`)}</Badge>}
           </div>
+          {/* Sign out stays in the top-right corner; on phones the languages wrap below. */}
+          <div className="max-sm:order-3 max-sm:basis-full sm:ml-auto">
+            <div className="w-fit">
+              <LanguageSwitcher />
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <LanguageSwitcher />
             <Button
               variant="fantasma"
               size="sm"

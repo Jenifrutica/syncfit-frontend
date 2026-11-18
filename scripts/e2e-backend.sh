@@ -5,5 +5,7 @@ cd "$(dirname "$0")/../../syncfit-backend"
 set -a
 . "${SYNCFIT_ENV:-$HOME/.config/syncfit/local.env}"
 set +a
+# The local test athlete also gets the on-screen (simulated) reset email.
+export DEMO_SIMULATED_EMAILS="asgardcito@asgard.com,nicolasa@syncfit.dev,pw-demo-atleta@example.com"
 export PYTHONPATH=".:../syncfit-contracts/python:../syncfit-core:../syncfit-simulator/py:../syncfit-database:../syncfit-ai-reasoning"
 exec python3 -m uvicorn app.main:app --host 127.0.0.1 --port "${E2E_API_PORT:-8001}"

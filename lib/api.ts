@@ -603,6 +603,29 @@ export async function checkResetToken(token: string): Promise<{ email: string }>
 }
 
 /** POST /auth/reset — the new password is digested before it leaves the browser. */
+export interface SimulatedReset {
+  simulated: true;
+  to: string;
+  token: string;
+  link: string;
+  expires_minutes: number;
+}
+
+/**
+ * Evaluation accounts use made-up addresses: the backend hands the reset token
+ * to the screen instead of emailing it. `null` = a real address (send the email).
+ */
+export async function forgotPasswordSimulated(email: string): Promise<SimulatedReset | null> {
+  const response = await fetch(`${API_URL}/api/v1/auth/forgot/simulated`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw await apiError("simulated forgot", response);
+  return response.json();
+}
+
 export async function resetPassword(token: string, email: string, password: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/v1/auth/reset`, {
     method: "POST",
