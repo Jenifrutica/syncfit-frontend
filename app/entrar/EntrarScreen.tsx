@@ -18,6 +18,7 @@ import { SkyShell } from "@/components/brand/SkyShell";
 import { LoadingScreen } from "@/components/session/LoadingScreen";
 import type { DemoRole } from "@/lib/api";
 import { explainAuthError, type AuthField } from "@/lib/auth-errors";
+import { demoAccounts } from "@/lib/demo-accounts";
 import { t } from "@/lib/i18n";
 import { homeFor, useSession } from "@/lib/session";
 import { isValidDocumentId, isValidEmail, isValidName, isValidNewPassword, normalizeName } from "@/lib/validation";
@@ -46,6 +47,7 @@ export function EntrarScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [demoBusy, setDemoBusy] = useState<DemoRole | null>(null);
+  const [demoFilled, setDemoFilled] = useState<DemoRole | null>(null);
 
   // Already signed in (or just signed in): go where this person belongs.
   useEffect(() => {
@@ -110,6 +112,18 @@ export function EntrarScreen() {
 
   const onDemo = async (role: DemoRole) => {
     setFormError(null);
+    // With known evaluation credentials the button only fills the form: the
+    // person sees the account, can press «Entrar» or try «¿Olvidaste…?».
+    const account = demoAccounts()[role];
+    if (account) {
+      setMode("entrar");
+      setErrors({});
+      setCorreo(account.email);
+      setClave(account.password);
+      setDemoFilled(role);
+      window.setTimeout(() => document.getElementById("boton-entrar")?.focus(), 0);
+      return;
+    }
     setDemoBusy(role);
     try {
       await signInDemo(role);
@@ -216,7 +230,11 @@ export function EntrarScreen() {
 
           {!creating && (
             <p className="text-right">
-              <Link href="/recuperar/" className="text-small font-bold underline underline-offset-4">
+              <Link
+                href={correo.trim() ? `/recuperar/?correo=${encodeURIComponent(correo.trim())}` : "/recuperar/"}
+                className="text-small font-bold underline underline-offset-4"
+                data-forgot
+              >
                 {t(language, "entrar.olvide")}
               </Link>
             </p>
@@ -230,6 +248,7 @@ export function EntrarScreen() {
           )}
 
           <Button
+            id="boton-entrar"
             type="submit"
             size="lg"
             fullWidth
@@ -263,6 +282,9 @@ export function EntrarScreen() {
             <h2 className="text-h3 font-bold">{t(language, "entrar.demoTitulo")}</h2>
             <p className="text-small font-bold text-ink-suave">{t(language, "entrar.demoAviso")}</p>
           </div>
+          {demoFilled && (
+            <p role="status" className="text-small font-bold">{t(language, "entrar.demoRellenado")}</p>
+          )}
           <div className="grid grid-cols-3 gap-2">
             {([
               ["SUPER_ADMIN", "entrar.demoSuper"],
@@ -276,6 +298,8 @@ export function EntrarScreen() {
                 loading={demoBusy === role}
                 disabled={demoBusy !== null && demoBusy !== role}
                 onClick={() => void onDemo(role)}
+                aria-pressed={demoFilled === role}
+                data-demo={role}
               >
                 {t(language, key)}
               </Button>

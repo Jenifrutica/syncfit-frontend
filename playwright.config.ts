@@ -16,6 +16,7 @@ const BASE = process.env.E2E_BASE ?? "http://localhost:3100";
 
 export default defineConfig({
   testDir: "tests/pw",
+  globalSetup: "./tests/pw/global-setup.ts",
   timeout: 120_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,

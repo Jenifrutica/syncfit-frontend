@@ -26,7 +26,8 @@ export function RecuperarScreen() {
   const token = params.get("token");
 
   const [view, setView] = useState<View>(token ? "loading" : "request");
-  const [email, setEmail] = useState("");
+  // Coming from /entrar with the email already typed: keep it.
+  const [email, setEmail] = useState(() => params.get("correo") ?? "");
   const [clave, setClave] = useState("");
   const [repetida, setRepetida] = useState("");
   const [error, setError] = useState<string | null>(null);
