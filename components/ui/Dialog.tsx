@@ -77,7 +77,12 @@ export function Dialog({ open, onClose, title, description, variant = "modal", c
           </IconButton>
         </div>
         <div className="flex flex-col gap-4">{children}</div>
-        {footer && <div className="flex flex-col gap-2 pt-1 sm:flex-row-reverse">{footer}</div>}
+        {footer && (
+          // Sticky: long sheets (e.g. 57 machines) keep their action in view while scrolling.
+          <div className="sticky bottom-0 z-10 -mx-5 -mb-6 flex flex-col gap-2 border-t border-rosa-claro bg-nube px-5 pt-3 pb-5 sm:-mx-7 sm:flex-row-reverse sm:px-7">
+            {footer}
+          </div>
+        )}
       </div>
     </dialog>
   );

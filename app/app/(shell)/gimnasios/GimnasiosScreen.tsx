@@ -341,7 +341,23 @@ export function GimnasiosScreen() {
         )}
       </section>
 
-      <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} variant="sheet" title={t(language, "gym.misMaquinas")} closeLabel={t(language, "comun.cerrar")}>
+      <Dialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        variant="sheet"
+        title={t(language, "gym.misMaquinas")}
+        closeLabel={t(language, "comun.cerrar")}
+        footer={
+          <>
+            <Button icon={<Plus size={18} weight="bold" />} disabled={availableSelection.count === 0} onClick={() => void addMany(availableSelection.ids)} data-add-selected>
+              {availableSelection.count > 0
+                ? tf(language, "gym.misMaquinas.anadirN", { n: availableSelection.count })
+                : t(language, "gym.misMaquinas.anadirSel")}
+            </Button>
+            <Button variant="suave" onClick={() => setPickerOpen(false)}>{t(language, "gym.misMaquinas.listo")}</Button>
+          </>
+        }
+      >
         <div className="relative">
           <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
           <Input type="search" aria-label={t(language, "gym.misMaquinas.buscar")} placeholder={t(language, "gym.misMaquinas.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
@@ -375,9 +391,6 @@ export function GimnasiosScreen() {
                   {availableSelection.allSelected ? t(language, "sel.ninguno") : t(language, "sel.todos")}
                 </label>
                 <span className="text-small font-bold text-ink-suave">{tf(language, "sel.contador", { n: availableSelection.count })}</span>
-                <Button size="sm" className="ml-auto" icon={<Plus size={16} weight="bold" />} disabled={availableSelection.count === 0} onClick={() => void addMany(availableSelection.ids)} data-add-selected>
-                  {t(language, "gym.misMaquinas.anadirSel")}
-                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {available.map((m) => (
