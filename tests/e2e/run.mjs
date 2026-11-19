@@ -330,6 +330,7 @@ const athleteToken = await demoToken("ATHLETE");
   await go(page, "/app/rutina/", 1200);
   await page.getByText("Cuádriceps", { exact: true }).first().click();
   await page.waitForTimeout(300);
+  await page.getByRole("radio", { name: "5", exact: true }).check({ force: true });
   await page.getByRole("button", { name: /escanear y crear rutina/i }).click();
   await page.waitForTimeout(800);
   check("rutina: aparece la captura", (await page.getByText(/pon la yema en el sensor óptico/i).count()) > 0);

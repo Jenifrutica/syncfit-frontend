@@ -136,8 +136,8 @@ test.describe("rutina en segundo plano", () => {
     await expect(page.getByRole("button", { name: /escanear y crear rutina/i })).toBeVisible();
 
     await page.unrouteAll({ behavior: "ignoreErrors" });
-    await page.getByRole("button", { name: /escanear y crear rutina/i }).click();
-    await page.getByRole("button", { name: /^simular$/i }).click();
+    // A fresh panel each time: choose again and retry.
+    await startRoutine(page);
     await expect(resultHeading(page)).toBeVisible({ timeout: 40_000 });
   });
 

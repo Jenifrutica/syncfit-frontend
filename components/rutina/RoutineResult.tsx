@@ -50,7 +50,9 @@ export function RoutineResult({
   const changing = all.find((i) => i.key === changeKey) ?? null;
   const detail = all.find((i) => i.key === detailKey) ?? null;
   const assessment = (summary.assessment ?? {}) as AssessmentInfo;
-  const alerts = summary.alerts ?? [];
+  const shortfall = summary.shortfall ?? null;
+  // The shortfall gets its own card; don't repeat it among the alerts.
+  const alerts = (summary.alerts ?? []).filter((alert) => alert !== shortfall?.summary);
   const mood = moodFromDecision({ fatigueLevel: summary.fatigue_level, kLoad: summary.k_load, hasAlerts: alerts.length > 0 });
   const fase = isFase(summary.phase_inferred) ? summary.phase_inferred : null;
   const avoided = (assessment.contraindicated_patterns ?? []).map((p) => t(language, `patron.${p}`));
@@ -123,6 +125,20 @@ export function RoutineResult({
               </div>
             ))}
           </dl>
+        </Card>
+      )}
+
+      {shortfall && (
+        <Card tone="rosa-claro" className="flex flex-col gap-2" data-shortfall>
+          <h2 className="flex items-center gap-2 text-h3 font-bold">
+            <Warning size={22} weight="bold" aria-hidden="true" />
+            {tf(language, "rutina.menos.titulo", { pedidos: shortfall.requested, salieron: shortfall.delivered })}
+          </h2>
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-body font-bold">
+            {shortfall.reasons.map((reason) => (
+              <li key={reason.code} data-reason={reason.code}>{reason.text}</li>
+            ))}
+          </ul>
         </Card>
       )}
 

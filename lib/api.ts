@@ -800,6 +800,8 @@ export interface CaptureResult {
   engine_used?: string;
   /** How today's pulse, push and temperature changed the routine. */
   readiness?: Readiness;
+  /** Present when fewer exercises than requested came out, with the reasons. */
+  shortfall?: { requested: number; delivered: number; reasons: { code: string; text: string }[]; summary: string } | null;
   total_estimated_minutes?: number;
   alerts?: string[];
   warmup: Record<string, unknown>[];

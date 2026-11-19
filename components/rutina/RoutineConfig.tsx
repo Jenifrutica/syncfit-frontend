@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heartbeat, Info } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,7 @@ import { EsqueletoChips } from "@/components/ui/Esqueletos";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { FeelingSheet } from "@/components/hoy/FeelingSheet";
-import { getSymptoms, type EnergyLevel, type SymptomInfo } from "@/lib/api";
+import { getSymptoms, updateMyProfile, type EnergyLevel, type SymptomInfo } from "@/lib/api";
 import { readEnergy, saveEnergy } from "@/lib/energia";
 import { t, tf } from "@/lib/i18n";
 import { useOptions } from "@/lib/options";
@@ -30,35 +30,32 @@ const CONFIG_KEY = "syncfit-rutina-config";
 const MAX_GROUPS = 4;
 const TIMES = ["0", "30", "45", "60", "90"] as const;
 
-function lastConfig(): Partial<CaptureOptions> {
-  try {
-    return JSON.parse(window.localStorage.getItem(CONFIG_KEY) ?? "{}") as Partial<CaptureOptions>;
-  } catch {
-    return {};
-  }
-}
-
 /** Choose what to train, then scan. Remembers the last choices on this device. */
 export function RoutineConfig({ today, onScan }: { today: string; onScan: (options: CaptureOptions) => void }) {
-  const { profile, language } = useSession();
+  const { profile, language, setProfile } = useSession();
   const options = useOptions();
   const [savedGroups, setGroups] = useState<string[]>([]);
-  const [exercises, setExercises] = useState("5");
-  const [minutes, setMinutes] = useState<string>("0");
-  const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
-  const [warmup, setWarmup] = useState(true);
+  // Every routine starts from a blank panel: nothing is pre-selected.
+  const [exercises, setExercises] = useState("");
+  const [minutes, setMinutes] = useState<string>("");
+  const [energy, setEnergy] = useState<EnergyLevel | null>(null);
+  const [warmup, setWarmup] = useState(false);
   const [symptoms, setSymptoms] = useState<SymptomInfo[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Symptoms and pain belong to THIS routine: start them empty too (they live
+  // in the profile, so clear them once when the panel opens).
+  const cleared = useRef(false);
   useEffect(() => {
-    const last = lastConfig();
-    if (last.groups?.length) setGroups(last.groups.slice(0, MAX_GROUPS));
-    if (last.exercises) setExercises(String(last.exercises));
-    if (last.minutes !== undefined) setMinutes(String(last.minutes ?? 0));
-    if (last.warmup !== undefined) setWarmup(last.warmup);
-    setEnergy(readEnergy(today) ?? "MODERATE");
-  }, [today]);
+    if (cleared.current || !profile) return;
+    cleared.current = true;
+    const hasSymptoms = (profile.symptoms?.length ?? 0) > 0 || (profile.pain_levels?.OVERALL ?? 0) > 0 || !!profile.symptom_notes;
+    if (!hasSymptoms) return;
+    updateMyProfile({ symptoms: [], pain_levels: {}, symptom_notes: null, symptom_avoid_patterns: [] })
+      .then(setProfile)
+      .catch(() => undefined);
+  }, [profile, setProfile]);
 
   useEffect(() => {
     getSymptoms(language).then(setSymptoms).catch(() => setSymptoms([]));
@@ -93,7 +90,18 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
       document.getElementById("grupos")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const options: CaptureOptions = { groups, exercises: Number(exercises), minutes: minutes === "0" ? null : Number(minutes), energy, warmup };
+    if (!exercises) {
+      setError(t(language, "rutina.config.eligeEjercicios"));
+      document.getElementById("cantidad")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const options: CaptureOptions = {
+      groups,
+      exercises: Number(exercises),
+      minutes: !minutes || minutes === "0" ? null : Number(minutes),
+      energy: energy ?? "MODERATE",
+      warmup,
+    };
     try {
       window.localStorage.setItem(CONFIG_KEY, JSON.stringify(options));
     } catch {
@@ -175,13 +183,13 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
         )}
       </Card>
 
-      <Card className="flex flex-col gap-5">
+      <Card id="cantidad" className="flex flex-col gap-5">
         <Choice
           legend={t(language, "rutina.config.ejercicios")}
           variant="pildoras"
           columns={3}
           value={exercises}
-          onChange={setExercises}
+          onChange={(value) => { setError(null); setExercises(value); }}
           options={["3", "4", "5", "6", "7", "8"].map((n) => ({ value: n, label: n }))}
         />
         <Choice
@@ -200,6 +208,11 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
           onChange={chooseEnergy}
           options={(["ENERGY", "MODERATE", "NO_ENERGY"] as EnergyLevel[]).map((e) => ({ value: e, label: <span className="text-body">{t(language, `energia.${e}`)}</span> }))}
         />
+        {error && groups.length > 0 && !exercises && (
+          <p role="alert" className="text-small font-bold text-peligro" data-error-cantidad>
+            {error}
+          </p>
+        )}
         <label className="flex min-h-12 items-center justify-between gap-3 font-display text-body-lg font-semibold">
           {t(language, "rutina.config.calentamiento")}
           <input type="checkbox" role="switch" checked={warmup} onChange={(e) => setWarmup(e.target.checked)} className="size-6 accent-ink" />

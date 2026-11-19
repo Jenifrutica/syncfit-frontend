@@ -72,6 +72,8 @@ export { expect };
 export async function startRoutine(page: Page, group = "Cuádriceps", { expectScan = true } = {}) {
   await page.goto("/app/rutina/");
   await page.getByText(group, { exact: true }).first().click();
+  // The panel starts blank: the number of exercises must be chosen.
+  await page.getByRole("radio", { name: "5", exact: true }).check({ force: true });
   await page.getByRole("button", { name: /escanear y crear rutina/i }).click();
   await expect(page.getByText(/pon la yema en el sensor óptico/i)).toBeVisible();
   await page.getByRole("button", { name: /^simular$/i }).click();
