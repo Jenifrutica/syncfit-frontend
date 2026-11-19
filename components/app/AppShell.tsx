@@ -85,10 +85,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 bg-nube/95 shadow-flotante backdrop-blur lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
           <div className="flex items-center gap-3 lg:invisible">
-            <Wordmark href="/app" />
+            {/* Pulsi only on phones, so the language switcher fits on one line. */}
+            <Wordmark href="/app" compact />
           </div>
           <div className="flex items-center gap-2">
-            <div className="lg:hidden">
+            <div className="shrink-0 lg:hidden">
               <LanguageSwitcher />
             </div>
             <Button variant="fantasma" size="sm" icon={<SignOut size={18} weight="bold" />} onClick={logout} data-logout>
