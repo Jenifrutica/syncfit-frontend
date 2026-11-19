@@ -6,7 +6,7 @@ import { Barbell, Drop, Fingerprint, Flame, Heartbeat, Leaf, Moon, Plus, Sun, Ta
 
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/States";
+import { EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { StoryCard } from "@/components/ui/StoryCard";
 import { DripDivider } from "@/components/decor/DripDivider";
 import { CycleRing } from "@/components/cycle/CycleRing";
@@ -164,6 +164,8 @@ export function HoyScreen() {
 
       {/* The last card grows so both columns end on the same line. */}
       <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-2 sm:px-8 lg:w-full lg:px-0 lg:pt-0 lg:[&>:last-child]:flex-1">
+        {/* Same shape as the day card while the calendar loads, so nothing jumps. */}
+        {!selected && !stats && !failed && <EsqueletoTarjeta lineas={1} />}
         {selected && KindIcon && (
           <Card aria-live="polite" className="flex items-start gap-4">
             <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-fase-suave" data-fase={selected.phase}>
@@ -228,8 +230,8 @@ export function HoyScreen() {
         ) : (
           <div role="status" aria-busy="true" className="grid gap-3 sm:grid-cols-2">
             <span className="sr-only">{t(language, "hoy.cargando")}</span>
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
+            <EsqueletoTarjeta lineas={1} />
+            <EsqueletoTarjeta lineas={1} />
           </div>
         )}
 
