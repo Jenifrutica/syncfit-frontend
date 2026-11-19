@@ -11,6 +11,8 @@ import { EmptyState, ProgressBar, Skeleton, SkeletonGroup } from "@/components/u
 import { Field, Input, Select } from "@/components/ui/Field";
 import { StoryCard } from "@/components/ui/StoryCard";
 import { useToast } from "@/components/ui/Toast";
+import { PuntosFase } from "@/components/ui/PuntosFase";
+import { LoadingScreen } from "@/components/session/LoadingScreen";
 import { Pulsi, type PulsiMood } from "@/components/mascot/Pulsi";
 import { Cloud } from "@/components/decor/Cloud";
 import { DripDivider } from "@/components/decor/DripDivider";
@@ -255,6 +257,16 @@ export function Showcase() {
               <span className="text-small font-extrabold">Paso 2 de 6</span>
               <ProgressBar value={2} max={6} label="Paso 2 de 6" />
             </Card>
+          </div>
+        </Section>
+
+        <Section title="Carga">
+          <Card className="flex items-center gap-4">
+            <PuntosFase />
+            <span className="text-small font-extrabold">PuntosFase · indicador con los colores de las fases</span>
+          </Card>
+          <div className="overflow-hidden rounded-nube shadow-nube">
+            <LoadingScreen className="min-h-0 h-[30rem]" />
           </div>
         </Section>
       </main>

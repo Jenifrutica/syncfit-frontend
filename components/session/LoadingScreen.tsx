@@ -6,6 +6,7 @@ import { Cloud } from "@/components/decor/Cloud";
 import { DripDivider } from "@/components/decor/DripDivider";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { PuntosFase } from "@/components/ui/PuntosFase";
+import { cx } from "@/lib/cx";
 import { useSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
 
@@ -16,7 +17,7 @@ import { t } from "@/lib/i18n";
  */
 const FRASES = ["carga.frase1", "carga.frase2", "carga.frase3", "carga.frase4"];
 
-export function LoadingScreen() {
+export function LoadingScreen({ className }: { className?: string }) {
   const { language } = useSession();
   // A new short phrase every 2.4 s, so a longer wait still feels alive.
   const [frase, setFrase] = useState(0);
@@ -25,7 +26,7 @@ export function LoadingScreen() {
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div role="status" className="relative grid min-h-svh place-items-center overflow-hidden bg-rosa">
+    <div role="status" className={cx("relative grid min-h-svh place-items-center overflow-hidden bg-rosa", className)}>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <Cloud className="absolute top-[12%] left-[6%] animate-deriva text-nube" width={180} />
         <Cloud className="absolute top-[28%] right-[4%] animate-deriva text-nube/80 [animation-delay:-5s]" width={140} />
