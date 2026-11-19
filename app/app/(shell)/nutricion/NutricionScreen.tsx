@@ -8,7 +8,8 @@ import { Badge, Chip } from "@/components/ui/Chip";
 import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
-import { EmptyState, ProgressBar, Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { EmptyState, ProgressBar, SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { useToast } from "@/components/ui/Toast";
 import { MacrosCard } from "@/components/nutricion/MacrosCard";
 import {
@@ -180,7 +181,7 @@ export function NutricionScreen() {
             </Card>
           ) : (
             <SkeletonGroup label={t(language, "nutri.cargando")}>
-              <Skeleton className="h-44" />
+              <EsqueletoTarjeta lineas={3} />
             </SkeletonGroup>
           )}
 
@@ -326,8 +327,8 @@ export function NutricionScreen() {
           ) : (
             !failed && (
               <SkeletonGroup label={t(language, "nutri.cargando")}>
-                <Skeleton className="h-40" />
-                <Skeleton className="h-40" />
+                <EsqueletoTarjeta lineas={3} icono={false} />
+                <EsqueletoTarjeta lineas={3} icono={false} />
               </SkeletonGroup>
             )
           )}
