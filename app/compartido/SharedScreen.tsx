@@ -6,7 +6,8 @@ import { Barbell, Flame, Pill, Target } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
 import { Card } from "@/components/ui/Card";
-import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { EmptyState, SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoLista, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { SkyShell } from "@/components/brand/SkyShell";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { Pulsi } from "@/components/mascot/Pulsi";
@@ -92,8 +93,10 @@ export function SharedScreen() {
           </Card>
         ) : !shared ? (
           <SkeletonGroup label={t(language, "app.cargando")} className="mt-6">
-            <Skeleton className="h-28" />
-            <Skeleton className="h-40" />
+            {/* Owner card, then the shared sections. */}
+            <EsqueletoTarjeta lineas={1} />
+            <EsqueletoTarjeta lineas={3} icono={false} />
+            <EsqueletoLista filas={3} />
           </SkeletonGroup>
         ) : (
           <div className="flex flex-col gap-4">
