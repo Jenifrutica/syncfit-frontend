@@ -19,8 +19,9 @@ export function PerfilScreen() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 pt-6 sm:px-8 lg:pt-10">
       <h1 className="text-h1 font-bold">{t(language, "perfil.titulo")}</h1>
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        {/* In both columns the last card grows so they end on the same line. */}
+        <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
           <DatosCard />
           <CicloCard />
           <Card tone="lavanda" className="flex flex-col gap-3">
@@ -35,7 +36,7 @@ export function PerfilScreen() {
           </Card>
           <SintomasCard />
         </div>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
           <CargasCard />
           <CompartirCard />
           <CuentaCard />
