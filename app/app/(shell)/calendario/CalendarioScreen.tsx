@@ -64,7 +64,7 @@ export function CalendarioScreen() {
         <p className="text-body-lg font-bold text-ink-suave">{t(language, "cal.sub")}</p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
         <Card className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
             <IconButton label={t(language, "cal.anterior")} variant="suave" onClick={() => setMonth((m) => shiftMonth(m, -1))}>
@@ -88,7 +88,7 @@ export function CalendarioScreen() {
               </Button>
             </div>
           ) : days ? (
-            <PhaseMonth month={month} days={days} trained={trained} today={today} selected={selected} onSelect={setSelected} language={language} className="lg:flex-1" />
+            <PhaseMonth month={month} days={days} trained={trained} today={today} selected={selected} onSelect={setSelected} language={language} />
           ) : (
             <SkeletonGroup label={t(language, "cal.cargando")}>
               <EsqueletoMes />

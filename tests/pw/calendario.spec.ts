@@ -29,3 +29,21 @@ for (const width of [1100, 1280, 1440]) {
     expect(m.overlap).toBeLessThanOrEqual(0);
   });
 }
+
+
+test("cambiar de la fase ovulatoria a otra conserva las dimensiones de los días", async ({ page, signIn }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signIn(await newAthlete());
+  await page.goto("/app/calendario/");
+  const ovulatory = page.locator('[data-phase="OVULATORY"]').first();
+  const other = page.locator('[data-phase]:not([data-phase="OVULATORY"])').first();
+  const dimensions = () => page.locator("[data-date]").evaluateAll((cells) =>
+    cells.map((cell) => [cell.clientWidth, cell.clientHeight])
+  );
+  await ovulatory.click();
+  await expect(ovulatory).toHaveAttribute("aria-pressed", "true");
+  const before = await dimensions();
+  await other.click();
+  await expect(other).toHaveAttribute("aria-pressed", "true");
+  expect(await dimensions()).toEqual(before);
+});
