@@ -7,10 +7,10 @@ import { ArrowRight, Barbell, Brain, Heartbeat, QrCode, ShieldCheck, Sparkle, Th
 import { ButtonLink } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { Cloud, CLOUD_PATH } from "@/components/decor/Cloud";
-import { DripDivider } from "@/components/decor/DripDivider";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
+import { CapasGoteo } from "@/components/landing/CapasGoteo";
 import { DemoFases } from "@/components/landing/DemoFases";
 import { useLandingMotion } from "@/components/landing/useLandingMotion";
 import { CYCLE_PHASES, faseLabel } from "@/lib/fases";
@@ -135,7 +135,7 @@ export function LandingScreen() {
       </div>
 
       {/* ---------- Problem (lavanda) ---------- */}
-      <DripDivider variant="gotea" className="bg-lavanda text-[var(--cielo)]" />
+      <CapasGoteo variant="gotea" edge="var(--cielo)" base="var(--color-lavanda)" />
       <section aria-labelledby="problema" className="bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
         <div className="mx-auto max-w-5xl">
           <h2 id="problema" data-revela className="max-w-[24ch] text-balance font-display text-h1 font-bold text-nube">
@@ -155,7 +155,7 @@ export function LandingScreen() {
           </ul>
         </div>
       </section>
-      <DripDivider variant="sube" className="bg-lavanda text-[var(--cielo)]" />
+      <CapasGoteo variant="sube" edge="var(--cielo)" base="var(--color-lavanda)" />
 
       {/* ---------- Phases ---------- */}
       <section data-cielo="rosa-claro" aria-labelledby="fases" className="relative px-4 py-16 sm:py-24">
@@ -281,7 +281,7 @@ export function LandingScreen() {
           </div>
         </div>
       </section>
-      <DripDivider variant="gotea" className="bg-ink text-[var(--cielo)]" />
+      <CapasGoteo variant="gotea" edge="var(--cielo)" base="var(--color-ink)" />
       <footer className="bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div className="text-nube">
