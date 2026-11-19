@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { CatalogItemForm } from "@/components/paneles/CatalogItemForm";
 import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
-import { Field, Input, Select, TextArea } from "@/components/ui/Field";
+import { Field, Input, Select } from "@/components/ui/Field";
 import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import {
   ApiError,
@@ -44,8 +44,6 @@ const SECTIONS: { value: Section; key: string }[] = [
 
 const CATEGORIES: OptionCategory[] = ["muscle_group_isolated", "muscle_group_general", "objective", "goal_phase", "equipment"];
 
-const MACHINE_TEMPLATE = { id: "", name: { en: "", es: "", zh: "" }, type: "MACHINE", unit: "kg", weight_factor: 1, exercises: [], notes: { en: "" } };
-
 type OptionDraft = {
   id: string | null;
   category: OptionCategory;
@@ -59,9 +57,7 @@ type OptionDraft = {
   meta: string;
 };
 
-type CatalogDraft =
-  | { kind: "machine"; id: string | null; text: string }
-  | { kind: Exclude<CatalogKind, "machine">; id: string | null; payload: Record<string, unknown> };
+type CatalogDraft = { kind: CatalogKind; id: string | null; payload: Record<string, unknown> };
 
 function detailText(error: unknown): string {
   if (!(error instanceof ApiError)) return "";
@@ -237,30 +233,12 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
 
   const openNewItem = (kind: CatalogKind) => {
     setError(null);
-    setCatalogDraft(kind === "machine"
-      ? { kind, id: null, text: JSON.stringify(MACHINE_TEMPLATE, null, 2) }
-      : { kind, id: null, payload: {} });
+    setCatalogDraft({ kind, id: null, payload: {} });
   };
 
   const openEditItem = (item: AdminCatalogItem) => {
     setError(null);
-    setCatalogDraft(item.kind === "machine"
-      ? { kind: item.kind, id: item.id, text: JSON.stringify(item.payload, null, 2) }
-      : { kind: item.kind, id: item.id, payload: item.payload });
-  };
-
-  const saveMachineJson = async () => {
-    if (catalogDraft?.kind !== "machine") return;
-    let payload: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(catalogDraft.text) as unknown;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("object");
-      payload = parsed as Record<string, unknown>;
-    } catch {
-      setError(t(language, "super.cat.jsonInvalido"));
-      return;
-    }
-    await saveCatalog(payload);
+    setCatalogDraft({ kind: item.kind, id: item.id, payload: item.payload });
   };
 
   const saveCatalog = async (payload: Record<string, unknown>) => {
@@ -432,43 +410,17 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
       </Dialog>
 
       <Dialog open={catalogDraft !== null} onClose={() => setCatalogDraft(null)}
-        title={t(language, catalogDraft?.kind === "machine" ? "super.cat.editarJson" : catalogDraft?.id ? "super.cat.editar" : "super.cat.nuevoItem")}
-        description={catalogDraft?.kind === "machine" ? t(language, "super.cat.jsonAyuda") : undefined}
+        title={t(language, catalogDraft?.id ? "super.cat.editar" : "super.cat.nuevoItem")}
         closeLabel={t(language, "comun.cerrar")}
-        footer={catalogDraft && catalogDraft.kind !== "machine" ? (
+        footer={catalogDraft ? (
           <Button type="submit" form="catalog-item-form" loading={busy} fullWidth>
             {t(language, "super.cat.guardar")}
           </Button>
         ) : undefined}>
-        {catalogDraft && catalogDraft.kind !== "machine" && (
+        {catalogDraft && (
           <CatalogItemForm key={catalogDraft.kind + ":" + (catalogDraft.id ?? "")}
             kind={catalogDraft.kind} initial={catalogDraft.payload} editing={catalogDraft.id !== null}
             language={language} error={error} onSave={saveCatalog} />
-        )}
-        {catalogDraft?.kind === "machine" && (
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void saveMachineJson();
-            }}
-          >
-            <Field label={t(language, "super.cat.json")} error={error}>
-              {(control) => (
-                <TextArea
-                  {...control}
-                  rows={16}
-                  spellCheck={false}
-                  className="font-mono text-small"
-                  value={catalogDraft.text}
-                  onChange={(e) => setCatalogDraft({ ...catalogDraft, text: e.target.value })}
-                />
-              )}
-            </Field>
-            <Button type="submit" loading={busy} fullWidth>
-              {t(language, "super.cat.guardar")}
-            </Button>
-          </form>
         )}
       </Dialog>
     </section>
