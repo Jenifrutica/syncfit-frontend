@@ -1,4 +1,5 @@
 import { DRIP_PATHS } from "@/components/decor/DripDivider";
+import { Pulsi } from "@/components/mascot/Pulsi";
 import { cx } from "@/lib/cx";
 
 // The incoming section's shape: everything below the drip curve of DRIP_PATHS.gotea,
@@ -25,8 +26,9 @@ const LAYERS = [
  * while their long tails never paint over the section's own content.
  * The section that renders it must be `relative` and above the previous one.
  * `capas` are three CSS colors, back to front; the front one is the section's own color.
+ * `surfista` puts a winged Pulsi of that color riding the front wave.
  */
-export function CapasGoteo({ capas, className }: { capas: readonly [string, string, string]; className?: string }) {
+export function CapasGoteo({ capas, surfista, className }: { capas: readonly [string, string, string]; surfista?: string; className?: string }) {
   return (
     <div aria-hidden="true" className={cx("pointer-events-none absolute inset-x-0 bottom-full -mb-px h-72 overflow-hidden sm:h-96", className)}>
       {LAYERS.map((layer, i) => (
@@ -44,6 +46,14 @@ export function CapasGoteo({ capas, className }: { capas: readonly [string, stri
           )}
         </svg>
       ))}
+      {surfista && (
+        // Same box and depth as the front layer, so Pulsi rides its crest (x = 400 of 1440, y = 28 of 110).
+        <div data-gota={LAYERS[LAYERS.length - 1].depth} className={cx("absolute inset-x-0 bottom-0 motion-reduce:hidden", LAYERS[LAYERS.length - 1].tall)}>
+          <span className="absolute bottom-[72%] left-[27.8%] -translate-x-1/2 animate-flotar">
+            <Pulsi size={56} wings color={surfista} />
+          </span>
+        </div>
+      )}
     </div>
   );
 }

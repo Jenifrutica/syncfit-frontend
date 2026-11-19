@@ -136,7 +136,7 @@ export function LandingScreen() {
 
       {/* ---------- Problem (lavanda) ---------- */}
       <section aria-labelledby="problema" className="relative z-20 bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
-        <CapasGoteo capas={["var(--color-ovulatoria)", "var(--color-menstrual)", "var(--color-lavanda)"]} />
+        <CapasGoteo capas={["var(--color-ovulatoria)", "var(--color-menstrual)", "var(--color-lavanda)"]} surfista="var(--color-folicular)" />
         <div data-hunde className="mx-auto max-w-5xl">
           <h2 id="problema" data-revela className="max-w-[24ch] text-balance font-display text-h1 font-bold text-nube">
             {t(language, "land.problema.titulo")}
