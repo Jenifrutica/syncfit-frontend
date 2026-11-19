@@ -194,17 +194,25 @@ const superToken = await demoToken("SUPER_ADMIN");
   await page.waitForTimeout(700);
   check("catálogo: opción reactivada", (await page.getByText(/^activo$/i).count()) > 0);
 
-  // Exercises: invalid JSON, create, soft delete.
+  // Exercises (visual form): empty form is blocked, create, soft delete.
   await page.getByRole("radio", { name: /^ejercicios$/i }).click({ force: true });
   await page.waitForTimeout(700);
   await page.getByRole("searchbox").fill("");
   await page.getByRole("button", { name: /^nuevo$/i }).click();
   await page.waitForTimeout(300);
   dialog = page.locator("dialog[open]");
-  await dialog.locator("textarea").fill("{");
+  const catalogWrites = [];
+  const onCatalogWrite = (request) => {
+    if (request.method() !== "GET" && request.url().includes("/admin/catalog/exercise")) catalogWrites.push(request.method());
+  };
+  page.on("request", onCatalogWrite);
   await dialog.getByRole("button", { name: /^guardar$/i }).click();
   await page.waitForTimeout(500);
-  check("catálogo: JSON inválido se rechaza", (await page.getByText(/json no es válido/i).count()) > 0);
+  check(
+    "catálogo: formulario vacío no se envía",
+    catalogWrites.length === 0 && (await dialog.locator("input:invalid, textarea:invalid, select:invalid").count()) > 0,
+    catalogWrites.join(" | "),
+  );
 
   const exercise = {
     id: `e2e-test-${stamp}`,
