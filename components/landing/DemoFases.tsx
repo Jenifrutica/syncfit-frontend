@@ -59,7 +59,7 @@ export function DemoFases({ language }: { language: Language }) {
   const enBase = estado.status === "listo" ? new Set(estado.base.map(nombre)) : new Set<string>();
 
   return (
-    <div data-fase={fase} className="rounded-cielo bg-fase-suave p-5 transition-colors duration-500 sm:p-8">
+    <div data-fase={fase} className="rounded-cielo bg-fase-suave p-5 shadow-nube transition-colors duration-500 sm:p-8">
       <Choice
         legend={t(language, "land.demo.titulo")}
         hideLegend

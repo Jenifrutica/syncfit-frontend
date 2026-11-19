@@ -7,10 +7,10 @@ import { ArrowRight, Barbell, Brain, Heartbeat, QrCode, ShieldCheck, Sparkle, Th
 import { ButtonLink } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 import { Cloud, CLOUD_PATH } from "@/components/decor/Cloud";
-import { DripDivider } from "@/components/decor/DripDivider";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
+import { CapasGoteo } from "@/components/landing/CapasGoteo";
 import { DemoFases } from "@/components/landing/DemoFases";
 import { useLandingMotion } from "@/components/landing/useLandingMotion";
 import { CYCLE_PHASES, faseLabel } from "@/lib/fases";
@@ -72,7 +72,7 @@ export function LandingScreen() {
   const signedIn = status === "ready" && !!user;
 
   return (
-    <div ref={root} className="overflow-x-clip">
+    <div ref={root} className="overflow-x-clip bg-[var(--cielo)] [--cielo:var(--color-rosa)]">
       {/* ---------- Sky: nav + hero ---------- */}
       <div className="relative flex min-h-svh flex-col">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -80,6 +80,10 @@ export function LandingScreen() {
           <div data-nube="0.7" className="absolute top-[52%] -right-24 sm:right-[4%]"><Cloud className="text-nube/70" width={230} /></div>
           <div data-nube="1.6" className="absolute bottom-[6%] left-[14%] max-sm:hidden"><Cloud className="text-nube/90" width={300} /></div>
           <div data-nube="0.9" className="absolute top-[12%] right-[22%] max-lg:hidden"><Cloud className="text-nube/60" width={140} /></div>
+          {/* Far layer: smaller, fainter, slower */}
+          <div data-nube="0.35" className="absolute top-[34%] left-[30%] max-sm:hidden"><Cloud className="text-nube/40" width={110} /></div>
+          <div data-nube="0.4" className="absolute top-[70%] right-[30%]"><Cloud className="text-nube/35" width={90} /></div>
+          <div data-nube="2.2" className="absolute -bottom-10 right-[8%] max-md:hidden"><Cloud className="text-nube" width={360} /></div>
           {[
             { left: "4%", delay: "0s", color: "var(--color-folicular)", className: "" },
             { left: "88%", delay: "2.4s", color: "var(--color-menstrual)", className: "" },
@@ -108,7 +112,7 @@ export function LandingScreen() {
           </div>
         </header>
 
-        <main id="contenido" className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-4 pb-12 text-center">
+        <main id="contenido" data-hunde className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-4 pb-12 text-center">
           <div data-entra className="relative mb-4 flex flex-col items-center [@media(max-height:720px)]:-mt-4 [@media(max-height:720px)]:mb-0 [@media(max-height:720px)]:scale-80">
             <SpeechBubble tail="abajo" className="mb-3 -rotate-2">{t(language, "land.hero.burbuja")}</SpeechBubble>
             <div className="animate-flotar">
@@ -131,9 +135,9 @@ export function LandingScreen() {
       </div>
 
       {/* ---------- Problem (lavanda) ---------- */}
-      <DripDivider variant="gotea" className="bg-lavanda text-rosa" />
-      <section aria-labelledby="problema" className="bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
-        <div className="mx-auto max-w-5xl">
+      <section aria-labelledby="problema" className="relative z-20 bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
+        <CapasGoteo capas={["var(--color-ovulatoria)", "var(--color-menstrual)", "var(--color-lavanda)"]} surfista="var(--color-folicular)" />
+        <div data-hunde className="mx-auto max-w-5xl">
           <h2 id="problema" data-revela className="max-w-[24ch] text-balance font-display text-h1 font-bold text-nube">
             {t(language, "land.problema.titulo")}
           </h2>
@@ -151,11 +155,16 @@ export function LandingScreen() {
           </ul>
         </div>
       </section>
-      <DripDivider variant="sube" className="bg-lavanda text-rosa" />
 
       {/* ---------- Phases ---------- */}
-      <section aria-labelledby="fases" className="px-4 py-16 sm:py-24">
-        <div className="mx-auto max-w-6xl">
+      <section data-cielo="rosa-claro" aria-labelledby="fases" className="relative z-20 bg-[var(--cielo)] px-4 py-16 sm:py-24">
+        <CapasGoteo capas={["var(--color-folicular)", "var(--color-lutea)", "var(--cielo)"]} />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div data-nube="1.4" className="absolute top-[8%] -right-16 sm:right-[2%]"><Cloud className="text-nube/70" width={220} /></div>
+          <div data-nube="0.5" className="absolute top-[40%] -left-10 max-sm:hidden"><Cloud className="text-nube/40" width={120} /></div>
+          <div data-nube="1.8" className="absolute bottom-[4%] left-[6%] motion-reduce:hidden"><Pulsi size={40} wings color="var(--color-folicular)" /></div>
+        </div>
+        <div className="relative mx-auto max-w-6xl">
           <h2 id="fases" data-revela className="text-center font-display text-h1 font-bold">{t(language, "land.fases.titulo")}</h2>
           <p data-revela className="mx-auto mt-4 max-w-[48ch] text-center text-body-lg text-ink-suave">{t(language, "land.fases.sub")}</p>
           <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -212,7 +221,7 @@ export function LandingScreen() {
       </section>
 
       {/* ---------- Live demo ---------- */}
-      <section id="demo" aria-labelledby="demo-titulo" className="scroll-mt-4 px-4 py-16 sm:py-24">
+      <section id="demo" data-cielo="lutea-suave" aria-labelledby="demo-titulo" className="scroll-mt-4 px-4 py-16 sm:py-24">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1fr_1.3fr] lg:items-start">
           <div className="lg:sticky lg:top-12">
             <h2 id="demo-titulo" data-revela className="font-display text-h1 font-bold">{t(language, "land.demo.titulo")}</h2>
@@ -261,7 +270,7 @@ export function LandingScreen() {
       </section>
 
       {/* ---------- Final CTA + footer ---------- */}
-      <section aria-labelledby="final" className="relative px-4 pt-8 pb-20 text-center sm:pb-28">
+      <section data-cielo="ovulatoria-suave" aria-labelledby="final" className="relative px-4 pt-8 pb-36 text-center sm:pb-48">
         <div className="mx-auto flex max-w-3xl flex-col items-center">
           <div data-revela className="animate-flotar">
             <Pulsi size={96} wings color="var(--color-menstrual)" />
@@ -272,8 +281,8 @@ export function LandingScreen() {
           </div>
         </div>
       </section>
-      <DripDivider variant="gotea" className="bg-ink text-rosa" />
-      <footer className="bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
+      <footer className="relative z-20 bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
+        <CapasGoteo capas={["var(--color-menstrual)", "var(--color-lavanda)", "var(--color-ink)"]} />
         <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div className="text-nube">
             <Wordmark />

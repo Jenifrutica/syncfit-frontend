@@ -8,6 +8,11 @@ import { useEffect, type RefObject } from "react";
  * - [data-entra]   hero pieces that rise in on load, in DOM order
  * - [data-nube]    decorative clouds that drift with scroll (value = speed)
  * - [data-revela]  blocks that rise in when they enter the viewport
+ * - [data-gota]    layers of an incoming section's melting edge (CapasGoteo),
+ *                  rising at their depth over the previous section
+ * - [data-hunde]   content of an outgoing section that sinks under that edge
+ * - [data-cielo]   sections that tint the landing sky (--cielo) with a color
+ *                  token name as they scroll in; reduced motion keeps it pink
  * - [data-ruta]    the "two AIs" track: [data-ruta-relleno] fills and
  *                  [data-ruta-viajera] (Pulsi) travels as you scroll; stations
  *                  not reached yet get [data-espera]
@@ -37,6 +42,27 @@ export function useLandingMotion(root: RefObject<HTMLElement | null>) {
 
         gsap.utils.toArray<HTMLElement>("[data-revela]").forEach((el) => {
           gsap.from(el, { y: 40, opacity: 0, duration: 0.6, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 85%", once: true } });
+        });
+
+        // Melting hand-off: the incoming section's edge rises in layers (back ones
+        // first) while the outgoing content sinks under it, as if it melted away.
+        gsap.utils.toArray<HTMLElement>("[data-gota]").forEach((capa) => {
+          const depth = Number(capa.dataset.gota) || 1;
+          const section = capa.closest("section, footer");
+          gsap.fromTo(capa, { yPercent: 60 * depth }, { yPercent: -20 * depth, ease: "none", scrollTrigger: { trigger: section, start: "top bottom", end: "top 25%", scrub: true } });
+        });
+        gsap.utils.toArray<HTMLElement>("[data-hunde]").forEach((contenido) => {
+          const box = contenido.closest("section") ?? contenido.parentElement;
+          gsap.to(contenido, { y: () => window.innerHeight * 0.3, ease: "none", scrollTrigger: { trigger: box, start: "bottom bottom", end: "bottom top", scrub: true, invalidateOnRefresh: true } });
+        });
+
+        // The sky takes each section's tone as it scrolls in (tokens from app/tokens.css).
+        const token = (name: string) => getComputedStyle(scope).getPropertyValue(`--color-${name}`).trim();
+        let previous = token("rosa");
+        gsap.utils.toArray<HTMLElement>("[data-cielo]").forEach((section) => {
+          const next = token(section.dataset.cielo ?? "rosa");
+          gsap.fromTo(scope, { "--cielo": previous }, { "--cielo": next, ease: "none", immediateRender: false, scrollTrigger: { trigger: section, start: "top 85%", end: "top 35%", scrub: true } });
+          previous = next;
         });
       });
 
