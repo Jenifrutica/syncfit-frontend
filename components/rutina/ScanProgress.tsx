@@ -6,8 +6,9 @@ import { Check } from "@phosphor-icons/react";
 import { cx } from "@/lib/cx";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { Spinner } from "@/components/ui/Spinner";
+import { ProgressBar } from "@/components/ui/States";
 import { SCAN_STEPS, scanState } from "@/lib/escaneo";
-import { t, type Language } from "@/lib/i18n";
+import { t, tf, type Language } from "@/lib/i18n";
 
 
 // A PPG-like beat, 64 units wide and ending at its start height; 16 beats
@@ -31,7 +32,8 @@ export function ScanProgress({ done, startedAt, language }: { done: boolean; sta
     return () => window.clearInterval(id);
   }, [done]);
 
-  const { active, step: stepProgress } = scanState(now - startedAt, done);
+  const { active, step: stepProgress, overall } = scanState(now - startedAt, done);
+  const percent = Math.round(overall * 100);
 
   return (
     <div role="status" aria-live="polite" className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-10 text-center">
@@ -50,6 +52,13 @@ export function ScanProgress({ done, startedAt, language }: { done: boolean; sta
       <div className="flex flex-col gap-1">
         <h1 className="text-h2 font-bold">{t(language, "rutina.escaneo.titulo")}</h1>
         <p className="text-body font-bold text-ink-suave">{t(language, "rutina.escaneo.respira")}</p>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <p className="text-small font-extrabold tabular-nums" aria-hidden="true" data-scan-avance>
+          {tf(language, "rutina.escaneo.avance", { n: percent })}
+        </p>
+        <ProgressBar value={percent} max={100} label={tf(language, "rutina.escaneo.avance", { n: percent })} />
       </div>
 
       <ol className="flex w-full flex-col gap-2 text-left">
