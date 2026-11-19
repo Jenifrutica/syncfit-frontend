@@ -939,6 +939,7 @@ export interface ShareLinkInfo {
   role: ShareRole;
   label?: string | null;
   permissions: SharePermission[];
+  expires_at?: string;
   active: boolean;
 }
 
