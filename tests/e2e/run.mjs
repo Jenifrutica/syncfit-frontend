@@ -214,22 +214,20 @@ const superToken = await demoToken("SUPER_ADMIN");
     catalogWrites.join(" | "),
   );
 
-  const exercise = {
-    id: `e2e-test-${stamp}`,
-    name: { en: "E2E test squat", es: "Sentadilla E2E", zh: "E2E" },
-    muscle_groups: ["QUADRICEPS"],
-    equipment: "machine",
-    impact: "LOW",
-    description: { en: "Test", es: "Prueba", zh: "测试" },
-    image_url: "https://placehold.co/600x400",
-    role: "MAIN",
-    compound: true,
-    movement_pattern: "squat",
-    required_equipment: ["machine"],
-  };
-  await dialog.locator("textarea").fill(JSON.stringify(exercise, null, 2));
+  const exercise = { id: `e2e-test-${stamp}`, name: "Sentadilla E2E" };
+  await dialog.locator('input[name="id"]').fill(exercise.id);
+  await dialog.locator('[name="name.en"]').fill("E2E test squat");
+  await dialog.locator('[name="name.es"]').fill(exercise.name);
+  await dialog.locator('[name="description.en"]').fill("Test");
+  await dialog.locator('select[name="muscle_groups"]').selectOption("QUADRICEPS");
+  await dialog.locator('select[name="equipment"]').selectOption("machine");
+  await dialog.locator('select[name="impact"]').selectOption("LOW");
+  await dialog.locator('input[name="image_url"]').fill("https://placehold.co/600x400");
+  await dialog.locator('input[name="movement_pattern"]').fill("squat");
+  await dialog.getByRole("checkbox", { name: /compuesto/i }).check();
   await dialog.getByRole("button", { name: /^guardar$/i }).click();
   await page.waitForTimeout(1200);
+  page.off("request", onCatalogWrite);
   check("catálogo: ejercicio creado", (await page.getByText(/sentadilla e2e/i).count()) > 0);
 
   await page.getByRole("searchbox").fill(exercise.id);
