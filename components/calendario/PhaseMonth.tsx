@@ -81,7 +81,8 @@ export function PhaseMonth({
           <span key={i}>{weekdayFormat.format(new Date(2024, 0, 1 + i)).toUpperCase()}</span>
         ))}
       </div>
-      <div ref={grid} className="grid grid-cols-7 gap-1">
+      {/* Desktop: rows share any extra height (never shorter than square). */}
+      <div ref={grid} className="grid grid-cols-7 gap-1 lg:flex-1 lg:auto-rows-fr">
         {Array.from({ length: leading }, (_, i) => (
           <span key={`v-${i}`} />
         ))}
@@ -114,7 +115,7 @@ export function PhaseMonth({
               onClick={() => onSelect(date)}
               style={{ background: isSelected ? undefined : fase ? FASE_COLOR[fase].suave : undefined }}
               className={cx(
-                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums",
+                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums lg:self-stretch",
                 "transition-transform duration-[var(--dur-toque)] ease-[var(--ease-salida)] active:scale-[0.94]",
                 isSelected ? "bg-ink text-nube" : fase ? "text-ink" : "bg-nube/60 text-ink",
                 date === today && !isSelected && "outline-3 outline-offset-1 outline-ink",
