@@ -83,6 +83,7 @@ Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil`
 
 ### Rutina (`onTakeData` y edición) — fase 3b
 - ☑ Elegir hasta 4 grupos musculares (aislados + generales); se recuerdan.
+  "Elegir hasta 4" los marca de un toque saltando los incompatibles.
 - ☑ Número de ejercicios principales, tiempo disponible (o sin límite), energía
   (con energía / normal / sin energía, prellenada desde Hoy), incluir calentamiento.
 - ☑ Síntomas y dolor general: hoja "Registrar cómo me siento" en Hoy (fase 3a) y
@@ -119,11 +120,16 @@ Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil`
 - ☑ Ver máquinas de los gimnasios unidos agrupadas por gimnasio (foto, uso, factor de peso).
 - ☑ Refresco automático al volver a la ventana, al hacerse visible y cada 15 s, más botón manual.
 - ☑ "Mis máquinas" disponibles (`available_machines`) con buscador.
+- ☑ "Mis gimnasios" tiene su propio ítem en la barra lateral de escritorio; en
+  celular se sigue abriendo desde Perfil (la barra inferior conserva 5 ítems).
+- ☑ "Seleccionar todo / Deseleccionar todo" de mis máquinas en la pantalla
+  principal (sin abrir el selector); quitar todo pide confirmación.
 
 ### Perfil → `/app/perfil` — fase 3d
 - ☑ Datos, foto de perfil (ahora comprimida), objetivo/metas (meta semanal y descansos se leen de `/stats` porque `GET /profile` no los devuelve).
 - ☑ Registrar inicio del periodo, duración del ciclo o semana de embarazo (nuevo).
 - ☑ Cargas base por ejercicio con unidad kg/lb (ahora convierte de verdad).
+- ☑ Síntomas: marcar todos o ninguno de un toque (se guarda con el botón de siempre).
 - ☑ Compartir: rol, permisos, nombre, crear, copiar, abrir, borrar.
 - ☑ Idioma, cambiar contraseña, cerrar sesión, cerrar sesión en todos los dispositivos, borrar cuenta.
 

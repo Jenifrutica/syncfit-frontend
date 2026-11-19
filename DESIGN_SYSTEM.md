@@ -153,8 +153,13 @@ por cálculo WCAG (34 pares, 0 fallos).
 - **Hero:** editorial centrado; Pulsi con alitas + bocadillo como gesto
   memorable; cabe en `100svh` a 700–800 px de alto; titular ≤ 2 líneas.
 - **App (flujos):** barra inferior de 5 ítems en móvil (Hoy, Rutina, Calendario,
-  Nutrición, Perfil); barra lateral ≥ 1024 px. Registros rápidos en hoja
+  Nutrición, Perfil); barra lateral ≥ 1024 px, que además tiene "Mis gimnasios"
+  (`desktopOnly` en `NAV`). Registros rápidos en hoja
   inferior (`Dialog variant="sheet"`). Una acción primaria por pantalla.
+- **Bento en escritorio:** en las pantallas de dos columnas (Hoy, Calendario,
+  Nutrición, Perfil) las dos columnas terminan en la misma línea: grilla con
+  `lg:items-stretch` y, en cada columna, `lg:[&>:last-child]:flex-1` para que la
+  última tarjeta crezca. En móvil no aplica.
 - **Breakpoints:** 375 / 768 / 1024 / 1280.
 
 ## 6. Component system
@@ -167,6 +172,7 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `Button`, `ButtonLink`, `IconButton` | `components/ui/Button.tsx` | variantes primario/secundario/suave/peligro/fantasma; sm 44 / md 48 / lg 56 px; `loading` + `loadingLabel`; `IconButton` exige `label` |
 | `Card` | `components/ui/Card.tsx` | tonos nube/crema/fase/fase-suave/rosa-claro/lavanda/tinta; `elevated`; nunca anidada |
 | `Chip`, `Badge` | `components/ui/Chip.tsx` | chip = toggle con `aria-pressed`; badge = etiqueta estática |
+| `SeleccionMasiva` | `components/ui/SeleccionMasiva.tsx` | "Seleccionar todo / Deseleccionar todo" sobre cualquier lista de chips; props `values`, `selected`, `onChange`, `max?` ("Elegir hasta N") y `canAdd?`; lógica en `lib/seleccion.ts` |
 | `Field`, `Input`, `Select`, `TextArea` | `components/ui/Field.tsx` | etiqueta arriba, ayuda/error abajo con `aria-describedby`; `requiredText` localizado |
 | `Dialog` | `components/ui/Dialog.tsx` | `variant="modal"` o `"sheet"` (hoja inferior en móvil) |
 | `ToastProvider`, `useToast` | `components/ui/Toast.tsx` | exito/error/info con icono; error dura 7 s |
