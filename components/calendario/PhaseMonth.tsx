@@ -32,7 +32,6 @@ export function PhaseMonth({
   selected,
   onSelect,
   language,
-  className,
 }: {
   month: string;
   days: CalendarDay[];
@@ -41,7 +40,6 @@ export function PhaseMonth({
   selected: string;
   onSelect: (date: string) => void;
   language: Language;
-  className?: string;
 }) {
   const first = fromISODate(`${month}-01`);
   const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
@@ -75,14 +73,13 @@ export function PhaseMonth({
   };
 
   return (
-    <div className={cx("lg:flex lg:flex-col", className)}>
+    <div>
       <div aria-hidden="true" className="grid grid-cols-7 pb-2 text-center text-caption font-extrabold text-ink-suave">
         {Array.from({ length: 7 }, (_, i) => (
           <span key={i}>{weekdayFormat.format(new Date(2024, 0, 1 + i)).toUpperCase()}</span>
         ))}
       </div>
-      {/* Desktop: rows share any extra height (never shorter than square). */}
-      <div ref={grid} className="grid grid-cols-7 gap-1 lg:flex-1 lg:auto-rows-fr">
+      <div ref={grid} className="grid grid-cols-7 gap-1">
         {Array.from({ length: leading }, (_, i) => (
           <span key={`v-${i}`} />
         ))}
@@ -106,6 +103,7 @@ export function PhaseMonth({
               key={date}
               type="button"
               data-date={date}
+              data-phase={fase ?? undefined}
               tabIndex={date === focused ? 0 : -1}
               aria-pressed={isSelected}
               aria-current={date === today ? "date" : undefined}
@@ -115,7 +113,7 @@ export function PhaseMonth({
               onClick={() => onSelect(date)}
               style={{ background: isSelected ? undefined : fase ? FASE_COLOR[fase].suave : undefined }}
               className={cx(
-                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums lg:w-full lg:self-stretch",
+                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums w-full self-start",
                 "transition-transform duration-[var(--dur-toque)] ease-[var(--ease-salida)] active:scale-[0.94]",
                 isSelected ? "bg-ink text-nube" : fase ? "text-ink" : "bg-nube/60 text-ink",
                 date === today && !isSelected && "outline-3 outline-offset-1 outline-ink",
