@@ -12,6 +12,7 @@ import { KIND_ICON, PhaseMonth } from "@/components/calendario/PhaseMonth";
 import { getCalendar, getStats, type CalendarDay, type Stats } from "@/lib/api";
 import { fromISODate, todayISO } from "@/lib/dates";
 import { CYCLE_PHASES, FASE_COLOR, TRIMESTERS, faseLabel, isFase } from "@/lib/fases";
+import { cx } from "@/lib/cx";
 import { localized, t, tf, type Language } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
@@ -118,13 +119,20 @@ export function CalendarioScreen() {
                 <p className="text-small font-bold">
                   {[infoFase ? faseLabel(infoFase, language) : null, info.cycle_day ? tf(language, "cal.diaCiclo", { n: info.cycle_day }) : null].filter(Boolean).join(" · ")}
                 </p>
-                {info.note && <p className="text-body text-ink-suave">{localized(info.note, language)}</p>}
-                {trained.has(selected) && (
-                  <p className="flex items-center gap-1.5 text-small font-extrabold text-exito">
-                    <CheckCircle size={18} weight="bold" aria-hidden="true" />
-                    {t(language, "cal.entrenaste")}
-                  </p>
+                {/* Desktop: the note always takes two lines, so days with and without a note have the same height. */}
+                {info.note ? (
+                  <p className="text-body text-ink-suave lg:line-clamp-2 lg:min-h-[2lh]">{localized(info.note, language)}</p>
+                ) : (
+                  <p aria-hidden="true" className="hidden text-body lg:block lg:min-h-[2lh]" />
                 )}
+                {/* Desktop: always takes its line (hidden when she did not train), so picking a day never resizes the card or the month. */}
+                <p
+                  aria-hidden={!trained.has(selected) || undefined}
+                  className={cx("flex items-center gap-1.5 text-small font-extrabold text-exito", !trained.has(selected) && "max-lg:hidden lg:invisible")}
+                >
+                  <CheckCircle size={18} weight="bold" aria-hidden="true" />
+                  {t(language, "cal.entrenaste")}
+                </p>
               </div>
             </Card>
           )}
