@@ -8,13 +8,14 @@ import { useToast } from "@/components/ui/Toast";
 import type { Language } from "@/lib/api";
 import type { Checkin } from "@/lib/checkin";
 import { todayISO } from "@/lib/dates";
+import { SCAN_TOTAL_MS } from "@/lib/escaneo";
 import { t } from "@/lib/i18n";
 import { planFromCapture, type RoutineItem, type RoutinePlan } from "@/lib/routine";
 import { JobFailed, newRequestId, readJob, runJob, writeJob, type JobOptions, type RoutineJob } from "@/lib/routine-job";
 import { useSession } from "@/lib/session";
 
-/** Long enough to see the four scan stations; the request itself is usually faster. */
-export const MIN_SCAN_MS = 3600;
+/** Every scan station gets its full time; the request itself is usually faster. */
+export const MIN_SCAN_MS = SCAN_TOTAL_MS;
 
 export type Generation =
   | { state: "idle" }
