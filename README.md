@@ -59,6 +59,17 @@ The UI is being redesigned (Paranice look, Flo usability, Headspace warmth):
 - [`FEATURES.md`](./FEATURES.md) — checklist so no existing feature is lost in the redesign.
 - `npm run dev` → **`/ui`** shows every component live.
 
+## Tests
+
+- `npm run typecheck` and `npm run build` (the same two steps CI runs).
+- `npm run test:e2e` runs the Playwright suite in `tests/pw/`. It starts a local
+  backend on 8001 (`scripts/e2e-backend.sh`) and a static export on 3100
+  (`scripts/e2e-frontend.sh`), unless they are already running. It creates and
+  deletes data, so never point it at production.
+- `tests/e2e/smoke-prod.mjs` is the read-only check for production.
+- A local `.env.local` is picked up by `next build` too: move it aside before the
+  e2e run if it points somewhere other than the test backend.
+
 ## Tasks
 
 > **Language: TypeScript (mandatory).** The frontend is written in TypeScript with strict typing; no plain JavaScript files.
