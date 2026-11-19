@@ -124,9 +124,16 @@ export function CompartirCard() {
               <div className="min-w-0 flex-1">
                 <p className="font-display text-body font-semibold">{link.label || t(language, `rol.${link.role}`)}</p>
                 <p className="text-caption font-extrabold text-ink-suave">{link.permissions.map((p) => t(language, `permiso.${p}`)).join(" · ")}</p>
+                {link.expires_at && (
+                  <p className="text-caption text-ink-suave">
+                    {tf(language, "share.expiresAt", { date: new Intl.DateTimeFormat(language.toLowerCase(), {
+                      dateStyle: "medium", timeStyle: "short",
+                    }).format(new Date(link.expires_at)) })}
+                  </p>
+                )}
               </div>
               <div className="flex gap-1">
-                <IconButton label={t(language, "compartir.copiar")} variant="secundario" onClick={() => void copy(link.token)}>
+                <IconButton label={t(language, "compartir.copiar")} variant="secundario" disabled={!link.active} onClick={() => void copy(link.token)}>
                   <Copy size={18} weight="bold" />
                 </IconButton>
                 <a href={shareUrl(link.token)} target="_blank" rel="noreferrer" aria-label={t(language, "compartir.abrir")} className="grid size-11 place-items-center rounded-full bg-nube text-ink hover:bg-rosa-claro">
