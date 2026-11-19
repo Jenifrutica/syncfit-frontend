@@ -31,6 +31,16 @@ type Paso = 0 | 1 | 2;
 type Fase = "listo" | "midiendo" | "hecho";
 
 const DURACION_MS = 2600;
+// Pulse and temperature need longer: the value is the median over the whole
+// step, so a moved finger or head for a moment does not decide the reading.
+const DURACION_POR_PASO_MS = [15000, DURACION_MS, 10000] as const;
+
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
 /** Simulated run: fast enough to keep the demo moving, slow enough to see the ring. */
 const SIMULACION_MS = 700;
 const ESPERA_SIMULADA_MS = 350;
@@ -232,12 +242,19 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     };
   }, []);
 
-  // Track the peak push while the force step is measuring.
+  // While measuring: peak push for the force step, every pulse / temperature
+  // reading for the median of the other two.
+  const muestrasRef = useRef<number[]>([]);
   useEffect(() => {
-    if (paso === 1 && fase === "midiendo" && modo === "manual" && liveValues) {
-      peakForceRef.current = Math.max(peakForceRef.current, liveValues.forceKg);
-    }
+    if (fase !== "midiendo" || modo !== "manual" || !liveValues) return;
+    if (paso === 1) peakForceRef.current = Math.max(peakForceRef.current, liveValues.forceKg);
+    if (paso === 0 && liveValues.bpm > 0) muestrasRef.current.push(liveValues.bpm);
+    if (paso === 2 && liveValues.tempC > 0) muestrasRef.current.push(liveValues.tempC);
   }, [paso, fase, modo, liveValues]);
+
+  useEffect(() => {
+    if (fase === "listo") muestrasRef.current = [];
+  }, [paso, fase]);
 
   useEffect(() => {
     if (paso === 1 && fase === "listo") peakForceRef.current = 0;
@@ -245,7 +262,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
 
   useEffect(() => {
     if (fase !== "midiendo") return;
-    const duracion = modo === "simulado" ? SIMULACION_MS : DURACION_MS;
+    const duracion = modo === "simulado" ? SIMULACION_MS : DURACION_POR_PASO_MS[paso];
     const t0 = performance.now();
     const tick = (now: number) => {
       const p = Math.min(1, (now - t0) / duracion);
@@ -257,7 +274,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, [fase, modo]);
+  }, [fase, modo, paso]);
 
   useEffect(() => {
     if (fase !== "hecho") return;
@@ -268,6 +285,9 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
       let captured = valueForStep(paso, live);
       // Force: what matters is the best push of the step, not the last instant.
       if (paso === 1 && live) captured = Math.max(captured, Number(peakForceRef.current.toFixed(1)));
+      // Pulse / temperature: the median of the whole step.
+      const mediana = live && paso !== 1 ? median(muestrasRef.current) : null;
+      if (mediana != null) captured = paso === 0 ? Math.round(mediana) : Number(mediana.toFixed(1));
       resultadosRef.current = [...resultadosRef.current, captured];
       setResultados(resultadosRef.current);
       if (paso < 2) {
