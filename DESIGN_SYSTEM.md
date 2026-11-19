@@ -153,7 +153,8 @@ por cálculo WCAG (34 pares, 0 fallos).
 - **Hero:** editorial centrado; Pulsi con alitas + bocadillo como gesto
   memorable; cabe en `100svh` a 700–800 px de alto; titular ≤ 2 líneas.
 - **App (flujos):** barra inferior de 5 ítems en móvil (Hoy, Rutina, Calendario,
-  Nutrición, Perfil); barra lateral ≥ 1024 px. Registros rápidos en hoja
+  Nutrición, Perfil); barra lateral ≥ 1024 px, que además tiene "Mis gimnasios"
+  (`desktopOnly` en `NAV`). Registros rápidos en hoja
   inferior (`Dialog variant="sheet"`). Una acción primaria por pantalla.
 - **Breakpoints:** 375 / 768 / 1024 / 1280.
 
