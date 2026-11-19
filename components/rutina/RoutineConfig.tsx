@@ -40,7 +40,7 @@ function lastConfig(): Partial<CaptureOptions> {
 export function RoutineConfig({ today, onScan }: { today: string; onScan: (options: CaptureOptions) => void }) {
   const { profile, language } = useSession();
   const options = useOptions();
-  const [groups, setGroups] = useState<string[]>([]);
+  const [savedGroups, setGroups] = useState<string[]>([]);
   const [exercises, setExercises] = useState("5");
   const [minutes, setMinutes] = useState<string>("0");
   const [energy, setEnergy] = useState<EnergyLevel>("MODERATE");
@@ -62,9 +62,21 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
     getSymptoms(language).then(setSymptoms).catch(() => setSymptoms([]));
   }, [language]);
 
+  const muscles = new Map(options.list("muscle_group_isolated").map((option) => [option.value, option.zones ?? []]));
+  const zones = new Set(options.list("muscle_group_general").map((option) => option.value));
+  const groups = savedGroups.filter((group) =>
+    muscles.has(group) || (zones.has(group) && savedGroups.every((item) => !muscles.has(item) || muscles.get(item)?.includes(group))),
+  );
+
+  const incompatible = (group: string) => groups.some((selected) =>
+    (zones.has(group) && muscles.has(selected) && !muscles.get(selected)?.includes(group))
+    || (muscles.has(group) && zones.has(selected) && !muscles.get(group)?.includes(selected)),
+  );
+
   const toggleGroup = (group: string) => {
     setError(null);
-    setGroups((current) => (current.includes(group) ? current.filter((g) => g !== group) : current.length < MAX_GROUPS ? [...current, group] : current));
+    if (groups.includes(group)) setGroups(groups.filter((selected) => selected !== group));
+    else if (groups.length < MAX_GROUPS && !incompatible(group)) setGroups([...groups, group]);
   };
 
   const chooseEnergy = (value: EnergyLevel) => {
@@ -119,7 +131,7 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
                   key={group}
                   selected={groups.includes(group)}
                   onToggle={() => toggleGroup(group)}
-                  disabled={!groups.includes(group) && groups.length >= MAX_GROUPS}
+                  disabled={!groups.includes(group) && (groups.length >= MAX_GROUPS || incompatible(group))}
                 >
                   {options.label(category, group, language)}
                 </Chip>
@@ -127,6 +139,15 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
             </div>
           </fieldset>
         ))}
+        {groups.length > 0 && (
+          <p className="text-small text-ink-suave">
+            {{
+              ES: "Solo puedes combinar músculos con las zonas a las que pertenecen.",
+              EN: "You can only combine muscles with the areas they belong to.",
+              ZH: "只能搭配属于所选区域的肌群。",
+            }[language]}
+          </p>
+        )}
         {options.failed && (
           <p role="alert" className="text-small font-bold text-peligro">
             {t(language, "error.conexion")}{" "}
