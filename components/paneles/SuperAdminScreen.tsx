@@ -63,7 +63,7 @@ export function SuperAdminScreen() {
         className="max-w-xl"
         options={[
           { value: "usuarios", label: t(language, "super.tab.usuarios") },
-          { value: "admins", label: t(language, "super.tab.admins") },
+          { value: "admins", label: <span title={t(language, "super.tab.admins")}>{t(language, "super.tab.adminsCorto")}</span> },
           { value: "gyms", label: t(language, "super.tab.gyms") },
           { value: "catalogos", label: t(language, "super.tab.catalogos") },
         ]}
