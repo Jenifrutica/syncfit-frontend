@@ -194,35 +194,42 @@ const superToken = await demoToken("SUPER_ADMIN");
   await page.waitForTimeout(700);
   check("catálogo: opción reactivada", (await page.getByText(/^activo$/i).count()) > 0);
 
-  // Exercises: invalid JSON, create, soft delete.
+  // Exercises (visual form): empty form is blocked, create, soft delete.
   await page.getByRole("radio", { name: /^ejercicios$/i }).click({ force: true });
   await page.waitForTimeout(700);
   await page.getByRole("searchbox").fill("");
   await page.getByRole("button", { name: /^nuevo$/i }).click();
   await page.waitForTimeout(300);
   dialog = page.locator("dialog[open]");
-  await dialog.locator("textarea").fill("{");
+  const catalogWrites = [];
+  const onCatalogWrite = (request) => {
+    if (request.method() !== "GET" && request.url().includes("/admin/catalog/exercise")) catalogWrites.push(request.method());
+  };
+  page.on("request", onCatalogWrite);
   await dialog.getByRole("button", { name: /^guardar$/i }).click();
   await page.waitForTimeout(500);
-  check("catálogo: JSON inválido se rechaza", (await page.getByText(/json no es válido/i).count()) > 0);
+  check(
+    "catálogo: formulario vacío no se envía",
+    catalogWrites.length === 0 && (await dialog.locator("input:invalid, textarea:invalid, select:invalid").count()) > 0,
+    catalogWrites.join(" | "),
+  );
 
-  const exercise = {
-    id: `e2e-test-${stamp}`,
-    name: { en: "E2E test squat", es: "Sentadilla E2E", zh: "E2E" },
-    muscle_groups: ["QUADRICEPS"],
-    equipment: "machine",
-    impact: "LOW",
-    description: { en: "Test", es: "Prueba", zh: "测试" },
-    image_url: "https://placehold.co/600x400",
-    role: "MAIN",
-    compound: true,
-    movement_pattern: "squat",
-    required_equipment: ["machine"],
-  };
-  await dialog.locator("textarea").fill(JSON.stringify(exercise, null, 2));
+  const exercise = { id: `e2e-test-${stamp}`, name: "Sentadilla E2E" };
+  await dialog.locator('input[name="id"]').fill(exercise.id);
+  await dialog.locator('[name="name.en"]').fill("E2E test squat");
+  await dialog.locator('[name="name.es"]').fill(exercise.name);
+  await dialog.locator('[name="description.en"]').fill("Test");
+  await dialog.locator('select[name="muscle_groups"]').selectOption("QUADRICEPS");
+  await dialog.locator('select[name="equipment"]').selectOption("machine");
+  await dialog.locator('select[name="impact"]').selectOption("LOW");
+  await dialog.locator('input[name="image_url"]').fill("https://placehold.co/600x400");
+  await dialog.locator('input[name="movement_pattern"]').fill("squat");
+  await dialog.getByRole("checkbox", { name: /compuesto/i }).check();
   await dialog.getByRole("button", { name: /^guardar$/i }).click();
   await page.waitForTimeout(1200);
+  page.off("request", onCatalogWrite);
   check("catálogo: ejercicio creado", (await page.getByText(/sentadilla e2e/i).count()) > 0);
+  check("catálogo: crear ejercicio usa POST", catalogWrites.includes("POST"), catalogWrites.join(" | "));
 
   await page.getByRole("searchbox").fill(exercise.id);
   await page.waitForTimeout(600);
