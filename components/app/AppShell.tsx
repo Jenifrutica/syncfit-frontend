@@ -14,18 +14,16 @@ import { todayISO } from "@/lib/dates";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
-type NavItem = { key: string; href: string; icon: Icon; desktopOnly?: boolean };
+/** `short`: label for the phone bottom bar when the full one is too long. */
+type NavItem = { key: string; href: string; icon: Icon; short?: string };
 
-/**
- * Sections of the athlete app. Gyms have their own item in the desktop
- * sidebar; on phones (5-slot bottom bar) they are reached from Profile.
- */
+/** Sections of the athlete app: the same six in the desktop sidebar and the phone bottom bar. */
 export const NAV: NavItem[] = [
   { key: "hoy", href: "/app", icon: House },
   { key: "rutina", href: "/app/rutina", icon: Barbell },
   { key: "calendario", href: "/app/calendario", icon: CalendarBlank },
   { key: "suplementos", href: "/app/nutricion", icon: Pill },
-  { key: "gimnasios", href: "/app/gimnasios", icon: Buildings, desktopOnly: true },
+  { key: "gimnasios", href: "/app/gimnasios", icon: Buildings, short: "gimnasiosCorto" },
   { key: "perfil", href: "/app/perfil", icon: UserCircle },
 ];
 
@@ -103,9 +101,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label={t(language, "nav.principal")}
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 rounded-t-nube bg-nube px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-flotante lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 rounded-t-nube bg-nube px-0.5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-flotante lg:hidden"
       >
-        {NAV.filter((item) => !item.desktopOnly).map(({ key, href, icon: ItemIcon }) => {
+        {NAV.map(({ key, href, icon: ItemIcon, short }) => {
           const active = isActive(pathname, href);
           return (
             <Link
@@ -113,14 +111,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cx(
-                "flex min-h-14 flex-col items-center justify-center gap-0.5 text-caption no-underline",
+                "flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 text-caption no-underline",
                 active ? "font-extrabold text-ink" : "font-bold text-ink-suave",
               )}
             >
-              <span className={cx("grid h-8 w-14 place-items-center rounded-full", active && "bg-fase-suave")}>
+              <span className={cx("grid h-8 w-12 place-items-center rounded-full", active && "bg-fase-suave")}>
                 <ItemIcon size={22} weight={active ? "fill" : "bold"} aria-hidden="true" />
               </span>
-              {t(language, `nav.${key}`)}
+              <span className="max-w-full truncate text-[0.75rem] tracking-tight">{t(language, `nav.${short ?? key}`)}</span>
             </Link>
           );
         })}
