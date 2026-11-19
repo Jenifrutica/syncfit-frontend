@@ -1,5 +1,7 @@
 # SyncFit Frontend
 
+**Live app:** https://syncfit.jenilarper.dev
+
 Reactive analytical interface of SyncFit Edge for trainers and athletes. Built with TypeScript, Next.js, React and Tailwind CSS.
 
 ## Purpose
@@ -189,3 +191,7 @@ Backend endpoints used by the admin UI: `/api/v1/admin/gym-admins` (GET/POST),
 - Completar traducciones i18n en pantallas nuevas.
 - **PWA / notificaciones** (US-25).
 - (Opcional) Login con proveedores externos (Google).
+
+## Data structures
+
+- No custom structures: plain `Map`/`Set` for selections and lookups; server data comes typed from `syncfit-contracts`.
