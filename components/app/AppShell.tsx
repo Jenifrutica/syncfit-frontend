@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { Barbell, CalendarBlank, House, Pill, SignOut, UserCircle, type Icon } from "@phosphor-icons/react";
+import { Barbell, Buildings, CalendarBlank, House, Pill, SignOut, UserCircle, type Icon } from "@phosphor-icons/react";
 
 import { cx } from "@/lib/cx";
 import { Wordmark } from "@/components/brand/Wordmark";
@@ -14,25 +14,29 @@ import { todayISO } from "@/lib/dates";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 
-type NavItem = { key: string; href: string; icon: Icon };
+type NavItem = { key: string; href: string; icon: Icon; desktopOnly?: boolean };
 
 /**
- * Sections of the athlete app (gyms are reached from Profile).
+ * Sections of the athlete app. Gyms have their own item in the desktop
+ * sidebar; on phones (5-slot bottom bar) they are reached from Profile.
  */
 export const NAV: NavItem[] = [
   { key: "hoy", href: "/app", icon: House },
   { key: "rutina", href: "/app/rutina", icon: Barbell },
   { key: "calendario", href: "/app/calendario", icon: CalendarBlank },
   { key: "suplementos", href: "/app/nutricion", icon: Pill },
+  { key: "gimnasios", href: "/app/gimnasios", icon: Buildings, desktopOnly: true },
   { key: "perfil", href: "/app/perfil", icon: UserCircle },
 ];
 
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string, href: string, desktop = false) {
   const path = href.split("?")[0];
-  if (path === "/app") return pathname === "/app";
-  // Gyms live under Profile.
-  if (path === "/app/perfil") return pathname.startsWith(path) || pathname.startsWith("/app/gimnasios");
-  return pathname.startsWith(path);
+  // Static export uses trailing slashes ("/app/"), the hrefs do not.
+  const current = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  if (path === "/app") return current === "/app";
+  // On phones gyms live under Profile.
+  if (path === "/app/perfil" && !desktop) return current.startsWith(path) || current.startsWith("/app/gimnasios");
+  return current.startsWith(path);
 }
 
 /** Bottom bar on phones, sidebar from 1024 px. The sky takes the phase color. */
@@ -55,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav aria-label={t(language, "nav.principal")} className="flex flex-col gap-1">
           {NAV.map(({ key, href, icon: ItemIcon }) => {
-            const active = isActive(pathname, href);
+            const active = isActive(pathname, href, true);
             return (
               <Link
                 key={key}
@@ -100,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         aria-label={t(language, "nav.principal")}
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 rounded-t-nube bg-nube px-1 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-flotante lg:hidden"
       >
-        {NAV.map(({ key, href, icon: ItemIcon }) => {
+        {NAV.filter((item) => !item.desktopOnly).map(({ key, href, icon: ItemIcon }) => {
           const active = isActive(pathname, href);
           return (
             <Link
