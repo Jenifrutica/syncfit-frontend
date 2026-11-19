@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Info, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
+import { ArrowRight, Check, ChartPieSlice, Info, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
 
 import { cx } from "@/lib/cx";
 import { Badge, Chip } from "@/components/ui/Chip";
-import { Button, IconButton } from "@/components/ui/Button";
+import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { EmptyState, ProgressBar, Skeleton, SkeletonGroup } from "@/components/ui/States";
@@ -166,6 +166,16 @@ export function NutricionScreen() {
             </Card>
           ) : advice?.daily_macros ? (
             <MacrosCard macros={advice.daily_macros} language={language} />
+          ) : advice ? (
+            // Loaded, but the backend needs weight or daily calories to estimate macros.
+            <Card tone="lavanda" className="flex flex-col items-start gap-3" data-sin-macros>
+              <ChartPieSlice size={28} weight="bold" aria-hidden="true" />
+              <h2 className="text-h3 font-bold">{t(language, "nutri.macros")}</h2>
+              <p className="text-body text-lavanda-texto">{t(language, "nutri.sinMacros")}</p>
+              <ButtonLink href="/app/perfil" variant="secundario" size="sm" icon={<ArrowRight size={16} weight="bold" />}>
+                {t(language, "nutri.irPerfil")}
+              </ButtonLink>
+            </Card>
           ) : (
             <SkeletonGroup label={t(language, "nutri.cargando")}>
               <Skeleton className="h-44" />
