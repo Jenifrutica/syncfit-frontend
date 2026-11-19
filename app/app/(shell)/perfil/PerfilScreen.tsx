@@ -1,9 +1,5 @@
 "use client";
 
-import { ArrowRight, Buildings } from "@phosphor-icons/react";
-
-import { ButtonLink } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { CargasCard } from "@/components/perfil/CargasCard";
 import { CicloCard } from "@/components/perfil/CicloCard";
 import { CompartirCard } from "@/components/perfil/CompartirCard";
@@ -24,17 +20,6 @@ export function PerfilScreen() {
         <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
           <DatosCard />
           <CicloCard />
-          {/* Phones only: on desktop gyms have their own sidebar item. */}
-          <Card tone="lavanda" className="flex flex-col gap-3 lg:hidden">
-            <div className="flex items-center gap-3">
-              <Buildings size={28} weight="bold" aria-hidden="true" />
-              <h2 className="text-h3 font-bold">{t(language, "perfil.gimnasios")}</h2>
-            </div>
-            <p className="text-body text-lavanda-texto">{t(language, "perfil.gimnasios.desc")}</p>
-            <ButtonLink href="/app/gimnasios" variant="secundario" icon={<ArrowRight size={18} weight="bold" />} className="self-start">
-              {t(language, "perfil.gimnasios.ir")}
-            </ButtonLink>
-          </Card>
           <SintomasCard />
         </div>
         <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
