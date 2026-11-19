@@ -37,7 +37,25 @@ export function NutricionScreen() {
   const { profile, language, setProfile } = useSession();
   const options = useOptions();
   const toast = useToast();
-  const today = todayISO();
+  const [today, setToday] = useState(todayISO);
+  useEffect(() => {
+    let timer: number;
+    const syncDay = () => {
+      window.clearTimeout(timer);
+      const now = new Date();
+      setToday(todayISO());
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timer = window.setTimeout(syncDay, midnight.getTime() - now.getTime());
+    };
+    syncDay();
+    window.addEventListener("focus", syncDay);
+    document.addEventListener("visibilitychange", syncDay);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", syncDay);
+      document.removeEventListener("visibilitychange", syncDay);
+    };
+  }, []);
   const pregnant = profile?.modality === "GESTATIONAL";
 
   const [advice, setAdvice] = useState<SupplementAdvice | null>(null);
@@ -70,13 +88,20 @@ export function NutricionScreen() {
 
   useEffect(() => {
     getSupplementCatalog(language).then(setCatalog).catch(() => setCatalog([]));
-    getSupplementIntakes(today).then(setIntakes).catch(() => setIntakes([]));
-  }, [language, today]);
+  }, [language]);
+
+  useEffect(() => {
+    let current = true;
+    getSupplementIntakes(today).then((records) => {
+      if (current) setIntakes(records);
+    }).catch(() => { if (current) setIntakes([]); });
+    return () => { current = false; };
+  }, [today]);
 
   const byId = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
   const mine = (profile?.current_supplements ?? []).map((id) => byId.get(id)).filter((c): c is SupplementCatalogItem => !!c);
   const daily = mine.filter((c) => c.is_daily);
-  const takenIds = new Set(intakes.filter((i) => i.taken).map((i) => i.supplement_id));
+  const takenIds = new Set(intakes.filter((i) => i.date === today && i.taken).map((i) => i.supplement_id));
   const takenCount = daily.filter((c) => takenIds.has(c.id)).length;
 
   const save = async (patch: Record<string, unknown>) => {
@@ -96,11 +121,11 @@ export function NutricionScreen() {
 
   const toggleIntake = async (id: string) => {
     const next = !takenIds.has(id);
-    setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: next }]);
+    setIntakes((list) => [...list.filter((i) => i.supplement_id !== id || i.date !== today), { supplement_id: id, date: today, taken: next }]);
     try {
       await setSupplementIntake(id, today, next);
     } catch {
-      setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: !next }]);
+      setIntakes((list) => [...list.filter((i) => i.supplement_id !== id || i.date !== today), { supplement_id: id, date: today, taken: !next }]);
       toast({ tone: "error", title: t(language, "nutri.errorGuardar"), closeLabel: t(language, "comun.cerrar") });
     }
   };

@@ -54,7 +54,13 @@ export function EntrarScreen() {
     if (status === "ready" && user) {
       const next = safeNext(params.get("next"));
       const home = homeFor(user, profile);
-      router.replace(next && home !== "/bienvenida" ? next : home);
+      const code = params.get("codigo");
+      if (code && user.role === "ATHLETE") {
+        const path = home === "/bienvenida" ? home : "/app/gimnasios";
+        router.replace(path + "/?" + new URLSearchParams({ codigo: code }));
+      } else {
+        router.replace(next && home !== "/bienvenida" ? next : home);
+      }
     }
   }, [status, user, profile, params, router]);
 

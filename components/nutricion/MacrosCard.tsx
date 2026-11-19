@@ -20,6 +20,7 @@ export function MacrosCard({ macros, language }: { macros: Macros; language: Lan
         <h2 className="text-h3 font-bold">{t(language, "nutri.macros")}</h2>
         <p className="font-display text-h2 font-bold tabular-nums">{tf(language, "nutri.kcal", { n: Math.round(macros.kcal) })}</p>
       </div>
+      <p className="text-small text-ink-suave">{t(language, "nutri.macroMeta")}</p>
       <div aria-hidden="true" className="flex h-4 overflow-hidden rounded-full bg-rosa-claro">
         {PARTS.map((part, i) => (
           <span key={part.key} style={{ width: `${(energy[i] / total) * 100}%`, background: part.color }} />

@@ -43,6 +43,10 @@ export function GimnasiosScreen() {
   const [gyms, setGyms] = useState<JoinedGym[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [code, setCode] = useState("");
+  useEffect(() => {
+    const invitation = new URLSearchParams(window.location.search).get("codigo");
+    if (invitation) setCode(invitation);
+  }, []);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [filter, setFilter] = useState("ALL");
