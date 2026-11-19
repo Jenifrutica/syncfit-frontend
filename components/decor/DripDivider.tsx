@@ -1,6 +1,6 @@
 import { cx } from "@/lib/cx";
 
-const PATHS = {
+export const DRIP_PATHS = {
   /** The section above "melts" down into the next one (drips hang from the top). */
   gotea:
     "M0 0 L1440 0 L1440 30 C1380 30 1370 78 1330 78 C1290 78 1300 26 1220 26 C1120 26 1100 60 1010 60 C960 60 966 86 930 86 C892 86 900 34 830 34 C720 34 700 64 600 64 C540 64 548 88 510 88 C472 88 480 28 400 28 C300 28 280 56 190 56 C140 56 150 80 110 80 C70 80 76 32 0 32 Z",
@@ -14,10 +14,10 @@ const PATHS = {
  * - variant "gotea": path = color of the section ABOVE (text-*), background = section BELOW (bg-*).
  * - variant "sube": path = color of the section BELOW (text-*), background = section ABOVE (bg-*).
  */
-export function DripDivider({ variant = "gotea", className }: { variant?: keyof typeof PATHS; className?: string }) {
+export function DripDivider({ variant = "gotea", className }: { variant?: keyof typeof DRIP_PATHS; className?: string }) {
   return (
     <svg viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true" className={cx("relative -my-px block h-14 w-full sm:h-24", className)}>
-      <path d={PATHS[variant]} fill="currentColor" />
+      <path d={DRIP_PATHS[variant]} fill="currentColor" />
     </svg>
   );
 }
