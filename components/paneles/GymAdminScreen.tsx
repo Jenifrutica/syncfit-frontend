@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input } from "@/components/ui/Field";
-import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { EmptyState, SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoLista, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { useToast } from "@/components/ui/Toast";
 import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import { PanelShell } from "@/components/paneles/PanelShell";
@@ -195,8 +196,9 @@ export function GymAdminScreen() {
 
       {!gyms ? (
         <SkeletonGroup label={t(language, "gymadmin.cargando")}>
-          <Skeleton className="h-24" />
-          <Skeleton className="h-64" />
+          {/* The gym card (name, code, actions) and its machine list. */}
+          <EsqueletoTarjeta lineas={1} />
+          <EsqueletoLista filas={4} />
         </SkeletonGroup>
       ) : gyms.length === 0 ? (
         <Card>
