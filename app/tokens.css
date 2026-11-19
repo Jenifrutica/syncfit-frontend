@@ -85,6 +85,7 @@
   --ease-entrada: cubic-bezier(0.64, 0, 0.78, 0);
 
   /* Keyframes used by the animate-* utilities (transform/opacity only) */
+  --animate-brillo: brillo 1.6s ease-in-out infinite;
   --animate-flotar: flotar 4.5s ease-in-out infinite;
   --animate-parpadeo: parpadeo 5s ease-in-out infinite;
   --animate-respirar: respirar 8s ease-in-out infinite;
@@ -98,6 +99,11 @@
   --animate-entrar-lente: entrar-lente 360ms var(--ease-salida) both;
   --animate-entrar-tarjeta: entrar-tarjeta 320ms var(--ease-salida) both;
 
+  /* Skeleton shimmer: a soft light sweeping across the placeholder. */
+  @keyframes brillo {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+  }
   @keyframes flotar {
     0%, 100% { transform: translateY(0) rotate(0deg); }
     50% { transform: translateY(-8px) rotate(-2deg); }
