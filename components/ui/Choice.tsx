@@ -38,7 +38,7 @@ export function Choice<T extends string>({
 
   const layout =
     variant === "segmentado"
-      ? "flex gap-1 rounded-[1.75rem] bg-nube/70 p-1"
+      ? "flex flex-wrap gap-1 rounded-[1.75rem] bg-nube/70 p-1"
       : variant === "pildoras"
         ? cx("grid gap-2", columns === 7 ? "grid-cols-7" : columns === 5 ? "grid-cols-5" : columns === 4 ? "grid-cols-4" : "grid-cols-3")
         : cx("grid gap-3", columns === 2 ? "sm:grid-cols-2" : "");
