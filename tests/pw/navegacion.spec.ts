@@ -1,7 +1,7 @@
 /**
  * Panel lateral de escritorio: marca la sección actual (también con la barra
  * final del export) y tiene acceso directo a "Mis gimnasios". La barra inferior
- * del celular conserva sus cinco secciones.
+ * del celular tiene las mismas seis secciones.
  */
 import { expect, newAthlete, test } from "./fixtures";
 
@@ -19,14 +19,19 @@ test.describe("navegación", () => {
     await expect(panel.locator('[aria-current="page"]')).toHaveText("Mis gimnasios");
   });
 
-  test("celular: la barra inferior sigue con cinco secciones y Perfil lleva a gimnasios", async ({ page, signIn }) => {
+  test("celular: la barra inferior tiene las mismas seis secciones y marca Mis gimnasios", async ({ page, signIn }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
     await signIn(await newAthlete());
     await page.goto("/app/gimnasios/");
     const barra = page.locator("nav.bottom-0");
-    await expect(barra.getByRole("link")).toHaveCount(5);
-    await expect(barra.locator('[aria-current="page"]')).toContainText("Perfil");
+    await expect(barra.getByRole("link")).toHaveCount(6);
+    await expect(barra.locator('[aria-current="page"]')).toHaveCount(1);
+    await expect(barra.locator('[aria-current="page"]')).toContainText("Gimnasios");
 
-    await page.goto("/app/perfil/");
-    await expect(page.getByRole("link", { name: /gimnasios/i }).last()).toBeVisible();
+    // Every label fits at 375 px, and the header language switcher stays on one line.
+    const cortadas = await barra.locator("span.truncate").evaluateAll((els) => els.filter((e) => e.scrollWidth > e.clientWidth).length);
+    expect(cortadas).toBe(0);
+    const alturas = await page.locator("header [role=radiogroup] label, header fieldset label").evaluateAll((els) => [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top)))]);
+    expect(alturas.length).toBeLessThanOrEqual(1);
   });
 });
