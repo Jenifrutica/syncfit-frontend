@@ -10,6 +10,10 @@ type Dict = Record<string, string>;
 
 const ES: Dict = {
   "app.cargando": "Un momento…",
+  "carga.frase1": "Preparando tu día…",
+  "carga.frase2": "Mirando en qué fase estás…",
+  "carga.frase3": "Calentando a Pulsi…",
+  "carga.frase4": "Ordenando tus máquinas…",
   "app.aviso": "SyncFit Edge no reemplaza la valoración de tu médico ni de tu entrenador.",
   "comun.cerrar": "Cerrar",
   "recuperar.avisoTemporal": "Las cuentas de prueba usan correos temporales: para ellas el correo es una simulación y el cambio de contraseña aparece aquí mismo. Con un correo real, el enlace te llega a la bandeja de entrada.",
@@ -792,6 +796,10 @@ const ES: Dict = {
 
 const EN: Dict = {
   "app.cargando": "One moment…",
+  "carga.frase1": "Getting your day ready…",
+  "carga.frase2": "Checking which phase you're in…",
+  "carga.frase3": "Warming up Pulsi…",
+  "carga.frase4": "Lining up your machines…",
   "app.aviso": "SyncFit Edge does not replace advice from your doctor or your coach.",
   "comun.cerrar": "Close",
   "recuperar.avisoTemporal": "Test accounts use temporary addresses: for them the email is a simulation and the password change appears right here. With a real address, the link arrives in your inbox.",
@@ -1574,6 +1582,10 @@ const EN: Dict = {
 
 const ZH: Dict = {
   "app.cargando": "请稍候…",
+  "carga.frase1": "正在准备你的一天…",
+  "carga.frase2": "正在查看你所处的阶段…",
+  "carga.frase3": "Pulsi 正在热身…",
+  "carga.frase4": "正在整理你的器械…",
   "app.aviso": "SyncFit Edge 不能代替医生或教练的专业建议。",
   "comun.cerrar": "关闭",
   "recuperar.avisoTemporal": "测试账号使用临时邮箱：邮件为模拟，修改密码的表单会直接显示在这里。使用真实邮箱时，链接会发送到你的收件箱。",
