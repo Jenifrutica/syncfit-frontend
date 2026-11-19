@@ -3,9 +3,16 @@ import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { Pulsi, type PulsiMood } from "@/components/mascot/Pulsi";
 
-/** Placeholder block while data loads. Wrap a group in <SkeletonGroup>. */
+/**
+ * Placeholder block while data loads, with a soft light sweeping across it
+ * (still with reduced motion). Wrap a group in <SkeletonGroup>.
+ */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={cx("animate-pulse rounded-ficha bg-lutea-suave", className)} />;
+  return (
+    <div aria-hidden="true" className={cx("relative overflow-hidden rounded-ficha bg-lutea-suave", className)}>
+      <span className="absolute inset-y-0 left-0 w-2/5 animate-brillo bg-gradient-to-r from-transparent via-nube/70 to-transparent" />
+    </div>
+  );
 }
 
 export function SkeletonGroup({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
