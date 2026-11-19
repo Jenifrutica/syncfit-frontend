@@ -33,7 +33,13 @@ const pendientes = new Map<number, number>();
 let siguiente = 0;
 let caido = false;
 const oyentes = new Set<() => void>();
-const avisar = () => oyentes.forEach((fn) => fn());
+type Instantanea = { pendientes: number[]; caido: boolean };
+// Same object until something changes, as useSyncExternalStore requires.
+let instantanea: Instantanea = { pendientes: [], caido: false };
+const avisar = () => {
+  instantanea = { pendientes: [...pendientes.values()], caido };
+  oyentes.forEach((fn) => fn());
+};
 
 export function suscribirServidor(fn: () => void): () => void {
   oyentes.add(fn);
@@ -41,9 +47,13 @@ export function suscribirServidor(fn: () => void): () => void {
 }
 
 /** Snapshot for the notice: start times of tracked calls in flight and the failure flag. */
-export function leerServidor(): { pendientes: number[]; caido: boolean } {
-  return { pendientes: [...pendientes.values()], caido };
+export function leerServidor(): Instantanea {
+  return instantanea;
 }
+
+const INICIAL: Instantanea = { pendientes: [], caido: false };
+/** Server render: nothing pending. */
+export const leerServidorInicial = (): Instantanea => INICIAL;
 
 /** fetch that reports to the notice. Same signature and behaviour as fetch. */
 export async function trackedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
