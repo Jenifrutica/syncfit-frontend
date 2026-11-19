@@ -27,13 +27,11 @@ export const NAV: NavItem[] = [
   { key: "perfil", href: "/app/perfil", icon: UserCircle },
 ];
 
-function isActive(pathname: string, href: string, desktop = false) {
+function isActive(pathname: string, href: string) {
   const path = href.split("?")[0];
   // Static export uses trailing slashes ("/app/"), the hrefs do not.
   const current = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (path === "/app") return current === "/app";
-  // On phones gyms live under Profile.
-  if (path === "/app/perfil" && !desktop) return current.startsWith(path) || current.startsWith("/app/gimnasios");
   return current.startsWith(path);
 }
 
@@ -57,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav aria-label={t(language, "nav.principal")} className="flex flex-col gap-1">
           {NAV.map(({ key, href, icon: ItemIcon }) => {
-            const active = isActive(pathname, href, true);
+            const active = isActive(pathname, href);
             return (
               <Link
                 key={key}
