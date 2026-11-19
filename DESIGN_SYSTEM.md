@@ -152,9 +152,11 @@ por cálculo WCAG (34 pares, 0 fallos).
   "Ver cómo funciona".
 - **Hero:** editorial centrado; Pulsi con alitas + bocadillo como gesto
   memorable; cabe en `100svh` a 700–800 px de alto; titular ≤ 2 líneas.
-- **App (flujos):** barra inferior de 5 ítems en móvil (Hoy, Rutina, Calendario,
-  Nutrición, Perfil); barra lateral ≥ 1024 px, que además tiene "Mis gimnasios"
-  (`desktopOnly` en `NAV`). Registros rápidos en hoja
+- **App (flujos):** las mismas seis secciones en la barra inferior del móvil y en
+  la barra lateral ≥ 1024 px (Hoy, Rutina, Calendario, Nutrición, Mis gimnasios,
+  Perfil); en móvil "Mis gimnasios" usa la etiqueta corta (`short` en `NAV`) y las
+  etiquetas caben desde 360 px. La cabecera móvil muestra solo a Pulsi
+  (`Wordmark compact`) para que ES · EN · 中文 quepa en una línea. Registros rápidos en hoja
   inferior (`Dialog variant="sheet"`). Una acción primaria por pantalla.
 - **Bento en escritorio:** en las pantallas de dos columnas (Hoy, Calendario,
   Nutrición, Perfil) las dos columnas terminan en la misma línea: grilla con

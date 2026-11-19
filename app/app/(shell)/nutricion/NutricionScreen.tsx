@@ -131,8 +131,8 @@ export function NutricionScreen() {
       <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
         {/* My supplements (last block) grows so the column ends with the suggestions. */}
         <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
-          {/* Same size as "Suggested for you", so both columns start their cards at the same height (desktop only). */}
-          <h2 className="sr-only lg:not-sr-only lg:-mb-2 lg:text-h2 lg:font-bold">{t(language, "nutri.plan")}</h2>
+          {/* Same size as "Suggested for you": on desktop both columns start their cards at the same height. */}
+          <h2 className="-mb-2 text-h2 font-bold">{t(language, "nutri.plan")}</h2>
           <Card className="grid gap-4 sm:grid-cols-2">
             <Field label={t(language, "nutri.objetivo")}>
               {(control) => (
