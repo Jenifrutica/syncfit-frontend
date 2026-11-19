@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Choice } from "@/components/ui/Choice";
 import { Input } from "@/components/ui/Field";
+import { Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
 import { getCatalog, updateMyProfile, type CatalogItem, type ExerciseLoad } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -27,9 +28,13 @@ export function CargasCard() {
   const [query, setQuery] = useState("");
   const [onlyFilled, setOnlyFilled] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getCatalog(language).then(setCatalog).catch(() => setCatalog([]));
+    getCatalog(language)
+      .then(setCatalog)
+      .catch(() => setCatalog([]))
+      .finally(() => setLoaded(true));
   }, [language]);
 
   useEffect(() => {
@@ -85,6 +90,11 @@ export function CargasCard() {
           <input type="checkbox" checked={onlyFilled} onChange={(e) => setOnlyFilled(e.target.checked)} className="size-5 accent-ink" />
           {t(language, "perfil.cargas.solo")}
         </label>
+      )}
+      {!loaded && (
+        <SkeletonGroup label={t(language, "app.cargando")} className="grid gap-2 sm:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}
+        </SkeletonGroup>
       )}
       <ul className="grid max-h-96 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
         {list.map((c) => (

@@ -5,7 +5,8 @@ import { CaretLeft, CaretRight, CheckCircle, Flame, Target } from "@phosphor-ico
 
 import { Button, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoMes, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { StoryCard } from "@/components/ui/StoryCard";
 import { KIND_ICON, PhaseMonth } from "@/components/calendario/PhaseMonth";
 import { getCalendar, getStats, type CalendarDay, type Stats } from "@/lib/api";
@@ -90,7 +91,7 @@ export function CalendarioScreen() {
             <PhaseMonth month={month} days={days} trained={trained} today={today} selected={selected} onSelect={setSelected} language={language} className="lg:flex-1" />
           ) : (
             <SkeletonGroup label={t(language, "cal.cargando")}>
-              <Skeleton className="aspect-[7/5] w-full" />
+              <EsqueletoMes />
             </SkeletonGroup>
           )}
 
@@ -103,6 +104,7 @@ export function CalendarioScreen() {
 
         {/* The legend (last card) grows so the column ends with the month card. */}
         <div className="flex flex-col gap-4 lg:[&>:last-child]:flex-1">
+          {!info && !days && !failed && <EsqueletoTarjeta lineas={2} />}
           {info && (
             <Card aria-live="polite" className="flex items-start gap-4" data-fase={infoFase ?? undefined}>
               {InfoIcon && (
@@ -127,6 +129,12 @@ export function CalendarioScreen() {
             </Card>
           )}
 
+          {!stats && !failed && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <EsqueletoTarjeta lineas={0} />
+              <EsqueletoTarjeta lineas={1} />
+            </div>
+          )}
           {stats && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               <StoryCard tone="crema" className="w-auto" icon={<Flame size={26} weight="bold" />} title={stats.streak_days === 0 ? t(language, "hoy.rachaCero") : stats.streak_days === 1 ? t(language, "hoy.rachaUno") : tf(language, "hoy.racha", { n: stats.streak_days })} />

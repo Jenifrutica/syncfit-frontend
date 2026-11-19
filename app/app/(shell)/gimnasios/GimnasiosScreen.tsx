@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input } from "@/components/ui/Field";
-import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { EmptyState, SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoLista, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { useToast } from "@/components/ui/Toast";
 import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
@@ -260,7 +261,11 @@ export function GimnasiosScreen() {
           </Card>
         ) : !gyms ? (
           <SkeletonGroup label={t(language, "app.cargando")}>
-            <Skeleton className="h-40" />
+            {/* A joined-gym card: name and code, then its machines. */}
+            <div aria-hidden="true" className="flex flex-col gap-4 rounded-nube bg-nube p-5 shadow-nube">
+              <EsqueletoTarjeta lineas={1} icono={false} className="p-0 shadow-none" />
+              <EsqueletoLista filas={3} />
+            </div>
           </SkeletonGroup>
         ) : gyms.length === 0 ? (
           <Card>

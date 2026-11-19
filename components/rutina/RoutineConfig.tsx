@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Choice } from "@/components/ui/Choice";
 import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
+import { EsqueletoChips } from "@/components/ui/Esqueletos";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { FeelingSheet } from "@/components/hoy/FeelingSheet";
@@ -135,6 +136,7 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
         ].map(({ legend, category }) => (
           <fieldset key={legend} className="flex flex-col gap-2">
             <legend className="mb-2 text-small font-extrabold">{t(language, legend)}</legend>
+            {options.loading && <EsqueletoChips />}
             <div className="flex flex-wrap gap-2">
               {options.list(category).map(({ value: group }) => (
                 <Chip
