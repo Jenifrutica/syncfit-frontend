@@ -6,9 +6,11 @@ name: Deploy
 #   AWS_S3_BUCKET              bucket del sitio
 #   CLOUDFRONT_DISTRIBUTION_ID distribución que sirve syncfit.jenilarper.dev
 
+# Solo manual: el repo todavía no tiene AWS_ROLE_ARN, así que en cada push
+# fallaba (X roja en GitHub). El despliegue real se hace con
+# scripts/deploy-aws.sh (AWS_PROFILE=syncfit). Cuando exista el rol OIDC,
+# volver a añadir `push: branches: [main]`.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
