@@ -115,7 +115,7 @@ export function PhaseMonth({
               onClick={() => onSelect(date)}
               style={{ background: isSelected ? undefined : fase ? FASE_COLOR[fase].suave : undefined }}
               className={cx(
-                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums lg:self-stretch",
+                "relative flex aspect-square min-h-11 flex-col items-center justify-center gap-0.5 rounded-ficha font-display tabular-nums lg:w-full lg:self-stretch",
                 "transition-transform duration-[var(--dur-toque)] ease-[var(--ease-salida)] active:scale-[0.94]",
                 isSelected ? "bg-ink text-nube" : fase ? "text-ink" : "bg-nube/60 text-ink",
                 date === today && !isSelected && "outline-3 outline-offset-1 outline-ink",
