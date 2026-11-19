@@ -127,8 +127,9 @@ export function NutricionScreen() {
         <p className="text-body-lg font-bold text-ink-suave">{t(language, "nutri.sub")}</p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        {/* My supplements (last block) grows so the column ends with the suggestions. */}
+        <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
           <Card className="grid gap-4 sm:grid-cols-2">
             <Field label={t(language, "nutri.objetivo")}>
               {(control) => (
