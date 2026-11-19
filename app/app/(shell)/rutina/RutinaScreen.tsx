@@ -73,7 +73,7 @@ export function RutinaScreen() {
   return (
     <div className="mx-auto max-w-2xl px-4 pt-6 sm:px-8 lg:pt-10">
       {view === "generando" ? (
-        <ScanProgress done={running && generation.finishing} language={language} />
+        <ScanProgress done={running && generation.finishing} startedAt={running ? generation.job.startedAt : Date.now()} language={language} />
       ) : view === "resultado" && plan ? (
         <RoutineResult plan={plan} language={language} onNew={newRoutine} onRecapture={recapture} />
       ) : view === "sensores" ? (

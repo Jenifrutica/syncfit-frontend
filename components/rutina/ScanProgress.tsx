@@ -6,9 +6,9 @@ import { Check } from "@phosphor-icons/react";
 import { cx } from "@/lib/cx";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { Spinner } from "@/components/ui/Spinner";
+import { SCAN_STEPS, scanState } from "@/lib/escaneo";
 import { t, type Language } from "@/lib/i18n";
 
-const STEPS = ["rutina.escaneo.sensor", "rutina.escaneo.local", "rutina.escaneo.generativa", "rutina.escaneo.validador"];
 
 // A PPG-like beat, 64 units wide and ending at its start height; 16 beats
 // fill 1024 units, so sliding by half (512) loops seamlessly.
@@ -18,20 +18,20 @@ const WAVE = `M0 40 ${Array.from({ length: 16 }, () => BEAT).join(" ")}`;
 /**
  * What happens server-side during POST /capture, shown as four stations
  * (sensor → local AI → generative AI → validator) while Pulsi breathes and a
- * pulse wave runs. The request is a single call, so stations advance on a
- * timer and all complete when the answer arrives.
+ * pulse wave runs. The request is a single call, so stations follow the time
+ * since the job started (lib/escaneo.ts): leaving and coming back resumes
+ * where it was, and the last station waits for the answer.
  */
-export function ScanProgress({ done, language }: { done: boolean; language: Language }) {
-  const [active, setActive] = useState(0);
+export function ScanProgress({ done, startedAt, language }: { done: boolean; startedAt: number; language: Language }) {
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (done) {
-      setActive(STEPS.length);
-      return;
-    }
-    const id = window.setInterval(() => setActive((i) => Math.min(i + 1, STEPS.length - 1)), 900);
+    if (done) return;
+    const id = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(id);
   }, [done]);
+
+  const { active } = scanState(now - startedAt, done);
 
   return (
     <div role="status" aria-live="polite" className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-10 text-center">
@@ -53,7 +53,8 @@ export function ScanProgress({ done, language }: { done: boolean; language: Lang
       </div>
 
       <ol className="flex w-full flex-col gap-2 text-left">
-        {STEPS.map((key, index) => {
+        {SCAN_STEPS.map(({ key: step }, index) => {
+          const key = `rutina.escaneo.${step}`;
           const state = index < active ? "hecho" : index === active ? "ahora" : "luego";
           return (
             <li
