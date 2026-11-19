@@ -6,6 +6,7 @@ import { Camera, MagnifyingGlass, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { Dialog } from "@/components/ui/Dialog";
+import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { fileToDataUrl, type CatalogItem, type GymMachineInfo } from "@/lib/api";
 import { localized, t, tf, type Language } from "@/lib/i18n";
@@ -82,8 +83,6 @@ export function MachineSheet({
     onSave({ ...draft, name: draft.name.trim(), purpose: draft.purpose.trim() });
   };
 
-  const addAll = () => setDraft((d) => ({ ...d, exerciseIds: [...d.exerciseIds, ...results.map((c) => c.id).filter((id) => !d.exerciseIds.includes(id))] }));
-  const clearAll = () => setDraft((d) => ({ ...d, exerciseIds: [] }));
 
   const toggle = (id: string) => setDraft((d) => ({ ...d, exerciseIds: d.exerciseIds.includes(id) ? d.exerciseIds.filter((x) => x !== id) : [...d.exerciseIds, id] }));
 
@@ -139,10 +138,7 @@ export function MachineSheet({
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-small font-extrabold">{t(language, "maquina.ejercicios")}</legend>
           {draft.exerciseIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-small font-bold text-ink-suave">{tf(language, "sel.contador", { n: draft.exerciseIds.length })}</span>
-              <Button variant="fantasma" size="sm" onClick={clearAll} data-clear-exercises>{t(language, "sel.ninguno")}</Button>
-            </div>
+            <span className="text-small font-bold text-ink-suave">{tf(language, "sel.contador", { n: draft.exerciseIds.length })}</span>
           )}
           {draft.exerciseIds.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -155,11 +151,13 @@ export function MachineSheet({
             <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
             <Input type="search" aria-label={t(language, "maquina.buscar")} placeholder={t(language, "maquina.buscar")} value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
           </div>
-          {results.length > 0 && (
-            <Button variant="suave" size="sm" className="self-start" onClick={addAll} data-select-all-exercises>
-              {t(language, "sel.todos")} · {results.length}
-            </Button>
-          )}
+          {/* Select all adds the exercises the search shows; clear empties the machine. */}
+          <SeleccionMasiva
+            values={[...draft.exerciseIds, ...results.map((c) => c.id)]}
+            selected={draft.exerciseIds}
+            onChange={(next) => setDraft((d) => ({ ...d, exerciseIds: next }))}
+            language={language}
+          />
           <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
             {results.map((c) => (
               <Chip key={c.id} selected={false} onToggle={() => toggle(c.id)}>{c.name}</Chip>

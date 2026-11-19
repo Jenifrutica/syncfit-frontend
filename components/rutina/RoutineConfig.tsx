@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Choice } from "@/components/ui/Choice";
+import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { SpeechBubble } from "@/components/mascot/SpeechBubble";
 import { FeelingSheet } from "@/components/hoy/FeelingSheet";
@@ -68,10 +69,11 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
     muscles.has(group) || (zones.has(group) && savedGroups.every((item) => !muscles.has(item) || muscles.get(item)?.includes(group))),
   );
 
-  const incompatible = (group: string) => groups.some((selected) =>
+  const incompatibleWith = (group: string, current: readonly string[]) => current.some((selected) =>
     (zones.has(group) && muscles.has(selected) && !muscles.get(selected)?.includes(group))
     || (muscles.has(group) && zones.has(selected) && !muscles.get(group)?.includes(selected)),
   );
+  const incompatible = (group: string) => incompatibleWith(group, groups);
 
   const toggleGroup = (group: string) => {
     setError(null);
@@ -119,6 +121,14 @@ export function RoutineConfig({ today, onScan }: { today: string; onScan: (optio
             {tf(language, "rutina.config.contador", { n: groups.length })}
           </span>
         </div>
+        <SeleccionMasiva
+          values={[...muscles.keys(), ...zones]}
+          selected={groups}
+          onChange={(next) => { setError(null); setGroups(next); }}
+          max={MAX_GROUPS}
+          canAdd={(group, current) => !incompatibleWith(group, current)}
+          language={language}
+        />
         {[
           { legend: "rutina.config.musculos", category: "muscle_group_isolated" },
           { legend: "rutina.config.zonas", category: "muscle_group_general" },
