@@ -136,7 +136,7 @@ export function LandingScreen() {
 
       {/* ---------- Problem (lavanda) ---------- */}
       <section aria-labelledby="problema" className="relative z-20 bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
-        <CapasGoteo color="var(--color-lavanda)" />
+        <CapasGoteo capas={["var(--color-ovulatoria)", "var(--color-menstrual)", "var(--color-lavanda)"]} />
         <div data-hunde className="mx-auto max-w-5xl">
           <h2 id="problema" data-revela className="max-w-[24ch] text-balance font-display text-h1 font-bold text-nube">
             {t(language, "land.problema.titulo")}
@@ -158,7 +158,7 @@ export function LandingScreen() {
 
       {/* ---------- Phases ---------- */}
       <section data-cielo="rosa-claro" aria-labelledby="fases" className="relative z-20 bg-[var(--cielo)] px-4 py-16 sm:py-24">
-        <CapasGoteo color="var(--cielo)" />
+        <CapasGoteo capas={["var(--color-folicular)", "var(--color-lutea)", "var(--cielo)"]} />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
           <div data-nube="1.4" className="absolute top-[8%] -right-16 sm:right-[2%]"><Cloud className="text-nube/70" width={220} /></div>
           <div data-nube="0.5" className="absolute top-[40%] -left-10 max-sm:hidden"><Cloud className="text-nube/40" width={120} /></div>
@@ -282,7 +282,7 @@ export function LandingScreen() {
         </div>
       </section>
       <footer className="relative z-20 bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
-        <CapasGoteo color="var(--color-ink)" />
+        <CapasGoteo capas={["var(--color-menstrual)", "var(--color-lavanda)", "var(--color-ink)"]} />
         <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div className="text-nube">
             <Wordmark />
