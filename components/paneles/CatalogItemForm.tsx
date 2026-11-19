@@ -20,7 +20,25 @@ type Definition = {
 };
 
 const languages = ["en", "es", "zh"] as const;
-const languageNames = ["English", "Español", "中文"];
+const choiceLabels: Record<string, Label> = {
+  FREE_WEIGHT: ["Peso libre", "Free weight", "自由重量"], MACHINE: ["Máquina", "Machine", "器械"],
+  SMITH: ["Máquina Smith", "Smith machine", "史密斯机"], CABLE: ["Polea", "Cable", "绳索"],
+  BODYWEIGHT: ["Peso corporal", "Bodyweight", "自重"], ASSISTED: ["Asistido", "Assisted", "辅助"],
+  BAND: ["Banda", "Band", "弹力带"], NONE: ["Ninguno", "None", "无"],
+  KG: ["kg", "kg", "千克"], LB: ["lb", "lb", "磅"],
+  LOW: ["Bajo", "Low", "低"], MEDIUM: ["Medio", "Medium", "中"], HIGH: ["Alto", "High", "高"],
+  WARMUP: ["Calentamiento", "Warm-up", "热身"], ACTIVATION: ["Activación", "Activation", "激活"],
+  MAIN: ["Principal", "Main", "主要"], ANY: ["Cualquiera", "Any", "不限"],
+  MENSTRUAL_CYCLE: ["Ciclo menstrual", "Menstrual cycle", "月经周期"], GESTATIONAL: ["Embarazo", "Pregnancy", "孕期"],
+  VITAMIN: ["Vitamina", "Vitamin", "维生素"], MINERAL: ["Mineral", "Mineral", "矿物质"],
+  PROTEIN: ["Proteína", "Protein", "蛋白质"], OMEGA3: ["Omega 3", "Omega-3", "欧米伽3"],
+  CAFFEINE: ["Cafeína", "Caffeine", "咖啡因"], CREATINE: ["Creatina", "Creatine", "肌酸"],
+  IRON: ["Hierro", "Iron", "铁"], FOLATE: ["Folato", "Folate", "叶酸"],
+  CALCIUM: ["Calcio", "Calcium", "钙"], FIBER: ["Fibra", "Fiber", "膳食纤维"], OTHER: ["Otro", "Other", "其他"],
+  DAILY: ["A diario", "Daily", "每天"], PRE_WORKOUT: ["Antes de entrenar", "Before training", "训练前"],
+  POST_WORKOUT: ["Después de entrenar", "After training", "训练后"], AS_NEEDED: ["Según necesidad", "As needed", "按需"],
+  SAFE: ["Seguro", "Safe", "安全"], CAUTION: ["Precaución", "Caution", "慎用"], AVOID: ["Evitar", "Avoid", "避免"],
+};
 const impact = ["LOW", "MEDIUM", "HIGH"];
 const safety = ["SAFE", "CAUTION", "AVOID"];
 
@@ -101,14 +119,16 @@ function readText(form: FormData, key: string) {
 }
 
 function readLocalized(form: FormData, key: string, original: unknown) {
-  const text = { ...object(original) };
+  const text: Payload = typeof original === "string" ? { en: original } : { ...object(original) };
   for (const code of languages) {
+    if (!form.has(key + "." + code)) continue;
     const value = readText(form, key + "." + code);
     if (value) text[code] = value;
     else delete text[code];
   }
-  if (!Object.keys(text).length) return null;
-  text.en ??= "";
+  const fallback = languages.map((code) => text[code]).find(Boolean);
+  if (!fallback) return null;
+  if (!text.en) text.en = fallback;
   return text;
 }
 
@@ -126,23 +146,15 @@ function readField(form: FormData, field: Definition, original: unknown) {
 
 function LocalizedFields({ field, value, language }: { field: Definition; value: unknown; language: Language }) {
   const localized = typeof value === "string" ? { en: value } : object(value);
+  const code = language.toLowerCase();
+  const key = field.key + "." + code;
+  const initial = String(localized[code] || localized.en || "");
   return (
-    <fieldset className="rounded-ficha border border-linea px-4 pb-4">
-      <legend className="px-2 font-bold">{caption(field.label, language)}</legend>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {languages.map((code, index) => {
-          const key = field.key + "." + code;
-          const initial = String(localized[code] ?? "");
-          return (
-            <Field key={code} label={languageNames[index]} required={field.required && code === "en"}>
-              {(control) => field.key === "name"
-                ? <Input {...control} name={key} pattern=".*\S.*" defaultValue={initial} />
-                : <TextArea {...control} name={key} rows={2} defaultValue={initial} />}
-            </Field>
-          );
-        })}
-      </div>
-    </fieldset>
+    <Field key={key} label={caption(field.label, language)} required={field.required}>
+      {(control) => field.key === "name"
+        ? <Input {...control} name={key} pattern=".*\S.*" defaultValue={initial} />
+        : <TextArea {...control} name={key} rows={2} defaultValue={initial} />}
+    </Field>
   );
 }
 
@@ -163,7 +175,7 @@ function CatalogField({ field, value, options, language }: {
     field.group === "equipment" ? equipmentKeyOf(option.value) : option.value,
     option.labels[language.toLowerCase()] ?? option.label,
   ]));
-  for (const item of field.values ?? []) choices.set(item, item.replaceAll("_", " "));
+  for (const item of field.values ?? []) choices.set(item, caption(choiceLabels[item], language));
   for (const item of selected) if (!choices.has(item)) choices.set(item, item);
   const multiple = field.type === "choices";
   return (
