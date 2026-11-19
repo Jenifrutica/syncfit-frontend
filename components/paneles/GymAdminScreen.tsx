@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Barbell, Copy, MagnifyingGlass, PencilSimple, Plus, QrCode, Trash } from "@phosphor-icons/react";
+import { Barbell, Copy, MagnifyingGlass, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -21,7 +21,6 @@ import {
   deleteGym,
   deleteGymMachine,
   deleteGymMachines,
-  fetchGymQr,
   getCatalog,
   listMyGyms,
   updateGym,
@@ -49,7 +48,6 @@ export function GymAdminScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
-  const [qr, setQr] = useState<{ gym: GymInfo; url: string } | null>(null);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [sheet, setSheet] = useState<{ machine: GymMachineInfo | null } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -121,14 +119,6 @@ export function GymAdminScreen() {
       setRenaming(null);
       say(t(language, "gymadmin.guardado"));
       await load();
-    } catch {
-      say(t(language, "gymadmin.error"), "error");
-    }
-  };
-
-  const showQr = async (g: GymInfo) => {
-    try {
-      setQr({ gym: g, url: await fetchGymQr(g.id) });
     } catch {
       say(t(language, "gymadmin.error"), "error");
     }
@@ -238,7 +228,6 @@ export function GymAdminScreen() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secundario" size="sm" icon={<QrCode size={18} weight="bold" />} onClick={() => void showQr(gym)}>{t(language, "gymadmin.qr")}</Button>
                   <Button variant="secundario" size="sm" icon={<PencilSimple size={18} weight="bold" />} onClick={() => setRenaming(gym.name)}>{t(language, "gymadmin.renombrar")}</Button>
                   <Button variant="peligro" size="sm" icon={<Trash size={18} weight="bold" />} onClick={() => setConfirm({ kind: "gym", gym })}>{t(language, "gymadmin.borrar")}</Button>
                 </div>
@@ -306,18 +295,6 @@ export function GymAdminScreen() {
       )}
 
       <MachineSheet open={sheet !== null} editing={!!sheet?.machine} initial={initialDraft} catalog={catalog} language={language} saving={saving} onClose={() => setSheet(null)} onSave={(d) => void saveMachine(d)} />
-
-      <Dialog open={qr !== null} onClose={() => setQr(null)} title={qr ? tf(language, "gymadmin.qrTitulo", { gym: qr.gym.name }) : ""} description={qr ? tf(language, "gymadmin.qrDesc", { code: qr.gym.code }) : undefined} closeLabel={t(language, "comun.cerrar")}>
-        {qr && (
-          <div className="flex flex-col items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qr.url} alt={tf(language, "gymadmin.qrTitulo", { gym: qr.gym.name })} width={240} height={240} className="size-60 rounded-ficha bg-nube p-2" />
-            <a href={qr.url} download={`qr-${qr.gym.code}.png`} className="inline-flex min-h-12 items-center rounded-full bg-ink px-6 font-display font-semibold text-nube no-underline">
-              {t(language, "gymadmin.descargar")}
-            </a>
-          </div>
-        )}
-      </Dialog>
 
       <Dialog
         open={confirm !== null}
