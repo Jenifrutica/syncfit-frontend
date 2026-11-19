@@ -10,17 +10,23 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { t, tf, type Language } from "@/lib/i18n";
 import type { Selection } from "@/lib/useSelection";
 
-/** Checkbox for one row; pairs with SelectionBar. */
+/**
+ * Checkbox for one row; pairs with SelectionBar. The box stays 20 px but the
+ * label around it is a 44 px touch target; the negative margin keeps the row
+ * layout as if only the box were there.
+ */
 export function RowCheck({ selection, id, label }: { selection: Selection; id: string; label: string }) {
   return (
-    <input
-      type="checkbox"
-      aria-label={label}
-      checked={selection.has(id)}
-      onChange={() => selection.toggle(id)}
-      className="size-5 shrink-0 accent-ink"
-      data-row-check={id}
-    />
+    <label className="-m-3 grid size-11 shrink-0 cursor-pointer place-items-center">
+      <input
+        type="checkbox"
+        aria-label={label}
+        checked={selection.has(id)}
+        onChange={() => selection.toggle(id)}
+        className="size-5 cursor-pointer accent-ink"
+        data-row-check={id}
+      />
+    </label>
   );
 }
 
