@@ -62,17 +62,13 @@ export function useOptions(): OptionsState {
   };
 }
 
-/** Built-in equipment keys, used only until the "equipment" options load. */
-const FALLBACK_EQUIPMENT = ["machine", "smith", "barbell", "dumbbell", "bench", "cable", "pullup-bar", "dip-bar", "ghd", "box", "band", "none"];
-
 /** Option value (PULLUP_BAR) <-> machine equipment_key (pullup-bar). */
 export const equipmentKeyOf = (value: string) => value.toLowerCase().replace(/_/g, "-");
 const equipmentValueOf = (key: string) => key.toUpperCase().replace(/-/g, "_");
 
 /** Equipment keys from the database ("equipment" options), in display order. */
 export function equipmentKeys(options: OptionsState): string[] {
-  const list = options.list("equipment");
-  return list.length ? list.map((o) => equipmentKeyOf(o.value)) : FALLBACK_EQUIPMENT;
+  return options.list("equipment").map((option) => equipmentKeyOf(option.value));
 }
 
 export function equipmentLabel(options: OptionsState, key: string, language: Language): string {
