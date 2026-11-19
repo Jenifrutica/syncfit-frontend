@@ -26,7 +26,7 @@ const LAYERS = [
 export function CapasGoteo({ variant, edge, base, className }: { variant: "gotea" | "sube"; edge: string; base: string; className?: string }) {
   const top = variant === "gotea";
   return (
-    <div aria-hidden="true" className={cx("relative -my-px h-20 sm:h-32", className)} style={{ background: base }}>
+    <div aria-hidden="true" className={cx("relative -my-px h-20 overflow-hidden sm:h-32", className)} style={{ background: base }}>
       {LAYERS.map((layer) => (
         <svg
           key={layer.mix}
