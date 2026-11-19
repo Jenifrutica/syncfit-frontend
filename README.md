@@ -119,6 +119,7 @@ The athlete app lives under `/app` (Hoy, Rutina, Entreno, Calendario,
 Nutrición, Perfil, Gimnasios); `/gym` and `/admin` are the admin panels
 (`components/paneles/`).
 `app/compartido/[token]` is the public read-only shared profile (`/shared/[token]` redirects there).
+`/privacidad` and `/terminos` are the privacy policy and terms of use (texts in `lib/legal.ts`, ES/EN/ZH; Spanish prevails). Keep them in sync with what the backend stores and sends to the AI provider.
 
 **Decoupled seams (work without context).**
 - **Auth**: `lib/session.tsx` (`signIn`, `signUp`, `signOut`) + `app/entrar/`.

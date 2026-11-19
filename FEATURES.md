@@ -8,7 +8,7 @@ probó contra el backend local.
 Rutas nuevas: `/` landing · `/entrar` · `/bienvenida` · `/app` (Hoy) ·
 `/app/rutina` · `/app/entreno` · `/app/calendario` · `/app/nutricion` ·
 `/app/gimnasios` · `/app/perfil` · `/app/explorar` · `/gym` · `/admin` ·
-`/compartido/[token]`.
+`/compartido/[token]` · `/privacidad` · `/terminos`.
 
 ## 1. Cliente del API (`lib/api.ts`)
 
