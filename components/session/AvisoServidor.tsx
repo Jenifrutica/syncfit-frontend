@@ -48,7 +48,7 @@ export function AvisoServidor() {
         </span>
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="flex items-center gap-2 font-display text-body font-semibold">
-            {estado === "caido" ? <WifiSlash size={18} weight="bold" aria-hidden="true" /> : <Spinner size={16} />}
+            {estado === "caido" ? <WifiSlash size={18} weight="bold" aria-hidden="true" className="shrink-0" /> : <Spinner size={16} />}
             {t(language, titulo)}
           </p>
           <p className="text-small font-bold text-ink-suave">{t(language, `${titulo}Desc`)}</p>
