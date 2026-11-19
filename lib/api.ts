@@ -1,6 +1,10 @@
 /** API client for the SyncFit Edge backend. */
 
 import { hashPassword } from "./password";
+import { trackedFetch } from "./servidor";
+
+// Every call below reports to the "the server is loading" notice (lib/servidor.ts).
+const fetch = trackedFetch;
 
 // In production the app is served by CloudFront from the same origin, which
 // proxies `/api/*` to the backend, so a relative base URL works on any domain
