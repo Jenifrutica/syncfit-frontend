@@ -156,6 +156,10 @@ por cálculo WCAG (34 pares, 0 fallos).
   Nutrición, Perfil); barra lateral ≥ 1024 px, que además tiene "Mis gimnasios"
   (`desktopOnly` en `NAV`). Registros rápidos en hoja
   inferior (`Dialog variant="sheet"`). Una acción primaria por pantalla.
+- **Bento en escritorio:** en las pantallas de dos columnas (Hoy, Calendario,
+  Nutrición, Perfil) las dos columnas terminan en la misma línea: grilla con
+  `lg:items-stretch` y, en cada columna, `lg:[&>:last-child]:flex-1` para que la
+  última tarjeta crezca. En móvil no aplica.
 - **Breakpoints:** 375 / 768 / 1024 / 1280.
 
 ## 6. Component system
