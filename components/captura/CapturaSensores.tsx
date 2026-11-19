@@ -314,7 +314,10 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
       // Force: what matters is the best push of the step, not the last instant.
       if (paso === 1 && live) captured = Math.max(captured, Number(peakForceRef.current.toFixed(1)));
       // Pulse / temperature: the median of the whole step.
-      const mediana = live && paso !== 1 ? median(muestrasRef.current) : null;
+      // Only readings taken in position count: the eye is above ~30 °C (the
+      // room is ~25), and a resting pulse is 45-130 bpm.
+      const validas = muestrasRef.current.filter((v) => (paso === 0 ? v >= 45 && v <= 130 : v >= 30));
+      const mediana = live && paso !== 1 ? median(validas.length ? validas : muestrasRef.current) : null;
       if (mediana != null) captured = paso === 0 ? Math.round(mediana) : Number(mediana.toFixed(1));
       resultadosRef.current = [...resultadosRef.current, captured];
       setResultados(resultadosRef.current);
