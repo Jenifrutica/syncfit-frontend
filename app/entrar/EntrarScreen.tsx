@@ -257,6 +257,14 @@ export function EntrarScreen() {
           >
             {t(language, creating ? "entrar.boton.crear" : "entrar.boton.entrar")}
           </Button>
+          {creating && (
+            <p className="text-center text-small text-ink-suave">
+              {t(language, "legal.aceptas")}{" "}
+              <Link href="/terminos" className="font-bold text-ink underline underline-offset-4">{t(language, "legal.terminos")}</Link>{" "}
+              {t(language, "legal.y")}{" "}
+              <Link href="/privacidad" className="font-bold text-ink underline underline-offset-4">{t(language, "legal.privacidad")}</Link>.
+            </p>
+          )}
         </form>
 
         {googleEnabled && (
