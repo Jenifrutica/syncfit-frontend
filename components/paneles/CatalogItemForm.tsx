@@ -14,13 +14,13 @@ type Definition = {
   label: Label;
   type?: "localized" | "list" | "choices" | "select" | "number" | "boolean";
   required?: boolean;
-  values?: readonly string[];
+  values?: readonly (keyof typeof choiceLabels)[];
   group?: "muscles" | "equipment" | "objectives" | "exercises";
   initial?: string;
 };
 
 const languages = ["en", "es", "zh"] as const;
-const choiceLabels: Record<string, Label> = {
+const choiceLabels = {
   FREE_WEIGHT: ["Peso libre", "Free weight", "自由重量"], MACHINE: ["Máquina", "Machine", "器械"],
   SMITH: ["Máquina Smith", "Smith machine", "史密斯机"], CABLE: ["Polea", "Cable", "绳索"],
   BODYWEIGHT: ["Peso corporal", "Bodyweight", "自重"], ASSISTED: ["Asistido", "Assisted", "辅助"],
@@ -35,14 +35,15 @@ const choiceLabels: Record<string, Label> = {
   CAFFEINE: ["Cafeína", "Caffeine", "咖啡因"], CREATINE: ["Creatina", "Creatine", "肌酸"],
   IRON: ["Hierro", "Iron", "铁"], FOLATE: ["Folato", "Folate", "叶酸"],
   CALCIUM: ["Calcio", "Calcium", "钙"], FIBER: ["Fibra", "Fiber", "膳食纤维"], OTHER: ["Otro", "Other", "其他"],
+  ELECTROLYTES: ["Electrolitos", "Electrolytes", "电解质"],
   DAILY: ["A diario", "Daily", "每天"], PRE_WORKOUT: ["Antes de entrenar", "Before training", "训练前"],
   POST_WORKOUT: ["Después de entrenar", "After training", "训练后"], AS_NEEDED: ["Según necesidad", "As needed", "按需"],
   SAFE: ["Seguro", "Safe", "安全"], CAUTION: ["Precaución", "Caution", "慎用"], AVOID: ["Evitar", "Avoid", "避免"],
-};
-const impact = ["LOW", "MEDIUM", "HIGH"];
-const safety = ["SAFE", "CAUTION", "AVOID"];
+} satisfies Record<string, Label>;
+const impact = ["LOW", "MEDIUM", "HIGH"] as const;
+const safety = ["SAFE", "CAUTION", "AVOID"] as const;
 
-const equipmentTypes = ["FREE_WEIGHT", "MACHINE", "SMITH", "CABLE", "BODYWEIGHT", "ASSISTED", "BAND", "NONE"];
+const equipmentTypes = ["FREE_WEIGHT", "MACHINE", "SMITH", "CABLE", "BODYWEIGHT", "ASSISTED", "BAND", "NONE"] as const;
 
 const fields: Record<CatalogKind, Definition[]> = {
   machine: [
