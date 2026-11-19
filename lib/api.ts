@@ -1171,6 +1171,24 @@ export interface JoinedGym {
   machines: GymMachineInfo[];
 }
 
+export interface GymDeletionNotice {
+  id: string;
+  gym_name: string;
+}
+
+export async function getGymDeletionNotices(signal: AbortSignal): Promise<GymDeletionNotice[]> {
+  const response = await fetch(`${API_URL}/api/v1/gyms/notices`, { headers: authHeaders(), cache: "no-store", signal });
+  if (!response.ok) throw await apiError("gym notices", response);
+  return response.json();
+}
+
+export async function dismissGymDeletionNotice(id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/v1/gyms/notices/${encodeURIComponent(id)}`, {
+    method: "DELETE", headers: authHeaders(),
+  });
+  if (!response.ok) throw await apiError("dismiss gym notice", response);
+}
+
 export async function getJoinedGyms(language?: Language): Promise<JoinedGym[]> {
   const query = language ? `?language=${language}` : "";
   const r = await fetch(`${API_URL}/api/v1/gyms/joined${query}`, { headers: authHeaders() });
