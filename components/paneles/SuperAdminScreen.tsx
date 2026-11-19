@@ -11,7 +11,8 @@ import { Choice } from "@/components/ui/Choice";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
+import { EmptyState, SkeletonGroup } from "@/components/ui/States";
+import { EsqueletoLista, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { useToast } from "@/components/ui/Toast";
 import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
 import { CatalogAdmin } from "@/components/paneles/CatalogAdmin";
@@ -158,7 +159,7 @@ function Accounts({ me, say }: { me: AuthUser | null; say: (title: string, tone?
       <div className="overflow-x-auto overflow-y-hidden rounded-nube bg-nube shadow-nube">
         {!users ? (
           <SkeletonGroup label={t(language, "super.cargando")} className="p-4">
-            {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-12" />)}
+            <EsqueletoLista filas={5} />
           </SkeletonGroup>
         ) : users.length === 0 ? (
           <EmptyState mood="dormida" title={t(language, "super.sinResultados")} />
@@ -280,7 +281,9 @@ function AccountDialog({ action, onClose, onDone }: { action: Action | null; onC
     const p = detail ?? {};
     body =
       detail === undefined ? (
-        <Skeleton className="h-32" />
+        <SkeletonGroup label={t(language, "super.cargando")}>
+          <EsqueletoTarjeta lineas={3} />
+        </SkeletonGroup>
       ) : detail === null ? (
         <p className="text-body text-ink-suave">{t(language, "super.sinPerfil")}</p>
       ) : (
@@ -419,7 +422,9 @@ function GymAdmins({ say }: { say: (title: string, tone?: "exito" | "error") => 
       <Card className="flex flex-col gap-3">
         <h2 className="text-h3 font-bold">{t(language, "super.tab.admins")}</h2>
         {!admins ? (
-          <Skeleton className="h-24" />
+          <SkeletonGroup label={t(language, "super.cargando")}>
+            <EsqueletoLista filas={2} />
+          </SkeletonGroup>
         ) : admins.length === 0 ? (
           <p className="text-body text-ink-suave">{t(language, "super.admins.ninguno")}</p>
         ) : (
@@ -463,7 +468,13 @@ function AllGyms() {
 
   const owners = useMemo(() => new Map(admins.map((a) => [a.id, a.display_name])), [admins]);
 
-  if (!gyms) return <Skeleton className="h-40" />;
+  if (!gyms)
+    return (
+      <SkeletonGroup label={t(language, "super.cargando")}>
+        <EsqueletoTarjeta lineas={1} />
+        <EsqueletoTarjeta lineas={1} />
+      </SkeletonGroup>
+    );
   if (gyms.length === 0) return <Card><EmptyState mood="dormida" title={t(language, "super.gyms.ninguno")} /></Card>;
   return (
     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
