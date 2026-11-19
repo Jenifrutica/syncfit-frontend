@@ -6,8 +6,10 @@ export type Macros = { protein_g: number; carbs_g: number; fat_g: number; kcal: 
 export type SupplementMacros = {
   /** Sum of one serving of each supplement in the athlete's list. */
   total: Macros;
-  /** How many supplements add macros. */
+  /** How many supplements taken today add macros. */
   count: number;
+  /** How many of her supplements have macros at all (taken or not). */
+  withMacros: number;
   /** True when at least one value is the catalog average (not entered by her). */
   estimated: boolean;
 };
@@ -56,7 +58,7 @@ export function MacrosCard({ macros, language, supplements }: { macros: Macros; 
         ))}
       </ul>
 
-      {supplements && supplements.count > 0 && (
+      {supplements && supplements.withMacros > 0 && (
         <section aria-labelledby="macros-suplementos" className="flex flex-col gap-2 border-t border-rosa-claro pt-4" data-macros-suplementos>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 id="macros-suplementos" className="font-display text-body-lg font-bold">{t(language, "nutri.macrosSuplementos")}</h3>
@@ -78,6 +80,7 @@ export function MacrosCard({ macros, language, supplements }: { macros: Macros; 
           <p className="text-small font-bold text-ink-suave">
             {PARTS.map((part) => `${t(language, `nutri.${part.key}`)} ${Math.round(part.grams(supplements.total))} g (${share(part.grams(supplements.total), part.grams(macros))} %)`).join(" · ")}
           </p>
+          {supplements.count === 0 && <p className="text-caption font-bold text-ink-suave" data-macros-vacio>{t(language, "nutri.marcaTomados")}</p>}
           {supplements.estimated && <p className="text-caption font-bold text-ink-suave">{t(language, "nutri.estimado")}</p>}
         </section>
       )}

@@ -76,16 +76,21 @@ export function NutricionScreen() {
   const byId = useMemo(() => new Map(catalog.map((c) => [c.id, c])), [catalog]);
   const mine = (profile?.current_supplements ?? []).map((id) => byId.get(id)).filter((c): c is SupplementCatalogItem => !!c);
   const daily = mine.filter((c) => c.is_daily);
-  // What one serving of each supplement in her list adds: her own numbers when
-  // she typed them, otherwise the catalog average (e.g. an average whey scoop).
+  const takenIds = new Set(intakes.filter((i) => i.taken).map((i) => i.supplement_id));
+  // Daily: only what she marked as taken TODAY counts (intakes are stored per
+  // date, so a new day starts empty). Her own macros when she typed them,
+  // otherwise the catalog average (e.g. an average whey scoop).
   const supplementMacros = (() => {
     const total = { protein_g: 0, carbs_g: 0, fat_g: 0, kcal: 0 };
     let count = 0;
+    let withMacros = 0;
     let estimated = false;
     for (const item of mine) {
       const own = profile?.supplement_macros?.find((m) => m.supplement_id === item.id)?.macros;
       const values = own ?? item.macros;
       if (!values || !(values.kcal || values.protein_g || values.carbs_g || values.fat_g)) continue;
+      withMacros += 1;
+      if (!takenIds.has(item.id)) continue;
       if (!own) estimated = true;
       count += 1;
       total.protein_g += values.protein_g || 0;
@@ -93,10 +98,9 @@ export function NutricionScreen() {
       total.fat_g += values.fat_g || 0;
       total.kcal += values.kcal || 0;
     }
-    return { total, count, estimated };
+    return { total, count, withMacros, estimated };
   })();
 
-  const takenIds = new Set(intakes.filter((i) => i.taken).map((i) => i.supplement_id));
   const takenCount = daily.filter((c) => takenIds.has(c.id)).length;
 
   const save = async (patch: Record<string, unknown>) => {
