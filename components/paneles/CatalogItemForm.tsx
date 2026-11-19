@@ -156,7 +156,7 @@ function CatalogField({ field, value, options, language }: {
   const initial = String((value === undefined ? field.initial : value) ?? "");
   const label = caption(field.label, language);
   if (field.type === "boolean") {
-    return <label className="flex items-center gap-2 font-bold"><input type="checkbox" name={field.key} defaultChecked={value === true} />{label}</label>;
+    return <label className="flex min-h-11 cursor-pointer items-center gap-3 font-bold"><input type="checkbox" name={field.key} defaultChecked={value === true} className="size-5 accent-ink" />{label}</label>;
   }
   const selected = field.type === "choices" ? strings(value) : initial ? [initial] : [];
   const choices = new Map<string, string>(options.map((option) => [

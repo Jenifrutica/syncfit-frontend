@@ -400,8 +400,8 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
                   {{ ES: "Zonas compatibles", EN: "Compatible areas", ZH: "兼容区域" }[language]}
                 </legend>
                 {(options ?? []).filter((option) => option.category === "muscle_group_general").map((zone) => (
-                  <label key={zone.id} className="flex min-h-10 items-center gap-2">
-                    <input type="checkbox" checked={optionDraft.zones.includes(zone.value)}
+                  <label key={zone.id} className="flex min-h-11 cursor-pointer items-center gap-3">
+                    <input type="checkbox" className="size-5 accent-ink" checked={optionDraft.zones.includes(zone.value)}
                       onChange={(event) => setOptionDraft({ ...optionDraft, zones: event.target.checked
                         ? [...optionDraft.zones, zone.value]
                         : optionDraft.zones.filter((value) => value !== zone.value) })} />

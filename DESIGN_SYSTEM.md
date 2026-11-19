@@ -332,6 +332,9 @@ escritorio son dos columnas (cielo fijo a la izquierda).
 - **Semántica:** `button`/`a` reales, `aria-pressed` en chips y días,
   `role="progressbar"`, `role="img"` + `aria-label` en el anillo del ciclo.
 - **Objetivos táctiles:** ≥ 44 px.
+  Las casillas miden 20 px pero siempre van dentro de una `label` de 44 px
+  (`RowCheck` en `components/ui/SelectionBar.tsx` usa margen negativo para no
+  mover la fila). Nunca un `input type="checkbox"` suelto.
 - **Idiomas:** EN/ES/ZH; dejar espacio para expansión del texto.
 - Nunca solo color: estado + icono o texto.
 
