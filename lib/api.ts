@@ -798,11 +798,36 @@ export interface CaptureResult {
   assessment?: { phase_inferred: string; fatigue_level: string; autonomic_status?: string; articular_risk_pct?: number };
   machine_preferences?: Record<string, { exercise_id: string; pattern?: string | null; name?: string | null; weight_factor?: number | null }>;
   engine_used?: string;
+  /** How today's pulse, push and temperature changed the routine. */
+  readiness?: Readiness;
   total_estimated_minutes?: number;
   alerts?: string[];
   warmup: Record<string, unknown>[];
   routine: Record<string, unknown>[];
   timeline?: Timeline | null;
+}
+
+export interface Readiness {
+  source: "device" | "simulated";
+  heart_rate_bpm: number | null;
+  peak_force_kg: number | null;
+  temperature_c: number | null;
+  hr_baseline_bpm: number | null;
+  temp_baseline_c: number | null;
+  strength_reference_kg: number | null;
+  strength_ratio: number | null;
+  new_strength_record: boolean;
+  force_factor: number;
+  hr_factor: number;
+  temp_factor: number;
+  load_multiplier: number;
+  keep_max: boolean;
+  sets_delta: number;
+  rest_extra_s: number;
+  impact_cap: string | null;
+  fever: boolean;
+  reasons: string[];
+  summary: string;
 }
 
 export async function capture(
@@ -815,10 +840,18 @@ export async function capture(
     language?: Language;
     /** Same id on retries: the backend never generates (or saves) twice. */
     requestId?: string;
+    /** Check-in readings: they adjust today's loads, sets, rest and impact. */
+    sensors?: { bpm: number; forceKg: number; tempC: number; source?: "device" | "simulated" } | null;
   } = {},
 ): Promise<CaptureResult> {
   const query = new URLSearchParams();
   if (options.requestId) query.set("request_id", options.requestId);
+  if (options.sensors) {
+    if (options.sensors.bpm > 0) query.set("hr_bpm", String(options.sensors.bpm));
+    if (options.sensors.forceKg > 0) query.set("force_kg", String(options.sensors.forceKg));
+    if (options.sensors.tempC > 0) query.set("temp_c", String(options.sensors.tempC));
+    query.set("sensor_source", options.sensors.source ?? "simulated");
+  }
   if (options.language) query.set("language", options.language);
   if (path) query.set("muscle_groups", path);
   if (options.exercisesCount) query.set("exercises_count", String(options.exercisesCount));

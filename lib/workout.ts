@@ -14,6 +14,8 @@ export type WorkoutStep = {
   setCount: number;
   reps: number;
   weightKg: number;
+  /** Assisted machine: weightKg is the counterweight (more = easier). */
+  assisted?: boolean;
   restSeconds: number;
   warmup: boolean;
 };
@@ -39,6 +41,7 @@ export function workoutSteps(plan: RoutinePlan): WorkoutStep[] {
       setCount: sets.length,
       reps: set.reps,
       weightKg: set.weight_kg,
+      assisted: item.assisted,
       restSeconds: set.rest_seconds,
       warmup,
     }));

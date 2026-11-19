@@ -184,6 +184,9 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const [tareMessage, setTareMessage] = useState<string | null>(null);
   const raf = useRef<number | null>(null);
   const resultadosRef = useRef<number[]>([]);
+  // Peak push of the force step and whether any reading came from the device.
+  const peakForceRef = useRef(0);
+  const fromDeviceRef = useRef(false);
   const liveValues = useMemo(() => liveValuesFrom(live), [live]);
   const liveValuesRef = useRef<LiveValues | null>(null);
 
@@ -229,6 +232,17 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     };
   }, []);
 
+  // Track the peak push while the force step is measuring.
+  useEffect(() => {
+    if (paso === 1 && fase === "midiendo" && modo === "manual" && liveValues) {
+      peakForceRef.current = Math.max(peakForceRef.current, liveValues.forceKg);
+    }
+  }, [paso, fase, modo, liveValues]);
+
+  useEffect(() => {
+    if (paso === 1 && fase === "listo") peakForceRef.current = 0;
+  }, [paso, fase]);
+
   useEffect(() => {
     if (fase !== "midiendo") return;
     const duracion = modo === "simulado" ? SIMULACION_MS : DURACION_MS;
@@ -249,7 +263,11 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
     if (fase !== "hecho") return;
     const espera = modo === "simulado" ? ESPERA_SIMULADA_MS : ESPERA_VISTO_MS;
     const id = window.setTimeout(() => {
-      const captured = valueForStep(paso, modo === "manual" ? liveValuesRef.current : null);
+      const live = modo === "manual" ? liveValuesRef.current : null;
+      if (live) fromDeviceRef.current = true;
+      let captured = valueForStep(paso, live);
+      // Force: what matters is the best push of the step, not the last instant.
+      if (paso === 1 && live) captured = Math.max(captured, Number(peakForceRef.current.toFixed(1)));
       resultadosRef.current = [...resultadosRef.current, captured];
       setResultados(resultadosRef.current);
       if (paso < 2) {
@@ -258,7 +276,7 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
         setFase("listo");
       } else {
         const [bpm, forceKg, tempC] = resultadosRef.current;
-        const record = saveCheckin({ bpm, forceKg, tempC });
+        const record = saveCheckin({ bpm, forceKg, tempC, source: fromDeviceRef.current ? "device" : "simulated" });
         if (onComplete) onComplete(record);
         else setTerminado(true);
       }
@@ -304,6 +322,8 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   const reiniciar = useCallback(() => {
     setTerminado(false);
     resultadosRef.current = [];
+    peakForceRef.current = 0;
+    fromDeviceRef.current = false;
     setResultados([]);
     setModo("manual");
     setPaso(0);

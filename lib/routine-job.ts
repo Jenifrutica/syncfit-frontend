@@ -88,6 +88,7 @@ function post(job: RoutineJob): Promise<CaptureResult> {
     includeWarmup: job.options.warmup,
     language: job.language,
     requestId: job.requestId,
+    sensors: job.sensores,
   });
 }
 

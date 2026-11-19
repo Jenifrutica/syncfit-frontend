@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Same top bar as the admin panels: sign out always in the top-right corner. */}
-      <header className="sticky top-0 z-30 bg-nube/95 shadow-flotante backdrop-blur lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
+      <header className="sticky top-0 z-30 bg-nube/95 shadow-flotante backdrop-blur lg:static lg:bg-transparent lg:shadow-none lg:backdrop-blur-none">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
           <div className="flex items-center gap-3 lg:invisible">
             {/* Pulsi only on phones, so the language switcher fits on one line. */}
@@ -112,7 +112,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-current={active ? "page" : undefined}
               className={cx(
                 "flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 text-caption no-underline",
-                active ? "font-extrabold text-ink" : "font-bold text-ink-suave",
+                // Same weight active or not: a bolder label no longer overflows at 375 px.
+                active ? "font-bold text-ink" : "font-bold text-ink-suave",
               )}
             >
               <span className={cx("grid h-8 w-12 place-items-center rounded-full", active && "bg-fase-suave")}>

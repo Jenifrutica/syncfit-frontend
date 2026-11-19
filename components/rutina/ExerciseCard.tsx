@@ -31,7 +31,10 @@ export function ExerciseCard({
 }) {
   const [editing, setEditing] = useState(false);
   const dose = tf(language, "rutina.dosis", { series: item.series, reps: item.reps });
-  const weight = item.weightKg > 0 ? tf(language, "rutina.kg", { n: item.weightKg }) : t(language, "rutina.pesoLibre");
+  const weight =
+    item.weightKg > 0
+      ? tf(language, item.assisted ? "rutina.kgAsistencia" : "rutina.kg", { n: item.weightKg })
+      : t(language, "rutina.pesoLibre");
 
   const field = (label: string, value: number, key: "series" | "reps" | "weightKg", max: number) => (
     <label className="flex flex-col gap-1 text-small font-extrabold">

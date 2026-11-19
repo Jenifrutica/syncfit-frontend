@@ -10,8 +10,11 @@ import { todayISO } from "@/lib/dates";
 
 export type SensorValues = {
   bpm: number;
+  /** Peak push of the force step (the routine compares it with her best). */
   forceKg: number;
   tempC: number;
+  /** Real prototype or simulated values (simulated never become references). */
+  source?: "device" | "simulated";
 };
 
 export type Checkin = SensorValues & {

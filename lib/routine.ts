@@ -19,6 +19,8 @@ export type RoutineItem = {
   series: number;
   reps: number;
   weightKg: number;
+  /** Assisted machine: weightKg is the COUNTERWEIGHT (more = easier). */
+  assisted?: boolean;
   restSeconds: number;
   imageUrl?: string;
   mediaUrl?: string | null;
@@ -74,6 +76,7 @@ export function normalizeItem(raw: Record<string, unknown>, key: string): Routin
     series: doseSets.length || num(raw.series ?? raw.series_adapted, 3),
     reps: doseSets[0]?.reps ?? num(raw.reps ?? raw.reps_adapted, 10),
     weightKg: doseSets[0]?.weight_kg ?? num(raw.weight_suggested_kg, 0),
+    assisted: raw.assisted === true || /assisted/.test(str(raw.exercise_id)) || undefined,
     restSeconds: doseSets[0]?.rest_seconds ?? num(raw.rest_seconds, 60),
     imageUrl: str(raw.image_url) || undefined,
     mediaUrl: (raw.media_url as string | null | undefined) ?? null,

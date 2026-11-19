@@ -7,6 +7,7 @@ import { ArrowCounterClockwise, Fingerprint, Play, ShieldCheck, Warning } from "
 import { Badge } from "@/components/ui/Chip";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { SensorImpact } from "@/components/rutina/SensorImpact";
 import { EmptyState } from "@/components/ui/States";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { moodFromDecision } from "@/components/mascot/mood";
@@ -125,11 +126,13 @@ export function RoutineResult({
         </Card>
       )}
 
+      {plan.summary.readiness && <SensorImpact readiness={plan.summary.readiness} language={language} />}
+
       <Card tone="tinta" className="flex flex-col gap-3">
         <div className="flex items-center gap-4">
           <Pulsi mood={mood} size={72} color="var(--color-fase)" />
           <div className="flex flex-col gap-1">
-            <h2 className="text-h2 leading-tight font-bold">{tf(language, "rutina.carga", { n: loadPercent(summary.k_load) })}</h2>
+            <h2 className="text-h2 leading-tight font-bold">{tf(language, "rutina.carga", { n: summary.readiness ? Math.round(summary.readiness.load_multiplier * 100) : loadPercent(summary.k_load) })}</h2>
             <p className="text-small font-bold text-lavanda-texto">
               {[
                 t(language, `rutina.fatiga.${summary.fatigue_level}`),

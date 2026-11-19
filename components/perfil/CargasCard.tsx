@@ -92,20 +92,27 @@ export function CargasCard() {
         </label>
       )}
       {!loaded && (
-        <SkeletonGroup label={t(language, "app.cargando")} className="grid gap-2 sm:grid-cols-2">
+        <SkeletonGroup label={t(language, "app.cargando")} className="flex flex-col gap-2">
           {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-14" />)}
         </SkeletonGroup>
       )}
-      <ul className="grid max-h-96 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
-        {list.map((c) => (
-          <li key={c.id} className="flex items-center justify-between gap-3 rounded-ficha bg-rosa-claro py-1.5 pr-1.5 pl-4">
-            <label htmlFor={`carga-${c.id}`} className="font-display text-body font-semibold">{c.name}</label>
-            <div className="flex items-center gap-1">
-              <Input id={`carga-${c.id}`} type="number" inputMode="decimal" min={0} step={0.5} value={draft[c.id] ?? ""} onChange={(e) => setDraft((d) => ({ ...d, [c.id]: e.target.value }))} className="min-h-11 w-24 text-center tabular-nums" />
-              <span aria-hidden="true" className="w-6 text-small font-extrabold">{unit.toLowerCase()}</span>
-            </div>
-          </li>
-        ))}
+      {/* A single-column list: long exercise names never squeeze the field. */}
+      <ul className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto py-1 pr-1" data-cargas-lista>
+        {list.map((c) => {
+          const assisted = /assisted/.test(c.id);
+          return (
+            <li key={c.id} className="flex items-center gap-3 rounded-ficha bg-rosa-claro px-4 py-2.5">
+              <div className="min-w-0 flex-1">
+                <label htmlFor={`carga-${c.id}`} className="block font-display text-body leading-snug font-semibold">{c.name}</label>
+                {assisted && <p className="text-caption font-bold text-ink-suave">{t(language, "cargas.asistida")}</p>}
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Input id={`carga-${c.id}`} type="number" inputMode="decimal" min={0} step={0.5} value={draft[c.id] ?? ""} onChange={(e) => setDraft((d) => ({ ...d, [c.id]: e.target.value }))} className="min-h-11 w-24 text-center tabular-nums" />
+                <span aria-hidden="true" className="w-6 text-small font-extrabold">{unit.toLowerCase()}</span>
+              </div>
+            </li>
+          );
+        })}
       </ul>
       <Button onClick={() => void save()} loading={saving} loadingLabel={t(language, "onb.guardando")} className="self-start">
         {t(language, "perfil.cargas.guardar")}

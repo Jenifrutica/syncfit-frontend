@@ -150,7 +150,7 @@ export function WorkoutScreen() {
           <h1 className="text-h1 font-bold">{current.name}</h1>
           <p className="font-display text-body-lg font-medium text-lavanda-texto tabular-nums">
             {tf(language, "entreno.serie", { n: current.setNumber, total: current.setCount })} · {tf(language, "entreno.reps", { n: current.reps })}
-            {current.weightKg > 0 ? ` · ${tf(language, "rutina.kg", { n: current.weightKg })}` : ""}
+            {current.weightKg > 0 ? ` · ${tf(language, current.assisted ? "rutina.kgAsistencia" : "rutina.kg", { n: current.weightKg })}` : ""}
           </p>
           {current.setup && <p className="max-w-sm text-small font-bold text-lavanda-texto">{localized(current.setup, language)}</p>}
           {profile?.modality === "GESTATIONAL" && current.pregnancyTip && (
