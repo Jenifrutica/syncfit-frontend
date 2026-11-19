@@ -101,7 +101,8 @@ export function CalendarioScreen() {
           )}
         </Card>
 
-        <div className="flex flex-col gap-4">
+        {/* The legend (last card) grows so the column ends with the month card. */}
+        <div className="flex flex-col gap-4 lg:[&>:last-child]:flex-1">
           {info && (
             <Card aria-live="polite" className="flex items-start gap-4" data-fase={infoFase ?? undefined}>
               {InfoIcon && (
