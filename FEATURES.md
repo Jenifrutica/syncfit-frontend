@@ -119,6 +119,10 @@ Endpoints que el front anterior **no** usaba y ahora sí (fase 3d, `/app/perfil`
 - ☑ Ver máquinas de los gimnasios unidos agrupadas por gimnasio (foto, uso, factor de peso).
 - ☑ Refresco automático al volver a la ventana, al hacerse visible y cada 15 s, más botón manual.
 - ☑ "Mis máquinas" disponibles (`available_machines`) con buscador.
+- ☑ "Mis gimnasios" tiene su propio ítem en la barra lateral de escritorio; en
+  celular se sigue abriendo desde Perfil (la barra inferior conserva 5 ítems).
+- ☑ "Seleccionar todo / Deseleccionar todo" de mis máquinas en la pantalla
+  principal (sin abrir el selector); quitar todo pide confirmación.
 
 ### Perfil → `/app/perfil` — fase 3d
 - ☑ Datos, foto de perfil (ahora comprimida), objetivo/metas (meta semanal y descansos se leen de `/stats` porque `GET /profile` no los devuelve).
