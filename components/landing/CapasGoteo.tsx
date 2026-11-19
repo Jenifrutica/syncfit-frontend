@@ -3,7 +3,10 @@ import { cx } from "@/lib/cx";
 
 // The incoming section's shape: everything below the drip curve of DRIP_PATHS.gotea,
 // reaching far down so a layer can rise without opening a gap above its section.
-const SUBE = `M1440 30 ${DRIP_PATHS.gotea.split("L1440 30 ")[1].replace(/ Z$/, "")} L0 330 L1440 330 Z`;
+const CURVA = DRIP_PATHS.gotea.split("L1440 30 ")[1].replace(/ Z$/, "");
+const SUBE = `M1440 30 ${CURVA} L0 330 L1440 330 Z`;
+// Gloss: the same curve as an open line, drawn a little inside the front layer.
+const BRILLO = `M1440 30 ${CURVA}`;
 
 /** Back to front: rise speed (depth), height and a mirror for variety. Colors come from `capas`. */
 const LAYERS = [
@@ -36,6 +39,9 @@ export function CapasGoteo({ capas, className }: { capas: readonly [string, stri
           style={{ color: capas[i] }}
         >
           <path d={SUBE} fill="currentColor" />
+          {i === LAYERS.length - 1 && (
+            <path d={BRILLO} transform="translate(0 9)" fill="none" stroke={`color-mix(in oklab, ${capas[i]} 55%, white)`} strokeWidth={5} strokeLinecap="round" strokeDasharray="160 60 24 60" vectorEffect="non-scaling-stroke" />
+          )}
         </svg>
       ))}
     </div>
