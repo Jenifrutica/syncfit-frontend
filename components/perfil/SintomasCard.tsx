@@ -6,6 +6,7 @@ import { SymptomTextAnalyzer } from "@/components/hoy/SymptomTextAnalyzer";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
+import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
 import { useToast } from "@/components/ui/Toast";
 import { getSymptoms, updateMyProfile, type SymptomAnalysis, type SymptomInfo } from "@/lib/api";
 import { t, tf } from "@/lib/i18n";
@@ -83,6 +84,7 @@ export function SintomasCard() {
         <h2 className="text-h3 font-bold">{t(language, "perfil.sintomas")}</h2>
         <p className="text-small font-bold text-ink-suave">{t(language, "perfil.sintomas.desc")}</p>
       </div>
+      <SeleccionMasiva values={available.map((s) => s.id)} selected={selected} onChange={setSelected} language={language} />
       <div className="flex flex-wrap gap-2">
         {available.map((s) => (
           <Chip key={s.id} selected={selected.includes(s.id)} onToggle={() => setSelected((c) => (c.includes(s.id) ? c.filter((x) => x !== s.id) : [...c, s.id]))}>
