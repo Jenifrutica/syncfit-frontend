@@ -12,6 +12,7 @@ import { Field, Input } from "@/components/ui/Field";
 import { EmptyState, Skeleton, SkeletonGroup } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toast";
 import { RowCheck, SelectionBar } from "@/components/ui/SelectionBar";
+import { SeleccionMasiva } from "@/components/ui/SeleccionMasiva";
 import {
   activateGym,
   addMyMachines,
@@ -47,6 +48,7 @@ export function GimnasiosScreen() {
   const [leaving, setLeaving] = useState<JoinedGym | null>(null);
   const [catalog, setCatalog] = useState<GymMachine[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [query, setQuery] = useState("");
   const [myMachines, setMyMachines] = useState<MyMachine[]>([]);
   const [typed, setTyped] = useState("");
@@ -331,6 +333,33 @@ export function GimnasiosScreen() {
           </Button>
         </div>
         <p className="text-body text-ink-suave">{t(language, "gym.misMaquinas.desc")}</p>
+        {/* All machines of the catalog in one tap; clearing them asks first. */}
+        <SeleccionMasiva
+          values={[...myMachines.map((m) => m.id), ...catalog.map((m) => m.id)]}
+          selected={myMachines.map((m) => m.id)}
+          onChange={(next) => {
+            if (next.length === 0) setConfirmClear(true);
+            else void addMany(next.filter((id) => !selectedIds.has(id)));
+          }}
+          language={language}
+        />
+        <Dialog
+          open={confirmClear}
+          onClose={() => setConfirmClear(false)}
+          title={tf(language, "sel.confirmar", { n: myMachines.length })}
+          description={t(language, "sel.confirmarDesc")}
+          closeLabel={t(language, "comun.cerrar")}
+          footer={
+            <>
+              <Button variant="peligro" onClick={() => { setConfirmClear(false); void removeMany(myMachines.map((m) => m.id)); }} data-clear-machines-confirm>
+                {t(language, "sel.eliminar")}
+              </Button>
+              <Button variant="suave" onClick={() => setConfirmClear(false)}>{t(language, "cuenta.cancelar")}</Button>
+            </>
+          }
+        >
+          {null}
+        </Dialog>
         {myMachines.length === 0 ? (
           <p className="text-small font-bold text-ink-suave">{t(language, "gym.misMaquinas.ninguna")}</p>
         ) : (
