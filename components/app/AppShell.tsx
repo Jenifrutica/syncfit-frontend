@@ -29,10 +29,12 @@ export const NAV: NavItem[] = [
 
 function isActive(pathname: string, href: string) {
   const path = href.split("?")[0];
-  if (path === "/app") return pathname === "/app";
+  // Static export uses trailing slashes ("/app/"), the hrefs do not.
+  const current = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  if (path === "/app") return current === "/app";
   // Gyms live under Profile.
-  if (path === "/app/perfil") return pathname.startsWith(path) || pathname.startsWith("/app/gimnasios");
-  return pathname.startsWith(path);
+  if (path === "/app/perfil") return current.startsWith(path) || current.startsWith("/app/gimnasios");
+  return current.startsWith(path);
 }
 
 /** Bottom bar on phones, sidebar from 1024 px. The sky takes the phase color. */
