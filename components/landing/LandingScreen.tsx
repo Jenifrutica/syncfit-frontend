@@ -286,6 +286,10 @@ export function LandingScreen() {
               ))}
               <Link href="/entrar" className="inline-flex min-h-11 items-center font-semibold text-nube underline-offset-4 hover:underline">{t(language, "land.entrar")}</Link>
             </nav>
+            <nav aria-label={t(language, "legal.titulo")} className="flex flex-wrap gap-x-6">
+              <Link href="/privacidad" className="inline-flex min-h-11 items-center text-small font-semibold text-lavanda-texto underline underline-offset-4 hover:text-nube">{t(language, "legal.privacidad")}</Link>
+              <Link href="/terminos" className="inline-flex min-h-11 items-center text-small font-semibold text-lavanda-texto underline underline-offset-4 hover:text-nube">{t(language, "legal.terminos")}</Link>
+            </nav>
             <LanguageSwitcher className="w-56" />
             <p className="flex items-center gap-2 text-caption">
               <Sparkle size={14} weight="bold" aria-hidden="true" /> SyncFit Edge · 2026
