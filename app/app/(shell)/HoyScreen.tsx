@@ -162,7 +162,8 @@ export function HoyScreen() {
       </section>
       <DripDivider variant="gotea" className="bg-rosa text-fase-suave lg:hidden" />
 
-      <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-2 sm:px-8 lg:w-full lg:px-0 lg:pt-0">
+      {/* The last card grows so both columns end on the same line. */}
+      <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-2 sm:px-8 lg:w-full lg:px-0 lg:pt-0 lg:[&>:last-child]:flex-1">
         {selected && KindIcon && (
           <Card aria-live="polite" className="flex items-start gap-4">
             <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-fase-suave" data-fase={selected.phase}>
