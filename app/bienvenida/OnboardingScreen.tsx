@@ -75,6 +75,11 @@ export function OnboardingScreen() {
   );
 }
 
+function afterOnboarding() {
+  const code = new URLSearchParams(window.location.search).get("codigo");
+  return code ? "/app/gimnasios/?" + new URLSearchParams({ codigo: code }) : "/app";
+}
+
 function Onboarding() {
   const router = useRouter();
   const { user, profile, language, setProfile } = useSession();
@@ -89,7 +94,7 @@ function Onboarding() {
 
   // Onboarding is first-run only; an athlete who already has a profile goes to Today.
   useEffect(() => {
-    if (profile && !finishedPhase) router.replace("/app");
+    if (profile && !finishedPhase) router.replace(afterOnboarding());
   }, [profile, finishedPhase, router]);
 
   const steps = data.modality === "GESTATIONAL" ? PREGNANCY_STEPS : CYCLE_STEPS;
@@ -166,7 +171,7 @@ function Onboarding() {
   };
 
   if (finishedPhase) {
-    return <Finished phase={finishedPhase} name={user?.display_name ?? ""} language={language} onContinue={() => router.push("/app")} />;
+    return <Finished phase={finishedPhase} name={user?.display_name ?? ""} language={language} onContinue={() => router.push(afterOnboarding())} />;
   }
 
   const offset = reduceMotion ? 0 : 28;
