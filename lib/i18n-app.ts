@@ -10,6 +10,12 @@ type Dict = Record<string, string>;
 
 const ES: Dict = {
   "app.cargando": "Un momento…",
+  "servidor.lento": "Conectando con el servidor…",
+  "servidor.lentoDesc": "Puede tardar unos segundos si estaba en reposo.",
+  "servidor.muyLento": "Está tardando más de lo normal",
+  "servidor.muyLentoDesc": "Seguimos intentando, no cierres la página.",
+  "servidor.caido": "No pudimos conectar con el servidor",
+  "servidor.caidoDesc": "Revisa tu conexión e inténtalo de nuevo.",
   "app.aviso": "SyncFit Edge no reemplaza la valoración de tu médico ni de tu entrenador.",
   "comun.cerrar": "Cerrar",
   "recuperar.avisoTemporal": "Las cuentas de prueba usan correos temporales: para ellas el correo es una simulación y el cambio de contraseña aparece aquí mismo. Con un correo real, el enlace te llega a la bandeja de entrada.",
@@ -787,6 +793,12 @@ const ES: Dict = {
 
 const EN: Dict = {
   "app.cargando": "One moment…",
+  "servidor.lento": "Connecting to the server…",
+  "servidor.lentoDesc": "It can take a few seconds if it was asleep.",
+  "servidor.muyLento": "This is taking longer than usual",
+  "servidor.muyLentoDesc": "We're still trying, please don't close the page.",
+  "servidor.caido": "We couldn't reach the server",
+  "servidor.caidoDesc": "Check your connection and try again.",
   "app.aviso": "SyncFit Edge does not replace advice from your doctor or your coach.",
   "comun.cerrar": "Close",
   "recuperar.avisoTemporal": "Test accounts use temporary addresses: for them the email is a simulation and the password change appears right here. With a real address, the link arrives in your inbox.",
@@ -1564,6 +1576,12 @@ const EN: Dict = {
 
 const ZH: Dict = {
   "app.cargando": "请稍候…",
+  "servidor.lento": "正在连接服务器…",
+  "servidor.lentoDesc": "如果服务器正在休眠，可能需要几秒钟。",
+  "servidor.muyLento": "比平时慢一些",
+  "servidor.muyLentoDesc": "我们仍在尝试，请不要关闭页面。",
+  "servidor.caido": "无法连接到服务器",
+  "servidor.caidoDesc": "请检查网络后重试。",
   "app.aviso": "SyncFit Edge 不能代替医生或教练的专业建议。",
   "comun.cerrar": "关闭",
   "recuperar.avisoTemporal": "测试账号使用临时邮箱：邮件为模拟，修改密码的表单会直接显示在这里。使用真实邮箱时，链接会发送到你的收件箱。",
