@@ -265,6 +265,7 @@ export async function getMuscleGroups(): Promise<string[]> {
 }
 
 export interface OptionItem {
+  zones?: string[];
   value: string;
   label: string;
   /** Label per language code ("en", "es", "zh"). */
@@ -1294,7 +1295,7 @@ export interface AdminOption {
   sort_order: number;
   active: boolean;
   /** Engine parameters (objective: sets/reps/rest; goal phase: calorie_factor). */
-  meta?: Record<string, number>;
+  meta?: Record<string, unknown>;
 }
 
 export interface AdminCatalogItem {
@@ -1317,7 +1318,7 @@ export async function saveAdminOption(body: {
   labels: Record<string, string>;
   sort_order?: number;
   active?: boolean;
-  meta?: Record<string, number> | null;
+  meta?: Record<string, unknown> | null;
 }): Promise<AdminOption> {
   const r = await fetch(`${API_URL}/api/v1/admin/options`, {
     method: "POST",

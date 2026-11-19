@@ -55,6 +55,7 @@ type OptionDraft = {
   active: boolean;
   /** Engine parameters as JSON text (objective scheme, calorie factor...). */
   meta: string;
+  zones: string[];
 };
 
 type CatalogDraft = { kind: CatalogKind; id: string | null; payload: Record<string, unknown> };
@@ -155,7 +156,7 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
 
   const openNewOption = () => {
     setError(null);
-    setOptionDraft({ id: null, category: "muscle_group_isolated", value: "", en: "", es: "", zh: "", sort: "", active: true, meta: "" });
+    setOptionDraft({ id: null, category: "muscle_group_isolated", value: "", en: "", es: "", zh: "", sort: "", active: true, meta: "", zones: [] });
   };
 
   const openEditOption = (option: AdminOption) => {
@@ -169,6 +170,9 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
       zh: option.labels.zh ?? "",
       sort: String(option.sort_order),
       active: option.active,
+      zones: Array.isArray(option.meta?.zones)
+        ? option.meta.zones.filter((zone): zone is string => typeof zone === "string")
+        : [],
       meta: option.meta && Object.keys(option.meta).length ? JSON.stringify(option.meta) : "",
     });
   };
@@ -184,16 +188,19 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
       return;
     }
     const sort = optionDraft.sort.trim() ? Number(optionDraft.sort) : undefined;
-    let meta: Record<string, number> | null = null;
+    let meta: Record<string, unknown> | null = null;
     if (optionDraft.meta.trim()) {
       try {
         const parsed = JSON.parse(optionDraft.meta) as unknown;
         if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("object");
-        meta = parsed as Record<string, number>;
+        meta = parsed as Record<string, unknown>;
       } catch {
         setError(t(language, "catalogo.metaInvalido"));
         return;
       }
+    }
+    if (optionDraft.category === "muscle_group_isolated") {
+      meta = { ...meta, zones: optionDraft.zones };
     }
     setBusy(true);
     setError(null);
@@ -387,7 +394,24 @@ export function CatalogAdmin({ language, say }: { language: Language; say: (titl
                 <Input {...control} inputMode="numeric" value={optionDraft.sort} onChange={(e) => setOptionDraft({ ...optionDraft, sort: e.target.value.replace(/\D/g, "") })} />
               )}
             </Field>
-            {(optionDraft.category === "objective" || optionDraft.category === "goal_phase" || optionDraft.meta) && (
+            {optionDraft.category === "muscle_group_isolated" && (
+              <fieldset className="rounded-ficha border border-linea px-4 pb-3">
+                <legend className="px-2 font-bold">
+                  {{ ES: "Zonas compatibles", EN: "Compatible areas", ZH: "兼容区域" }[language]}
+                </legend>
+                {(options ?? []).filter((option) => option.category === "muscle_group_general").map((zone) => (
+                  <label key={zone.id} className="flex min-h-10 items-center gap-2">
+                    <input type="checkbox" checked={optionDraft.zones.includes(zone.value)}
+                      onChange={(event) => setOptionDraft({ ...optionDraft, zones: event.target.checked
+                        ? [...optionDraft.zones, zone.value]
+                        : optionDraft.zones.filter((value) => value !== zone.value) })} />
+                    {zone.labels[language.toLowerCase()] ?? zone.labels.en ?? zone.value}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {optionDraft.category !== "muscle_group_isolated" &&
+              (optionDraft.category === "objective" || optionDraft.category === "goal_phase" || optionDraft.meta) && (
               <Field label={t(language, "catalogo.meta")} hint={t(language, "catalogo.metaAyuda")}>
                 {(control) => (
                   <Input
