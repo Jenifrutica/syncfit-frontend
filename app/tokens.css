@@ -97,6 +97,8 @@
   --animate-entrar-visto: entrar-visto 220ms var(--ease-salida) both;
   --animate-entrar-lente: entrar-lente 360ms var(--ease-salida) both;
   --animate-entrar-tarjeta: entrar-tarjeta 320ms var(--ease-salida) both;
+  --animate-rebote: rebote 1.2s var(--ease-salida) infinite;
+  --animate-deriva: deriva 14s ease-in-out infinite alternate;
 
   @keyframes flotar {
     0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -144,6 +146,16 @@
   @keyframes entrar-tarjeta {
     from { opacity: 0; translate: 0 8px; }
     to { opacity: 1; translate: 0 0; }
+  }
+  /* Loading dots (one per phase color) hop in turn. */
+  @keyframes rebote {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-10px); }
+  }
+  /* Clouds drifting slowly behind a loading screen. */
+  @keyframes deriva {
+    from { transform: translateX(-24px); }
+    to { transform: translateX(24px); }
   }
 }
 
