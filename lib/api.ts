@@ -818,6 +818,8 @@ export interface Readiness {
   peak_force_kg: number | null;
   temperature_c: number | null;
   hr_baseline_bpm: number | null;
+  /** Expected resting range [low, high] the pulse is judged against. */
+  hr_range_bpm?: [number, number] | null;
   temp_baseline_c: number | null;
   strength_reference_kg: number | null;
   strength_ratio: number | null;
@@ -833,6 +835,28 @@ export interface Readiness {
   fever: boolean;
   reasons: string[];
   summary: string;
+}
+
+export interface ExerciseSuggestion {
+  id: string;
+  name: string;
+  image_url?: string | null;
+  fit: "same_pattern" | "same_muscles" | "different";
+  reason: string;
+  supine?: boolean;
+  setup?: LocalizedText | null;
+  pregnancy_tip?: LocalizedText | null;
+}
+
+/** POST /exercises/{id}/suggest — catalog replacements for what she typed. */
+export async function suggestExercise(exerciseId: string, text: string, language: Language): Promise<ExerciseSuggestion[]> {
+  const r = await fetch(`${API_URL}/api/v1/exercises/${encodeURIComponent(exerciseId)}/suggest?language=${language}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw await apiError("suggest exercise", r);
+  return (await r.json()).options;
 }
 
 export async function capture(

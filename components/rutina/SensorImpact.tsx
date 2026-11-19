@@ -39,7 +39,11 @@ export function SensorImpact({ readiness, language }: { readiness: Readiness; la
       icon: Heartbeat,
       label: t(language, "sensores.pulso"),
       value: r.heart_rate_bpm != null ? `${Math.round(r.heart_rate_bpm)} bpm` : null,
-      reference: r.hr_baseline_bpm != null ? tf(language, "sensores.habitual", { v: `${Math.round(r.hr_baseline_bpm)} bpm` }) : null,
+      reference: r.hr_range_bpm
+        ? tf(language, "sensores.esperado", { v: `${r.hr_range_bpm[0]}–${r.hr_range_bpm[1]} bpm` })
+        : r.hr_baseline_bpm != null
+          ? tf(language, "sensores.habitual", { v: `${Math.round(r.hr_baseline_bpm)} bpm` })
+          : null,
       factor: r.hr_factor,
     },
     {

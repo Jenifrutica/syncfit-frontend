@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CheckCircle, MagnifyingGlass } from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/Chip";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Field";
 import { Skeleton, SkeletonGroup } from "@/components/ui/States";
-import { getCatalog, getExerciseAlternatives, type CatalogItem, type ExerciseAlternative, type LocalizedText } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { getExerciseAlternatives, suggestExercise, type ExerciseAlternative, type ExerciseSuggestion, type LocalizedText } from "@/lib/api";
 import { t, type Language } from "@/lib/i18n";
 import type { RoutineItem } from "@/lib/routine";
 import { useSession } from "@/lib/session";
@@ -29,29 +30,39 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
   const { profile } = useSession();
   const blockSupine = profile?.modality === "GESTATIONAL" && (profile.timeline?.week ?? profile.gestation_week ?? 0) >= 16;
   const [alternatives, setAlternatives] = useState<ExerciseAlternative[] | null>(null);
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<ExerciseSuggestion[] | null>(null);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     if (!item) return;
     setQuery("");
+    setSuggestions(null);
     setAlternatives(null);
     if (item.exerciseId) {
       getExerciseAlternatives(item.exerciseId, language).then(setAlternatives).catch(() => setAlternatives([]));
     } else {
       setAlternatives([]);
     }
-    if (catalog.length === 0) getCatalog(language).then(setCatalog).catch(() => setCatalog([]));
-  }, [item, language, catalog.length]);
+  }, [item, language]);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
-    if (!q) return [];
-    return catalog
-      .filter((c) => c.name.toLocaleLowerCase().includes(q) && c.id !== item?.exerciseId)
-      .filter((c) => !blockSupine || !c.supine)
-      .slice(0, 8);
-  }, [catalog, query, item?.exerciseId, blockSupine]);
+  // She types the exercise she has in mind; the backend ranks catalog
+  // replacements (same movement pattern first) and explains each one.
+  const ask = async (event: FormEvent) => {
+    event.preventDefault();
+    const text = query.trim();
+    if (text.length < 2 || !item?.exerciseId) return;
+    setAsking(true);
+    try {
+      setSuggestions(await suggestExercise(item.exerciseId, text, language));
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setAsking(false);
+    }
+  };
+
+  const visibleAlternatives = (alternatives ?? []).filter((alt) => !blockSupine || !alt.supine);
 
   const option = (key: string, name: string, extra: React.ReactNode, pick: ExercisePick) => (
     <li key={key}>
@@ -81,11 +92,13 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
           <Skeleton className="h-14" />
           <Skeleton className="h-14" />
         </SkeletonGroup>
-      ) : alternatives.filter((alt) => !blockSupine || !alt.supine).length === 0 ? (
-        <p className="text-body text-ink-suave">{t(language, "cambiar.sinOpciones")}</p>
+      ) : visibleAlternatives.length === 0 ? (
+        <p className="rounded-ficha bg-lutea/25 px-4 py-3 text-body font-bold" data-sin-alternativas>
+          {t(language, "cambiar.sinRecomendado")}
+        </p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {alternatives.filter((alt) => !blockSupine || !alt.supine).map((alt) =>
+        <ul className="flex flex-col gap-2" data-alternativas>
+          {visibleAlternatives.map((alt) =>
             option(
               alt.id,
               alt.name,
@@ -100,24 +113,47 @@ export function ChangeSheet({ item, language, onClose, onPick }: { item: Routine
         </ul>
       )}
 
-      <div className="flex flex-col gap-2 pt-2">
-        <label htmlFor="buscar-catalogo" className="text-small font-extrabold">
-          {t(language, "cambiar.buscar")}
+      <form onSubmit={ask} className="flex flex-col gap-2 pt-2" data-sugerir>
+        <label htmlFor="sugerir-ejercicio" className="text-small font-extrabold">
+          {visibleAlternatives.length ? t(language, "cambiar.otroEnMente") : t(language, "cambiar.escribeloAqui")}
         </label>
-        <div className="relative">
-          <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
-          <Input id="buscar-catalogo" type="search" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-12" />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <MagnifyingGlass size={20} weight="bold" aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-suave" />
+            <Input
+              id="sugerir-ejercicio"
+              type="search"
+              value={query}
+              maxLength={80}
+              placeholder={t(language, "cambiar.ejemplo")}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSuggestions(null);
+              }}
+              className="pl-12"
+            />
+          </div>
+          <Button type="submit" size="sm" loading={asking} disabled={query.trim().length < 2}>
+            {t(language, "cambiar.sugerir")}
+          </Button>
         </div>
-        {query.trim() && (
-          <ul aria-live="polite" className="flex flex-col gap-2">
-            {results.length === 0 ? (
-              <li className="text-small font-bold text-ink-suave">{t(language, "cambiar.sinResultados")}</li>
+        {suggestions !== null && (
+          <ul aria-live="polite" className="flex flex-col gap-2" data-sugerencias>
+            {suggestions.length === 0 ? (
+              <li className="text-small font-bold text-ink-suave">{t(language, "cambiar.noEncontrado")}</li>
             ) : (
-              results.map((c) => option(`cat-${c.id}`, c.name, <span className="text-caption font-extrabold text-ink-suave">{c.equipment}</span>, { id: c.id, name: c.name, image_url: c.image_url, description: { en: c.description }, setup: c.setup, pregnancy_tip: c.pregnancy_tip }))
+              suggestions.filter((sug) => !blockSupine || !sug.supine).map((sug) =>
+                option(
+                  `sug-${sug.id}`,
+                  sug.name,
+                  <span className="max-w-[45%] text-right text-caption font-extrabold text-ink-suave" data-fit={sug.fit}>{sug.reason}</span>,
+                  { id: sug.id, name: sug.name, image_url: sug.image_url, setup: sug.setup, pregnancy_tip: sug.pregnancy_tip },
+                ),
+              )
             )}
           </ul>
         )}
-      </div>
+      </form>
     </Dialog>
   );
 }

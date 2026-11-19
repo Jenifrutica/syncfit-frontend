@@ -42,12 +42,15 @@ export function ExerciseCard({
       <Input
         type="number"
         inputMode={key === "weightKg" ? "decimal" : "numeric"}
-        min={0}
+        min={key === "weightKg" ? 0 : 1}
         max={max}
         step={key === "weightKg" ? 0.5 : 1}
+        data-campo={key}
         value={value}
         onChange={(e) => {
-          const n = Math.min(max, Math.max(0, Number(e.target.value) || 0));
+          // Series and reps are whole numbers (at least 1); weight allows halves.
+          const raw = Number(e.target.value) || 0;
+          const n = key === "weightKg" ? Math.min(max, Math.max(0, raw)) : Math.min(max, Math.max(1, Math.round(raw)));
           onUpdate(editDose(item, { [key]: n }));
         }}
         className="text-center tabular-nums"
@@ -116,6 +119,9 @@ export function ExerciseCard({
             {field(t(language, "rutina.series"), item.series, "series", 10)}
             {field(t(language, "rutina.reps"), item.reps, "reps", 50)}
             {field(t(language, "rutina.peso"), item.weightKg, "weightKg", 300)}
+            <p className="col-span-3 text-caption font-bold text-ink-suave" data-series-recomendadas>
+              {t(language, "rutina.seriesRecomendadas")}
+            </p>
           </div>
         )}
 
