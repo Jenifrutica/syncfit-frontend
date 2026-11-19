@@ -31,7 +31,7 @@ export function ScanProgress({ done, startedAt, language }: { done: boolean; sta
     return () => window.clearInterval(id);
   }, [done]);
 
-  const { active } = scanState(now - startedAt, done);
+  const { active, step: stepProgress } = scanState(now - startedAt, done);
 
   return (
     <div role="status" aria-live="polite" className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-10 text-center">
@@ -60,15 +60,28 @@ export function ScanProgress({ done, startedAt, language }: { done: boolean; sta
             <li
               key={key}
               className={cx(
-                "flex items-center gap-3 rounded-ficha px-4 py-3 font-display text-body font-semibold transition-opacity duration-[var(--dur-panel)]",
+                "flex items-start gap-3 rounded-ficha px-4 py-3 font-display text-body font-semibold transition-opacity duration-[var(--dur-panel)]",
                 state === "luego" ? "bg-nube/50 opacity-60" : "bg-nube",
               )}
             >
               <span aria-hidden="true" className={cx("grid size-8 shrink-0 place-items-center rounded-full", state === "hecho" ? "bg-exito-suave text-exito" : "bg-fase-suave")}>
                 {state === "hecho" ? <Check size={18} weight="bold" aria-hidden="true" /> : state === "ahora" ? <Spinner size={18} /> : <span className="text-small">{index + 1}</span>}
               </span>
-              {t(language, key)}
-              {state !== "luego" && <span className="sr-only"> ({t(language, state === "hecho" ? "comun.hecho" : "comun.enCurso")})</span>}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span>
+                  {t(language, key)}
+                  {state !== "luego" && <span className="sr-only"> ({t(language, state === "hecho" ? "comun.hecho" : "comun.enCurso")})</span>}
+                </span>
+                {state === "ahora" && (
+                  <>
+                    {/* What this station is doing right now, plus how far it got. */}
+                    <span className="font-sans text-small font-bold text-ink-suave" data-scan-detalle>{t(language, `${key}.detalle`)}</span>
+                    <span aria-hidden="true" className="h-1.5 overflow-hidden rounded-full bg-fase-suave">
+                      <span className="block h-full origin-left rounded-full bg-fase transition-transform duration-200 ease-linear" style={{ transform: `scaleX(${stepProgress})` }} />
+                    </span>
+                  </>
+                )}
+              </div>
             </li>
           );
         })}
