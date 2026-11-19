@@ -148,7 +148,7 @@ const superToken = await demoToken("SUPER_ADMIN");
   await go(page, "/admin/", 1500);
   check("superadmin: entra a /admin", new URL(page.url()).pathname === "/admin/");
 
-  for (const tab of ["Admins de gimnasio", "Gimnasios", "Catálogos"]) {
+  for (const tab of ["Admins", "Gimnasios", "Catálogos"]) {
     await page.getByRole("radio", { name: new RegExp(tab, "i") }).click({ force: true });
     await page.waitForTimeout(700);
     check(`superadmin: pestaña ${tab}`, (await page.getByText(new RegExp(tab, "i")).count()) > 0);
