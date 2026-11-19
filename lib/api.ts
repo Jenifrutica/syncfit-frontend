@@ -458,6 +458,8 @@ export interface IntakeRecord {
   supplement_id: string;
   date: string;
   taken: boolean;
+  /** Servings that day (e.g. two scoops); 1 when absent. */
+  servings?: number;
 }
 
 export async function getSupplementIntakes(date: string): Promise<IntakeRecord[]> {
@@ -472,11 +474,12 @@ export async function setSupplementIntake(
   supplementId: string,
   date: string,
   taken: boolean,
+  servings?: number,
 ): Promise<IntakeRecord> {
   const response = await fetch(`${API_URL}/api/v1/supplement-intakes`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ supplement_id: supplementId, date, taken }),
+    body: JSON.stringify({ supplement_id: supplementId, date, taken, ...(servings ? { servings } : {}) }),
   });
   if (!response.ok) throw await apiError("intake", response);
   return response.json();

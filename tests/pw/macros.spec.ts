@@ -38,6 +38,34 @@ test.describe("macros", () => {
     await expect(supp).toContainText("0 kcal");
   });
 
+  test("varios scoops: las porciones multiplican los macros y se guardan", async ({ page, signIn }) => {
+    const token = await newAthlete();
+    await api(token, "PUT", "/profile", { current_supplements: ["whey-protein"] });
+    await signIn(token);
+    await page.goto("/app/nutricion/");
+    const supp = page.locator("[data-macros-suplementos]");
+    await expect(supp).toContainText("0 kcal", { timeout: 20_000 });
+    await page.getByRole("button", { name: /marcar como tomado/i }).click();
+    const row = page.locator('[data-porciones="whey-protein"]');
+    await expect(row.locator("[data-porciones-valor]")).toHaveText("1");
+    await row.getByRole("button", { name: /una porción más/i }).click();
+    await expect(row.locator("[data-porciones-valor]")).toHaveText("2");
+    await expect(supp).toContainText("240 kcal");
+    await expect(supp).toContainText(/Proteína 48 g/);
+
+    await page.reload(); // stored for today
+    await expect(row.locator("[data-porciones-valor]")).toHaveText("2", { timeout: 20_000 });
+    await expect(supp).toContainText("240 kcal");
+
+    await row.getByRole("button", { name: /una porción menos/i }).click();
+    await expect(supp).toContainText("120 kcal");
+    await page.locator("li").filter({ hasText: /prote[ií]na de suero/i }).first().getByRole("button", { name: /tomado/i }).click();
+    await expect(supp).toContainText("0 kcal");
+    await expect(row).toHaveCount(0);
+    const today = (await api<{ supplement_id: string; servings: number }[]>(token, "GET", "/supplement-intakes")).body;
+    expect(today.find((r) => r.supplement_id === "whey-protein")?.servings).toBe(1);
+  });
+
   test("es diario: lo tomado ayer no cuenta hoy", async ({ page, signIn }) => {
     const token = await newAthlete();
     await api(token, "PUT", "/profile", { current_supplements: ["whey-protein"] });

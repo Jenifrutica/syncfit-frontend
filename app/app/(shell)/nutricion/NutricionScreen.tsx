@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, ChartPieSlice, Info, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
+import { ArrowRight, Check, ChartPieSlice, Info, Minus, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
 
 import { cx } from "@/lib/cx";
 import { Badge, Chip } from "@/components/ui/Chip";
@@ -77,6 +77,7 @@ export function NutricionScreen() {
   const mine = (profile?.current_supplements ?? []).map((id) => byId.get(id)).filter((c): c is SupplementCatalogItem => !!c);
   const daily = mine.filter((c) => c.is_daily);
   const takenIds = new Set(intakes.filter((i) => i.taken).map((i) => i.supplement_id));
+  const servingsOf = (id: string) => Math.max(1, intakes.find((i) => i.supplement_id === id)?.servings ?? 1);
   // Daily: only what she marked as taken TODAY counts (intakes are stored per
   // date, so a new day starts empty). Her own macros when she typed them,
   // otherwise the catalog average (e.g. an average whey scoop).
@@ -93,10 +94,11 @@ export function NutricionScreen() {
       if (!takenIds.has(item.id)) continue;
       if (!own) estimated = true;
       count += 1;
-      total.protein_g += values.protein_g || 0;
-      total.carbs_g += values.carbs_g || 0;
-      total.fat_g += values.fat_g || 0;
-      total.kcal += values.kcal || 0;
+      const n = servingsOf(item.id); // e.g. two scoops
+      total.protein_g += (values.protein_g || 0) * n;
+      total.carbs_g += (values.carbs_g || 0) * n;
+      total.fat_g += (values.fat_g || 0) * n;
+      total.kcal += (values.kcal || 0) * n;
     }
     return { total, count, withMacros, estimated };
   })();
@@ -118,9 +120,22 @@ export function NutricionScreen() {
     void save({ current_supplements: [...current] });
   };
 
+  const changeServings = async (id: string, servings: number) => {
+    const previous = servingsOf(id);
+    const value = Math.min(10, Math.max(1, servings));
+    if (value === previous) return;
+    setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: true, servings: value }]);
+    try {
+      await setSupplementIntake(id, today, true, value);
+    } catch {
+      setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: true, servings: previous }]);
+      toast({ tone: "error", title: t(language, "nutri.errorGuardar"), closeLabel: t(language, "comun.cerrar") });
+    }
+  };
+
   const toggleIntake = async (id: string) => {
     const next = !takenIds.has(id);
-    setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: next }]);
+    setIntakes((list) => [...list.filter((i) => i.supplement_id !== id), { supplement_id: id, date: today, taken: next, servings: 1 }]);
     try {
       await setSupplementIntake(id, today, next);
     } catch {
@@ -256,6 +271,32 @@ export function NutricionScreen() {
                             <Check size={20} weight="bold" aria-hidden="true" />
                             {taken ? t(language, "nutri.tomado") : t(language, "nutri.marcar")}
                           </button>
+                        )}
+                        {item.is_daily && taken && (
+                          <div className="flex items-center justify-between gap-3 rounded-ficha bg-rosa-claro px-4 py-1.5" data-porciones={item.id}>
+                            <span className="text-small font-extrabold">{t(language, "nutri.porcionesHoy")}</span>
+                            <div className="flex items-center gap-2">
+                              <IconButton
+                                label={tf(language, "nutri.menosPorcion", { nombre: item.name })}
+                                variant="fantasma"
+                                disabled={servingsOf(item.id) <= 1}
+                                onClick={() => void changeServings(item.id, servingsOf(item.id) - 1)}
+                              >
+                                <Minus size={18} weight="bold" />
+                              </IconButton>
+                              <span className="min-w-6 text-center font-display text-h3 font-bold tabular-nums" aria-live="polite" data-porciones-valor>
+                                {servingsOf(item.id)}
+                              </span>
+                              <IconButton
+                                label={tf(language, "nutri.masPorcion", { nombre: item.name })}
+                                variant="fantasma"
+                                disabled={servingsOf(item.id) >= 10}
+                                onClick={() => void changeServings(item.id, servingsOf(item.id) + 1)}
+                              >
+                                <Plus size={18} weight="bold" />
+                              </IconButton>
+                            </div>
+                          </div>
                         )}
                         <details className="rounded-ficha bg-rosa-claro px-4 py-2">
                           <summary className="min-h-10 py-1 text-small font-extrabold">{t(language, "nutri.porcion")}</summary>
