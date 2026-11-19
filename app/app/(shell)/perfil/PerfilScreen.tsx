@@ -23,7 +23,8 @@ export function PerfilScreen() {
         <div className="flex flex-col gap-5">
           <DatosCard />
           <CicloCard />
-          <Card tone="lavanda" className="flex flex-col gap-3">
+          {/* Phones only: on desktop gyms have their own sidebar item. */}
+          <Card tone="lavanda" className="flex flex-col gap-3 lg:hidden">
             <div className="flex items-center gap-3">
               <Buildings size={28} weight="bold" aria-hidden="true" />
               <h2 className="text-h3 font-bold">{t(language, "perfil.gimnasios")}</h2>
