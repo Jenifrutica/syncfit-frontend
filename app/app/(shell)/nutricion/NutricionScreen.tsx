@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Info, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
+import { ArrowRight, Check, ChartPieSlice, Info, Plus, ShieldCheck, Trash, Warning, WarningOctagon } from "@phosphor-icons/react";
 
 import { cx } from "@/lib/cx";
 import { Badge, Chip } from "@/components/ui/Chip";
-import { Button, IconButton } from "@/components/ui/Button";
+import { Button, ButtonLink, IconButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { EmptyState, ProgressBar, Skeleton, SkeletonGroup } from "@/components/ui/States";
@@ -127,8 +127,11 @@ export function NutricionScreen() {
         <p className="text-body-lg font-bold text-ink-suave">{t(language, "nutri.sub")}</p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        {/* My supplements (last block) grows so the column ends with the suggestions. */}
+        <div className="flex flex-col gap-5 lg:[&>:last-child]:flex-1">
+          {/* Same size as "Suggested for you", so both columns start their cards at the same height (desktop only). */}
+          <h2 className="sr-only lg:not-sr-only lg:-mb-2 lg:text-h2 lg:font-bold">{t(language, "nutri.plan")}</h2>
           <Card className="grid gap-4 sm:grid-cols-2">
             <Field label={t(language, "nutri.objetivo")}>
               {(control) => (
@@ -165,6 +168,16 @@ export function NutricionScreen() {
             </Card>
           ) : advice?.daily_macros ? (
             <MacrosCard macros={advice.daily_macros} language={language} />
+          ) : advice ? (
+            // Loaded, but the backend needs weight or daily calories to estimate macros.
+            <Card tone="lavanda" className="flex flex-col items-start gap-3" data-sin-macros>
+              <ChartPieSlice size={28} weight="bold" aria-hidden="true" />
+              <h2 className="text-h3 font-bold">{t(language, "nutri.macros")}</h2>
+              <p className="text-body text-lavanda-texto">{t(language, "nutri.sinMacros")}</p>
+              <ButtonLink href="/app/perfil" variant="secundario" size="sm" icon={<ArrowRight size={16} weight="bold" />}>
+                {t(language, "nutri.irPerfil")}
+              </ButtonLink>
+            </Card>
           ) : (
             <SkeletonGroup label={t(language, "nutri.cargando")}>
               <Skeleton className="h-44" />
@@ -181,7 +194,7 @@ export function NutricionScreen() {
             {daily.length > 0 && <ProgressBar value={takenCount} max={daily.length} label={tf(language, "nutri.tomados", { n: takenCount, total: daily.length })} />}
 
             {mine.length === 0 ? (
-              <Card>
+              <Card className="lg:grid lg:flex-1 lg:place-items-center">
                 <EmptyState mood="feliz" title={t(language, "nutri.ninguno")} />
               </Card>
             ) : (

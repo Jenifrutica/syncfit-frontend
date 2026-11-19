@@ -120,9 +120,9 @@ export function HoyScreen() {
   const routineHref = NAV.find((item) => item.key === "rutina")?.href ?? "/app";
 
   return (
-    <div className="lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:items-start lg:gap-8 lg:p-8">
-      <section aria-labelledby="hoy-titulo" className="bg-fase-suave px-4 pt-5 pb-4 sm:px-8 lg:sticky lg:top-8 lg:rounded-cielo lg:py-8">
-        <div className="mx-auto flex max-w-xl flex-col gap-4">
+    <div className="lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:items-stretch lg:gap-8 lg:p-8">
+      <section aria-labelledby="hoy-titulo" className="bg-fase-suave px-4 pt-5 pb-4 sm:px-8 lg:rounded-cielo lg:py-8">
+        <div className="mx-auto flex max-w-xl flex-col gap-4 lg:h-full">
           <header className="flex items-center justify-between gap-3">
             <div>
               <h1 id="hoy-titulo" className="text-h2 font-bold">
@@ -146,7 +146,7 @@ export function HoyScreen() {
 
           <WeekStrip days={days} selected={selectedDay} onSelect={setSelectedDay} />
 
-          <div className="flex flex-col items-center gap-2 pt-1">
+          <div className="flex flex-col items-center gap-2 pt-1 lg:flex-1 lg:justify-center">
             <CycleRing
               segments={cycleSegments(timeline, calendar)}
               position={position}
@@ -162,7 +162,8 @@ export function HoyScreen() {
       </section>
       <DripDivider variant="gotea" className="bg-rosa text-fase-suave lg:hidden" />
 
-      <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-2 sm:px-8 lg:w-full lg:px-0 lg:pt-0">
+      {/* The last card grows so both columns end on the same line. */}
+      <div className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-2 sm:px-8 lg:w-full lg:px-0 lg:pt-0 lg:[&>:last-child]:flex-1">
         {selected && KindIcon && (
           <Card aria-live="polite" className="flex items-start gap-4">
             <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-fase-suave" data-fase={selected.phase}>
