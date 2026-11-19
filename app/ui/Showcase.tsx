@@ -11,6 +11,7 @@ import { EmptyState, ProgressBar, Skeleton, SkeletonGroup } from "@/components/u
 import { Field, Input, Select } from "@/components/ui/Field";
 import { StoryCard } from "@/components/ui/StoryCard";
 import { useToast } from "@/components/ui/Toast";
+import { EsqueletoChips, EsqueletoLista, EsqueletoMes, EsqueletoTarjeta } from "@/components/ui/Esqueletos";
 import { Pulsi, type PulsiMood } from "@/components/mascot/Pulsi";
 import { Cloud } from "@/components/decor/Cloud";
 import { DripDivider } from "@/components/decor/DripDivider";
@@ -237,6 +238,22 @@ export function Showcase() {
               Mostrar info
             </Button>
           </div>
+        </Section>
+
+        <Section title="Esqueletos">
+          <SkeletonGroup label="Cargando" className="grid gap-4 lg:grid-cols-2">
+            <div className="flex flex-col gap-4">
+              <EsqueletoTarjeta />
+              <EsqueletoTarjeta lineas={3} icono={false} />
+              <EsqueletoChips />
+            </div>
+            <div className="flex flex-col gap-4">
+              <Card>
+                <EsqueletoMes />
+              </Card>
+              <EsqueletoLista filas={3} />
+            </div>
+          </SkeletonGroup>
         </Section>
 
         <Section title="Estados">
