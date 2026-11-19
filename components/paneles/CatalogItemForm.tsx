@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, TextArea } from "@/components/ui/Field";
-import type { CatalogKind, OptionItem } from "@/lib/api";
+import { getCatalog, type CatalogKind, type OptionItem } from "@/lib/api";
 import type { Language } from "@/lib/i18n";
 import { equipmentKeyOf, useOptions } from "@/lib/options";
 
-type Kind = Exclude<CatalogKind, "machine">;
 type Payload = Record<string, unknown>;
 type Label = readonly [string, string, string];
 type Definition = {
@@ -16,7 +15,7 @@ type Definition = {
   type?: "localized" | "list" | "choices" | "select" | "number" | "boolean";
   required?: boolean;
   values?: readonly string[];
-  group?: "muscles" | "equipment" | "objectives";
+  group?: "muscles" | "equipment" | "objectives" | "exercises";
   initial?: string;
 };
 
@@ -25,13 +24,23 @@ const languageNames = ["English", "Español", "中文"];
 const impact = ["LOW", "MEDIUM", "HIGH"];
 const safety = ["SAFE", "CAUTION", "AVOID"];
 
-const fields: Record<Kind, Definition[]> = {
+const equipmentTypes = ["FREE_WEIGHT", "MACHINE", "SMITH", "CABLE", "BODYWEIGHT", "ASSISTED", "BAND", "NONE"];
+
+const fields: Record<CatalogKind, Definition[]> = {
+  machine: [
+    { key: "type", label: ["Tipo de equipo", "Equipment type", "器材类型"], type: "select", values: equipmentTypes, initial: "MACHINE", required: true },
+    { key: "weight_factor", label: ["Factor de carga", "Load factor", "负重系数"], type: "number", initial: "1", required: true },
+    { key: "unit", label: ["Unidad de peso", "Weight unit", "重量单位"], type: "select", values: ["KG", "LB"], initial: "KG" },
+    { key: "exercises", label: ["Ejercicios asociados", "Associated exercises", "关联动作"], type: "choices", group: "exercises" },
+    { key: "image_url", label: ["URL de imagen", "Image URL", "图片链接"] },
+    { key: "notes", label: ["Notas", "Notes", "备注"], type: "localized", required: true },
+  ],
   exercise: [
     { key: "description", label: ["Descripción", "Description", "描述"], type: "localized", required: true },
     { key: "muscle_groups", label: ["Grupos musculares", "Muscle groups", "肌群"], type: "choices", group: "muscles", required: true },
     { key: "equipment", label: ["Equipo principal", "Main equipment", "主要器材"], type: "select", group: "equipment", required: true },
     { key: "required_equipment", label: ["Equipo adicional requerido", "Required equipment", "所需器材"], type: "choices", group: "equipment" },
-    { key: "equipment_type", label: ["Tipo de equipo", "Equipment type", "器材类型"], type: "select", values: ["FREE_WEIGHT", "MACHINE", "SMITH", "CABLE", "BODYWEIGHT", "ASSISTED", "BAND", "NONE"] },
+    { key: "equipment_type", label: ["Tipo de equipo", "Equipment type", "器材类型"], type: "select", values: equipmentTypes },
     { key: "impact", label: ["Impacto", "Impact", "冲击程度"], type: "select", values: impact, required: true },
     { key: "role", label: ["Función en la rutina", "Routine role", "训练角色"], type: "select", values: ["WARMUP", "ACTIVATION", "MAIN"], initial: "MAIN", required: true },
     { key: "image_url", label: ["URL de imagen", "Image URL", "图片链接"], required: true },
@@ -144,7 +153,7 @@ function CatalogField({ field, value, options, language }: {
   language: Language;
 }) {
   if (field.type === "localized") return <LocalizedFields field={field} value={value} language={language} />;
-  const initial = String(value ?? field.initial ?? "");
+  const initial = String((value === undefined ? field.initial : value) ?? "");
   const label = caption(field.label, language);
   if (field.type === "boolean") {
     return <label className="flex items-center gap-2 font-bold"><input type="checkbox" name={field.key} defaultChecked={value === true} />{label}</label>;
@@ -180,7 +189,7 @@ function CatalogField({ field, value, options, language }: {
 }
 
 export function CatalogItemForm({ kind, initial, editing, language, error, onSave }: {
-  kind: Kind;
+  kind: CatalogKind;
   initial: Payload;
   editing: boolean;
   language: Language;
@@ -188,7 +197,24 @@ export function CatalogItemForm({ kind, initial, editing, language, error, onSav
   onSave: (payload: Payload) => Promise<void>;
 }) {
   const options = useOptions();
+  const [exercises, setExercises] = useState<OptionItem[]>([]);
+  const [exerciseError, setExerciseError] = useState(false);
+  const [exerciseAttempt, setExerciseAttempt] = useState(0);
+
+  useEffect(() => {
+    if (kind !== "machine") return;
+    let cancelled = false;
+    setExerciseError(false);
+    getCatalog(language).then((items) => {
+      if (!cancelled) setExercises(items.map((item) => ({ value: item.id, label: item.name, labels: {} })));
+    }).catch(() => {
+      if (!cancelled) setExerciseError(true);
+    });
+    return () => { cancelled = true; };
+  }, [kind, language, exerciseAttempt]);
+
   const available = {
+    exercises,
     muscles: [...options.list("muscle_group_isolated"), ...options.list("muscle_group_general")],
     equipment: options.list("equipment"),
     objectives: options.list("objective"),
@@ -223,8 +249,11 @@ export function CatalogItemForm({ kind, initial, editing, language, error, onSav
         {(control) => <Input {...control} name="id" readOnly={editing}
           pattern=".*\S.*" defaultValue={String(initial.id ?? "")} />}
       </Field>
-      {options.failed && <Button type="button" onClick={options.retry}>
+      {(kind === "exercise" || kind === "supplement") && options.failed && <Button type="button" onClick={options.retry}>
         {caption(["Reintentar carga de opciones", "Retry loading options", "重新加载选项"], language)}
+      </Button>}
+      {exerciseError && <Button type="button" onClick={() => setExerciseAttempt((attempt) => attempt + 1)}>
+        {caption(["Reintentar carga de ejercicios", "Retry loading exercises", "重新加载动作"], language)}
       </Button>}
       {definitions.map((field) => <CatalogField key={field.key} field={field} value={initial[field.key]}
         options={field.group ? available[field.group] : []} language={language} />)}
