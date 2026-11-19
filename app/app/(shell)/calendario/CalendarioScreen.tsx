@@ -87,7 +87,7 @@ export function CalendarioScreen() {
               </Button>
             </div>
           ) : days ? (
-            <PhaseMonth month={month} days={days} trained={trained} today={today} selected={selected} onSelect={setSelected} language={language} />
+            <PhaseMonth month={month} days={days} trained={trained} today={today} selected={selected} onSelect={setSelected} language={language} className="lg:flex-1" />
           ) : (
             <SkeletonGroup label={t(language, "cal.cargando")}>
               <Skeleton className="aspect-[7/5] w-full" />
