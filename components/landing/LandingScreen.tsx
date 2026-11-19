@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef } from "react";
-import { ArrowRight, Barbell, Brain, Heartbeat, QrCode, ShieldCheck, Sparkle, Thermometer } from "@phosphor-icons/react";
+import { ArrowRight, Barbell, Brain, Buildings, Heartbeat, ShieldCheck, Sparkle, Thermometer } from "@phosphor-icons/react";
 
 import { ButtonLink } from "@/components/ui/Button";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -250,7 +250,7 @@ export function LandingScreen() {
           <div aria-hidden="true" className="relative mx-auto w-full max-w-sm">
             <div className="rounded-nube bg-lavanda-noche p-6">
               <div className="flex items-center gap-4">
-                <span className="grid size-20 place-items-center rounded-ficha bg-nube text-ink"><QrCode size={56} weight="bold" /></span>
+                <span className="grid size-20 place-items-center rounded-ficha bg-nube text-ink"><Buildings size={52} weight="bold" /></span>
                 <p className="font-display text-h2 font-bold tracking-[0.2em] text-crema tabular-nums">4E8F5A</p>
               </div>
               <ul className="mt-5 flex flex-col gap-2">
