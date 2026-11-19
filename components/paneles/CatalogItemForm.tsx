@@ -34,7 +34,8 @@ const choiceLabels: Record<string, Label> = {
   PROTEIN: ["Proteína", "Protein", "蛋白质"], OMEGA3: ["Omega 3", "Omega-3", "欧米伽3"],
   CAFFEINE: ["Cafeína", "Caffeine", "咖啡因"], CREATINE: ["Creatina", "Creatine", "肌酸"],
   IRON: ["Hierro", "Iron", "铁"], FOLATE: ["Folato", "Folate", "叶酸"],
-  CALCIUM: ["Calcio", "Calcium", "钙"], FIBER: ["Fibra", "Fiber", "膳食纤维"], OTHER: ["Otro", "Other", "其他"],
+  CALCIUM: ["Calcio", "Calcium", "钙"], FIBER: ["Fibra", "Fiber", "膳食纤维"], ELECTROLYTES: ["Electrolitos", "Electrolytes", "电解质"],
+  OTHER: ["Otro", "Other", "其他"],
   DAILY: ["A diario", "Daily", "每天"], PRE_WORKOUT: ["Antes de entrenar", "Before training", "训练前"],
   POST_WORKOUT: ["Después de entrenar", "After training", "训练后"], AS_NEEDED: ["Según necesidad", "As needed", "按需"],
   SAFE: ["Seguro", "Safe", "安全"], CAUTION: ["Precaución", "Caution", "慎用"], AVOID: ["Evitar", "Avoid", "避免"],
@@ -175,7 +176,8 @@ function CatalogField({ field, value, options, language }: {
     field.group === "equipment" ? equipmentKeyOf(option.value) : option.value,
     option.labels[language.toLowerCase()] ?? option.label,
   ]));
-  for (const item of field.values ?? []) choices.set(item, caption(choiceLabels[item], language));
+  // A value without a translation shows its code instead of breaking the form.
+  for (const item of field.values ?? []) choices.set(item, choiceLabels[item] ? caption(choiceLabels[item], language) : item);
   for (const item of selected) if (!choices.has(item)) choices.set(item, item);
   const multiple = field.type === "choices";
   return (
