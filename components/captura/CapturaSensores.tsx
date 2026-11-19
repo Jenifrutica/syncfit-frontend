@@ -8,7 +8,7 @@ import { HardwareGuide } from "@/components/captura/HardwareGuide";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Pulsi } from "@/components/mascot/Pulsi";
-import { getLive, tareDevice, type LiveStatus } from "@/lib/api";
+import { getLive, getSensorEstimate, tareDevice, type LiveStatus } from "@/lib/api";
 import { saveCheckin, type Checkin } from "@/lib/checkin";
 import { cx } from "@/lib/cx";
 import { t, tf } from "@/lib/i18n";
@@ -84,6 +84,19 @@ const PASOS = [
     zona: { x: 66, y: 102 } as Zona,
   },
 ];
+
+/**
+ * Without the prototype the simulated check-in uses her own recent readings or
+ * what is expected for her age, weight and height (from the backend).
+ */
+function applyEstimate(e: { heart_rate_bpm: number; peak_force_kg: number; temperature_c: number }) {
+  const [pulso, fuerza, temp] = PASOS;
+  pulso.final = e.heart_rate_bpm;
+  pulso.desde = Math.max(50, e.heart_rate_bpm - 14);
+  fuerza.final = e.peak_force_kg;
+  temp.final = e.temperature_c;
+  temp.desde = Number((e.temperature_c - 1.9).toFixed(1));
+}
 
 /** Convierte el punto de la zona al espacio del lente. */
 function enLente({ x, y }: Zona) {
@@ -207,6 +220,21 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   useEffect(() => {
     setTareMessage(null);
   }, [paso]);
+
+  const [, setEstimado] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    getSensorEstimate()
+      .then((e) => {
+        if (!alive) return;
+        applyEstimate(e);
+        setEstimado(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Poll faster on the force step so the reading follows the push.
   const pasoRef = useRef(paso);

@@ -837,6 +837,20 @@ export interface Readiness {
   summary: string;
 }
 
+export interface SensorEstimate {
+  heart_rate_bpm: number;
+  peak_force_kg: number;
+  temperature_c: number;
+  sources: { heart_rate: "history" | "age"; force: "history" | "body" | "default"; temperature: "history" | "typical" };
+}
+
+/** GET /sensors/estimate — values for a check-in without the prototype. */
+export async function getSensorEstimate(): Promise<SensorEstimate> {
+  const r = await fetch(`${API_URL}/api/v1/sensors/estimate`, { headers: { ...authHeaders() } });
+  if (!r.ok) throw await apiError("sensor estimate", r);
+  return r.json();
+}
+
 export interface ExerciseSuggestion {
   id: string;
   name: string;
