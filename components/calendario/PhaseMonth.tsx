@@ -32,6 +32,7 @@ export function PhaseMonth({
   selected,
   onSelect,
   language,
+  className,
 }: {
   month: string;
   days: CalendarDay[];
@@ -40,6 +41,7 @@ export function PhaseMonth({
   selected: string;
   onSelect: (date: string) => void;
   language: Language;
+  className?: string;
 }) {
   const first = fromISODate(`${month}-01`);
   const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
@@ -73,7 +75,7 @@ export function PhaseMonth({
   };
 
   return (
-    <div>
+    <div className={cx("lg:flex lg:flex-col", className)}>
       <div aria-hidden="true" className="grid grid-cols-7 pb-2 text-center text-caption font-extrabold text-ink-suave">
         {Array.from({ length: 7 }, (_, i) => (
           <span key={i}>{weekdayFormat.format(new Date(2024, 0, 1 + i)).toUpperCase()}</span>
