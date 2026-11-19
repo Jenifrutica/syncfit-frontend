@@ -165,3 +165,82 @@ export const PRIVACIDAD: Record<Language, LegalDoc> = {
     ],
   },
 };
+
+export const TERMINOS: Record<Language, LegalDoc> = {
+  ES: {
+    titulo: "Términos de uso",
+    actualizado: "Última actualización: 19 de noviembre de 2026",
+    intro: "Al crear una cuenta o usar SyncFit Edge aceptas estos términos. Son cortos y en lenguaje claro; léelos junto con nuestra Política de privacidad.",
+    secciones: [
+      { titulo: "Qué es SyncFit Edge", parrafos: ["Un proyecto académico que propone rutinas de entrenamiento según tu fase del ciclo o tu semana de embarazo, tus sensores y el equipo de tu gimnasio. Es una versión de evaluación, no un servicio comercial."] },
+      {
+        titulo: "No es consejo médico",
+        parrafos: ["Las rutinas y las sugerencias de nutrición son orientativas y no reemplazan la valoración de tu médico, tu ginecólogo ni tu entrenador. Si estás embarazada, tienes una condición de salud o sientes dolor, mareo o algo fuera de lo normal, detente y consulta a un profesional."],
+      },
+      { titulo: "Rutinas generadas automáticamente", parrafos: ["Las propone un motor que combina reglas fijas y un modelo de inteligencia artificial. Un validador bloquea los ejercicios contraindicados que conoce, pero puede haber errores: revisa siempre la rutina, ajusta el peso a lo que puedes hacer con buena técnica y usa tu criterio."] },
+      { titulo: "Tu cuenta", parrafos: ["Da datos verdaderos, usa una contraseña segura y no la compartas. Eres responsable de lo que se haga con tu cuenta. Puedes eliminarla cuando quieras desde Perfil → Cuenta."] },
+      {
+        titulo: "Uso permitido",
+        parrafos: ["No puedes:"],
+        lista: [
+          "Hacerte pasar por otra persona ni usar documentos ajenos.",
+          "Intentar acceder a cuentas, datos o partes del sistema que no te corresponden.",
+          "Sobrecargar o atacar el servicio, ni automatizar su uso sin permiso.",
+          "Subir fotos o textos ilegales, ofensivos o sobre los que no tengas derechos.",
+        ],
+      },
+      { titulo: "Gimnasios", parrafos: ["Si administras un gimnasio, eres responsable de que la información y las fotos de tus máquinas sean correctas y de que tengas permiso para publicarlas. Tus atletas reciben rutinas basadas en ese inventario."] },
+      { titulo: "Propiedad intelectual", parrafos: ["El software, los diseños y la mascota Pulsi pertenecen a sus autores, con todos los derechos reservados. Las fotos y los textos que subas siguen siendo tuyos; nos das permiso para guardarlos y mostrarlos dentro de la app mientras tengas tu cuenta."] },
+      { titulo: "Disponibilidad", parrafos: ["Al ser un proyecto académico, el servicio se ofrece tal como está, puede tener interrupciones o cambios y puede cerrarse cuando termine el proyecto. Podemos desactivar cuentas que incumplan estos términos."] },
+      { titulo: "Ley aplicable", parrafos: ["Estos términos se rigen por las leyes de la República de Colombia."] },
+      { titulo: "Contacto", parrafos: [`Para dudas o solicitudes, escríbenos por el canal público del proyecto: ${CONTACTO}.`] },
+    ],
+  },
+  EN: {
+    titulo: "Terms of use",
+    actualizado: "Last updated: November 19, 2026",
+    intro: "By creating an account or using SyncFit Edge you accept these terms. They're short and plain; read them with our Privacy policy. The Spanish version prevails.",
+    secciones: [
+      { titulo: "What SyncFit Edge is", parrafos: ["An academic project that suggests training routines based on your cycle phase or pregnancy week, your sensors and your gym's equipment. It's an evaluation version, not a commercial service."] },
+      { titulo: "Not medical advice", parrafos: ["Routines and nutrition suggestions are guidance and don't replace advice from your doctor, gynecologist or coach. If you're pregnant, have a health condition or feel pain, dizziness or anything unusual, stop and see a professional."] },
+      { titulo: "Automatically generated routines", parrafos: ["They come from an engine that combines fixed rules and an AI model. A validator blocks the contraindicated exercises it knows, but mistakes can happen: always review the routine, set weights you can lift with good form and use your judgment."] },
+      { titulo: "Your account", parrafos: ["Give true information, use a strong password and don't share it. You're responsible for what's done with your account. You can delete it anytime from Profile → Account."] },
+      {
+        titulo: "Acceptable use",
+        parrafos: ["You may not:"],
+        lista: [
+          "Impersonate someone or use another person's ID.",
+          "Try to access accounts, data or parts of the system that aren't yours.",
+          "Overload or attack the service, or automate it without permission.",
+          "Upload illegal or offensive photos or text, or content you have no rights to.",
+        ],
+      },
+      { titulo: "Gyms", parrafos: ["If you run a gym, you're responsible for your machines' information and photos being accurate and for having permission to publish them. Your athletes get routines based on that inventory."] },
+      { titulo: "Intellectual property", parrafos: ["The software, designs and the Pulsi mascot belong to their authors, all rights reserved. Photos and text you upload remain yours; you allow us to store and show them in the app while you keep your account."] },
+      { titulo: "Availability", parrafos: ["As an academic project, the service is provided as is, may have outages or changes and may close when the project ends. We may deactivate accounts that break these terms."] },
+      { titulo: "Governing law", parrafos: ["These terms are governed by the laws of the Republic of Colombia."] },
+      { titulo: "Contact", parrafos: [`For questions or requests, reach us through the project's public channel: ${CONTACTO}.`] },
+    ],
+  },
+  ZH: {
+    titulo: "使用条款",
+    actualizado: "最后更新：2026 年 11 月 19 日",
+    intro: "创建账户或使用 SyncFit Edge 即表示你接受这些条款。条款简短易懂，请与我们的隐私政策一起阅读。以西班牙语版本为准。",
+    secciones: [
+      { titulo: "SyncFit Edge 是什么", parrafos: ["一个学术项目，根据你的周期阶段或孕周、传感器数据和健身房器械推荐训练。这是评估版本，并非商业服务。"] },
+      { titulo: "不构成医疗建议", parrafos: ["训练和营养建议仅供参考，不能代替医生、妇科医生或教练的意见。如果你怀孕、有健康问题，或感到疼痛、头晕或其他异常，请停止并咨询专业人士。"] },
+      { titulo: "自动生成的训练", parrafos: ["训练由结合固定规则和人工智能模型的引擎生成。校验器会屏蔽已知的不适合动作，但仍可能出错：请务必检查训练内容，选择能以正确姿势完成的重量，并自行判断。"] },
+      { titulo: "你的账户", parrafos: ["请提供真实信息，使用安全的密码并不要与他人共享。你需对账户内的行为负责。你可以随时在 个人资料 → 账户 中删除账户。"] },
+      {
+        titulo: "允许的使用",
+        parrafos: ["你不得："],
+        lista: ["冒充他人或使用他人的证件。", "试图访问不属于你的账户、数据或系统部分。", "使服务过载或攻击服务，或未经许可自动化使用。", "上传违法、冒犯性或你无权使用的照片或文字。"],
+      },
+      { titulo: "健身房", parrafos: ["如果你管理健身房，你需确保器械信息和照片准确，并有权发布。你的运动员会根据该器械清单获得训练。"] },
+      { titulo: "知识产权", parrafos: ["软件、设计和吉祥物 Pulsi 归作者所有，保留所有权利。你上传的照片和文字仍归你所有；在你保留账户期间，你允许我们在应用内保存和展示它们。"] },
+      { titulo: "可用性", parrafos: ["作为学术项目，服务按现状提供，可能中断或变更，并可能在项目结束时关闭。我们可以停用违反这些条款的账户。"] },
+      { titulo: "适用法律", parrafos: ["本条款受哥伦比亚共和国法律管辖。"] },
+      { titulo: "联系方式", parrafos: [`如有疑问或请求，请通过项目的公开渠道联系我们：${CONTACTO}。`] },
+    ],
+  },
+};
