@@ -178,6 +178,9 @@ function useSensores(
       // Without a finger the optical sensor reports 0 bpm: show "—", not 0.
       return paso.id === 0 && value === 0 ? null : value;
     }
+    // Measuring with the prototype but no reading right now: show "—" (never
+    // a made-up value counting up). Only "Simular" animates.
+    if (modo === "manual") return null;
     if (fase === "listo") return null;
     const f = fase === "hecho" ? 1 : progreso;
     const v = paso.desde + (paso.final - paso.desde) * f;
@@ -210,7 +213,19 @@ export function CapturaSensores({ onDone, onComplete, onCancel }: CapturaProps) 
   // Peak push of the force step and whether any reading came from the device.
   const peakForceRef = useRef(0);
   const fromDeviceRef = useRef(false);
-  const liveValues = useMemo(() => liveValuesFrom(live), [live]);
+  // Campus Wi-Fi drops for a moment now and then: keep the last real reading
+  // for up to 10 s instead of losing it.
+  const lastLiveRef = useRef<{ values: LiveValues; at: number } | null>(null);
+  const liveValues = useMemo(() => {
+    const now = Date.now();
+    const current = liveValuesFrom(live);
+    if (current) {
+      lastLiveRef.current = { values: current, at: now };
+      return current;
+    }
+    const last = lastLiveRef.current;
+    return last && now - last.at < 10_000 ? last.values : null;
+  }, [live]);
   const liveValuesRef = useRef<LiveValues | null>(null);
 
   useEffect(() => {
