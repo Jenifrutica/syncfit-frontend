@@ -182,7 +182,7 @@ export function NutricionScreen() {
             {daily.length > 0 && <ProgressBar value={takenCount} max={daily.length} label={tf(language, "nutri.tomados", { n: takenCount, total: daily.length })} />}
 
             {mine.length === 0 ? (
-              <Card>
+              <Card className="lg:grid lg:flex-1 lg:place-items-center">
                 <EmptyState mood="feliz" title={t(language, "nutri.ninguno")} />
               </Card>
             ) : (
