@@ -6,9 +6,10 @@ import { Check } from "@phosphor-icons/react";
 import { cx } from "@/lib/cx";
 import { Pulsi } from "@/components/mascot/Pulsi";
 import { Spinner } from "@/components/ui/Spinner";
-import { t, type Language } from "@/lib/i18n";
+import { ProgressBar } from "@/components/ui/States";
+import { SCAN_STEPS, scanState } from "@/lib/escaneo";
+import { t, tf, type Language } from "@/lib/i18n";
 
-const STEPS = ["rutina.escaneo.sensor", "rutina.escaneo.local", "rutina.escaneo.generativa", "rutina.escaneo.validador"];
 
 // A PPG-like beat, 64 units wide and ending at its start height; 16 beats
 // fill 1024 units, so sliding by half (512) loops seamlessly.
@@ -18,20 +19,21 @@ const WAVE = `M0 40 ${Array.from({ length: 16 }, () => BEAT).join(" ")}`;
 /**
  * What happens server-side during POST /capture, shown as four stations
  * (sensor → local AI → generative AI → validator) while Pulsi breathes and a
- * pulse wave runs. The request is a single call, so stations advance on a
- * timer and all complete when the answer arrives.
+ * pulse wave runs. The request is a single call, so stations follow the time
+ * since the job started (lib/escaneo.ts): leaving and coming back resumes
+ * where it was, and the last station waits for the answer.
  */
-export function ScanProgress({ done, language }: { done: boolean; language: Language }) {
-  const [active, setActive] = useState(0);
+export function ScanProgress({ done, startedAt, language }: { done: boolean; startedAt: number; language: Language }) {
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (done) {
-      setActive(STEPS.length);
-      return;
-    }
-    const id = window.setInterval(() => setActive((i) => Math.min(i + 1, STEPS.length - 1)), 900);
+    if (done) return;
+    const id = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(id);
   }, [done]);
+
+  const { active, step: stepProgress, overall } = scanState(now - startedAt, done);
+  const percent = Math.round(overall * 100);
 
   return (
     <div role="status" aria-live="polite" className="mx-auto flex max-w-md flex-col items-center gap-6 px-4 py-10 text-center">
@@ -52,22 +54,43 @@ export function ScanProgress({ done, language }: { done: boolean; language: Lang
         <p className="text-body font-bold text-ink-suave">{t(language, "rutina.escaneo.respira")}</p>
       </div>
 
+      <div className="flex w-full flex-col gap-2">
+        <p className="text-small font-extrabold tabular-nums" aria-hidden="true" data-scan-avance>
+          {tf(language, "rutina.escaneo.avance", { n: percent })}
+        </p>
+        <ProgressBar value={percent} max={100} label={tf(language, "rutina.escaneo.avance", { n: percent })} />
+      </div>
+
       <ol className="flex w-full flex-col gap-2 text-left">
-        {STEPS.map((key, index) => {
+        {SCAN_STEPS.map(({ key: step }, index) => {
+          const key = `rutina.escaneo.${step}`;
           const state = index < active ? "hecho" : index === active ? "ahora" : "luego";
           return (
             <li
               key={key}
               className={cx(
-                "flex items-center gap-3 rounded-ficha px-4 py-3 font-display text-body font-semibold transition-opacity duration-[var(--dur-panel)]",
+                "flex items-start gap-3 rounded-ficha px-4 py-3 font-display text-body font-semibold transition-opacity duration-[var(--dur-panel)]",
                 state === "luego" ? "bg-nube/50 opacity-60" : "bg-nube",
               )}
             >
               <span aria-hidden="true" className={cx("grid size-8 shrink-0 place-items-center rounded-full", state === "hecho" ? "bg-exito-suave text-exito" : "bg-fase-suave")}>
                 {state === "hecho" ? <Check size={18} weight="bold" aria-hidden="true" /> : state === "ahora" ? <Spinner size={18} /> : <span className="text-small">{index + 1}</span>}
               </span>
-              {t(language, key)}
-              {state !== "luego" && <span className="sr-only"> ({t(language, state === "hecho" ? "comun.hecho" : "comun.enCurso")})</span>}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span>
+                  {t(language, key)}
+                  {state !== "luego" && <span className="sr-only"> ({t(language, state === "hecho" ? "comun.hecho" : "comun.enCurso")})</span>}
+                </span>
+                {state === "ahora" && (
+                  <>
+                    {/* What this station is doing right now, plus how far it got. */}
+                    <span className="font-sans text-small font-bold text-ink-suave" data-scan-detalle>{t(language, `${key}.detalle`)}</span>
+                    <span aria-hidden="true" className="h-1.5 overflow-hidden rounded-full bg-fase-suave">
+                      <span className="block h-full origin-left rounded-full bg-fase transition-transform duration-200 ease-linear" style={{ transform: `scaleX(${stepProgress})` }} />
+                    </span>
+                  </>
+                )}
+              </div>
             </li>
           );
         })}

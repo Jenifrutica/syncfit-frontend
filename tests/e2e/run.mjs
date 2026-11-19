@@ -334,8 +334,9 @@ const athleteToken = await demoToken("ATHLETE");
   await page.waitForTimeout(800);
   check("rutina: aparece la captura", (await page.getByText(/pon la yema en el sensor óptico/i).count()) > 0);
   await page.getByRole("button", { name: /^simular$/i }).click();
-  await page.waitForTimeout(12_000);
-  check("rutina: resultado visible", (await page.getByText(/tu rutina de hoy/i).count()) > 0);
+  // The scan now paces its four stations (~11 s) before showing the routine.
+  const resultado = await page.getByText(/tu rutina de hoy/i).first().waitFor({ timeout: 40_000 }).then(() => true, () => false);
+  check("rutina: resultado visible", resultado);
   check("rutina: no quedó vacía", (await page.getByText(/quedó vacía/i).count()) === 0);
   check("rutina: sin errores de consola", net.errors.length === 0, net.errors[0]);
 
