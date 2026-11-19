@@ -172,6 +172,7 @@ Base: **componentes propios sobre Tailwind 4** (sin librería de UI de terceros)
 | `Button`, `ButtonLink`, `IconButton` | `components/ui/Button.tsx` | variantes primario/secundario/suave/peligro/fantasma; sm 44 / md 48 / lg 56 px; `loading` + `loadingLabel`; `IconButton` exige `label` |
 | `Card` | `components/ui/Card.tsx` | tonos nube/crema/fase/fase-suave/rosa-claro/lavanda/tinta; `elevated`; nunca anidada |
 | `Chip`, `Badge` | `components/ui/Chip.tsx` | chip = toggle con `aria-pressed`; badge = etiqueta estática |
+| `SeleccionMasiva` | `components/ui/SeleccionMasiva.tsx` | "Seleccionar todo / Deseleccionar todo" sobre cualquier lista de chips; props `values`, `selected`, `onChange`, `max?` ("Elegir hasta N") y `canAdd?`; lógica en `lib/seleccion.ts` |
 | `Field`, `Input`, `Select`, `TextArea` | `components/ui/Field.tsx` | etiqueta arriba, ayuda/error abajo con `aria-describedby`; `requiredText` localizado |
 | `Dialog` | `components/ui/Dialog.tsx` | `variant="modal"` o `"sheet"` (hoja inferior en móvil) |
 | `ToastProvider`, `useToast` | `components/ui/Toast.tsx` | exito/error/info con icono; error dura 7 s |
