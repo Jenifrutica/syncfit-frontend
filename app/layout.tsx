@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 
 import { ToastProvider } from "@/components/ui/Toast";
+import { AvisoServidor } from "@/components/session/AvisoServidor";
 import { SessionProvider } from "@/lib/session";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SessionProvider>
           <ToastProvider>{children}</ToastProvider>
+          <AvisoServidor />
         </SessionProvider>
       </body>
     </html>
