@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Barbell, Buildings, CalendarBlank, House, Pill, SignOut, UserCircle, type Icon } from "@phosphor-icons/react";
 
+import { GymDeletionNotices } from "@/components/app/GymDeletionNotices";
 import { cx } from "@/lib/cx";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +40,7 @@ function isActive(pathname: string, href: string) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, language, signOut } = useSession();
+  const { user, profile, language, signOut } = useSession();
   const fase = currentFase(profile?.timeline, [], todayISO());
 
   const logout = () => {
@@ -95,6 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      {user && <GymDeletionNotices key={user.id} language={language} />}
       <div className="pb-28 lg:pb-10">{children}</div>
 
       <nav
