@@ -112,7 +112,7 @@ export function LandingScreen() {
           </div>
         </header>
 
-        <main id="contenido" className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-4 pb-12 text-center">
+        <main id="contenido" data-hunde className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 pt-4 pb-12 text-center">
           <div data-entra className="relative mb-4 flex flex-col items-center [@media(max-height:720px)]:-mt-4 [@media(max-height:720px)]:mb-0 [@media(max-height:720px)]:scale-80">
             <SpeechBubble tail="abajo" className="mb-3 -rotate-2">{t(language, "land.hero.burbuja")}</SpeechBubble>
             <div className="animate-flotar">
@@ -135,9 +135,9 @@ export function LandingScreen() {
       </div>
 
       {/* ---------- Problem (lavanda) ---------- */}
-      <CapasGoteo variant="gotea" edge="var(--cielo)" base="var(--color-lavanda)" />
-      <section aria-labelledby="problema" className="bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
-        <div className="mx-auto max-w-5xl">
+      <section aria-labelledby="problema" className="relative z-20 bg-lavanda px-4 py-16 text-lavanda-texto sm:py-24">
+        <CapasGoteo color="var(--color-lavanda)" />
+        <div data-hunde className="mx-auto max-w-5xl">
           <h2 id="problema" data-revela className="max-w-[24ch] text-balance font-display text-h1 font-bold text-nube">
             {t(language, "land.problema.titulo")}
           </h2>
@@ -155,10 +155,10 @@ export function LandingScreen() {
           </ul>
         </div>
       </section>
-      <CapasGoteo variant="sube" edge="var(--cielo)" base="var(--color-lavanda)" />
 
       {/* ---------- Phases ---------- */}
-      <section data-cielo="rosa-claro" aria-labelledby="fases" className="relative px-4 py-16 sm:py-24">
+      <section data-cielo="rosa-claro" aria-labelledby="fases" className="relative z-20 bg-[var(--cielo)] px-4 py-16 sm:py-24">
+        <CapasGoteo color="var(--cielo)" />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
           <div data-nube="1.4" className="absolute top-[8%] -right-16 sm:right-[2%]"><Cloud className="text-nube/70" width={220} /></div>
           <div data-nube="0.5" className="absolute top-[40%] -left-10 max-sm:hidden"><Cloud className="text-nube/40" width={120} /></div>
@@ -270,7 +270,7 @@ export function LandingScreen() {
       </section>
 
       {/* ---------- Final CTA + footer ---------- */}
-      <section data-cielo="ovulatoria-suave" aria-labelledby="final" className="relative px-4 pt-8 pb-20 text-center sm:pb-28">
+      <section data-cielo="ovulatoria-suave" aria-labelledby="final" className="relative px-4 pt-8 pb-36 text-center sm:pb-48">
         <div className="mx-auto flex max-w-3xl flex-col items-center">
           <div data-revela className="animate-flotar">
             <Pulsi size={96} wings color="var(--color-menstrual)" />
@@ -281,8 +281,8 @@ export function LandingScreen() {
           </div>
         </div>
       </section>
-      <CapasGoteo variant="gotea" edge="var(--cielo)" base="var(--color-ink)" />
-      <footer className="bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
+      <footer className="relative z-20 bg-ink px-4 pt-10 pb-12 text-lavanda-texto">
+        <CapasGoteo color="var(--color-ink)" />
         <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div className="text-nube">
             <Wordmark />
