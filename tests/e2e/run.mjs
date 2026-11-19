@@ -229,6 +229,7 @@ const superToken = await demoToken("SUPER_ADMIN");
   await page.waitForTimeout(1200);
   page.off("request", onCatalogWrite);
   check("catálogo: ejercicio creado", (await page.getByText(/sentadilla e2e/i).count()) > 0);
+  check("catálogo: crear ejercicio usa POST", catalogWrites.includes("POST"), catalogWrites.join(" | "));
 
   await page.getByRole("searchbox").fill(exercise.id);
   await page.waitForTimeout(600);
